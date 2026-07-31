@@ -6,10 +6,11 @@ interface TransactionUpdates {
   description: string;
   amount: number;
   category: string | null;
+  status?: string;
 }
 
 interface EditTransactionModalProps {
-  tx: { id: string; date: string; description: string; amount: number; category: string | null };
+  tx: { id: string; date: string; description: string; amount: number; category: string | null; status?: string };
   categories: string[];
   cap?: string;
   onClose: () => void;
@@ -32,13 +33,27 @@ export function EditTransactionModal({ tx, categories, cap = "Lançamento", onCl
     const signed = tipo === "despesa" ? -Math.abs(parsed) : Math.abs(parsed);
     setSaving(true);
     setErr(null);
+    const nextStatus =
+      tx.status === "approved" ? undefined : category?.trim() ? "classified" : "pending";
     const { error } = await supabase()
       .from("transactions")
-      .update({ date, description: desc, amount: signed, category: category || null })
+      .update({
+        date,
+        description: desc,
+        amount: signed,
+        category: category || null,
+        ...(nextStatus ? { status: nextStatus } : {}),
+      })
       .eq("id", tx.id);
     setSaving(false);
     if (error) { setErr(error.message); return; }
-    onSave(tx.id, { date, description: desc, amount: signed, category: category || null });
+    onSave(tx.id, {
+      date,
+      description: desc,
+      amount: signed,
+      category: category || null,
+      ...(nextStatus ? { status: nextStatus } : {}),
+    });
   }
 
   return (

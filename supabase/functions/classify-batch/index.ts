@@ -38,6 +38,54 @@ function buildPattern(raw: string): string {
   return parts.join(" ");
 }
 
+/** Aceita match exato ou parcial (IA costuma omitir código "3.1.1 ·" do plano). */
+function resolveCategory(aiCat: string, categoryNames: string[]): string | null {
+  if (categoryNames.includes(aiCat)) return aiCat;
+  const norm = aiCat.trim().toLowerCase();
+  const exactIgnoreCase = categoryNames.find((c) => c.toLowerCase() === norm);
+  if (exactIgnoreCase) return exactIgnoreCase;
+  const bySuffix = categoryNames.find((c) => {
+    const suffix = c.split("·").pop()?.trim().toLowerCase() ?? c.toLowerCase();
+    return suffix === norm || suffix.includes(norm) || norm.includes(suffix);
+  });
+  if (bySuffix) return bySuffix;
+  return categoryNames.find((c) => c.toLowerCase().includes(norm) || norm.includes(c.toLowerCase())) ?? null;
+}
+
+/** Fallback para históricos abreviados (Caixa: DEB PIX CH, COMPRA, PAG BOLETO…). */
+function heuristicCategory(description: string, amount: number, categoryNames: string[]): string | null {
+  const d = description.toUpperCase().trim();
+  const pick = (...patterns: RegExp[]) =>
+    categoryNames.find((c) => patterns.some((p) => p.test(c))) ?? null;
+
+  if (/^CRE PIX|^CRED PIX|^DP DIN|^REND|^TED.*CRED|^RECEB|^CREDIT/i.test(d) || (amount > 0 && /^CRE |^DP /i.test(d))) {
+    return pick(/receita|honor|entrada/i) ?? pick(/receber/i);
+  }
+  if (/^DEB PIX|^ENVIO PIX|^PIX ENVIAD|^DB PPG|^SAQUE/i.test(d) || (amount < 0 && /^DEB /i.test(d))) {
+    return (
+      pick(/transfer/i) ??
+      pick(/fornecedor|pagamento|despesa vari|despesa fixa|^4\./i) ??
+      pick(/despesa/i)
+    );
+  }
+  if (/^CR LEV|^DEP DIN|^DP DIN|^CREDIT/i.test(d) || (amount > 0 && /^DEP /i.test(d))) {
+    return pick(/honor|receita|^3\.1/i) ?? pick(/receber|entrada/i);
+  }
+  if (/^PG ORG GOV|^PAG FONE|^IMPOST|^INSS|^FGTS/i.test(d)) {
+    return pick(/imposto|tribut|gov|telefon|comunic|^4\./i) ?? pick(/despesa fixa/i);
+  }
+  if (/^PAG BOLETO|^BOLETO|^DEB AUT/i.test(d)) {
+    return pick(/fornecedor|boleto|despesa fixa|despesa vari/i);
+  }
+  if (/^COMPRA|^COMPR |^DEB CART|^CARTAO/i.test(d)) {
+    return pick(/cart[aã]o|despesa vari|administrativ/i);
+  }
+  if (/^TAR |^TARIFA|^IOF|^TAXA/i.test(d)) {
+    return pick(/tarifa|banc/i);
+  }
+  return null;
+}
+
 interface TxRow {
   id: string;
   description: string;
@@ -103,9 +151,10 @@ Categorias disponíveis: ${categories.join(", ")}
 
 Classifique cada lançamento abaixo. Retorne APENAS um JSON array puro, sem markdown, sem texto extra.
 Formato: [{"id":"...","cat":"Categoria · Subcategoria","rec":true/false,"conf":0-100}]
-- cat: exatamente uma das categorias listadas
+- cat: exatamente uma das categorias listadas (copie o nome completo, incluindo código "3.1.1 ·" se houver)
 - rec: true se for despesa ou receita recorrente mensal
 - conf: sua confiança de 0 a 100
+- Históricos abreviados de banco (ex.: "DEB PIX CH", "COMPRA", "PAG BOLETO", "CRE PIX CH"): use valor, sinal e contexto do setor para inferir a categoria mais provável — nunca deixe de classificar por falta de detalhe no histórico
 
 Lançamentos:
 ${JSON.stringify(payload)}`,
@@ -287,8 +336,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── CAMADA 3: Claude Haiku ─────────────────────────────────────────────────
-    // Categorias do banco (não hardcoded)
+    // Categorias do banco (camadas 2.5 e 3)
     const { data: categoriesRaw } = await supabase
       .from("categories")
       .select("name")
@@ -298,6 +346,38 @@ Deno.serve(async (req) => {
 
     const categoryNames = (categoriesRaw ?? []).map((c) => c.name);
 
+    // ── CAMADA 2.5: Heurística para históricos abreviados (Caixa etc.) ────────
+    const approvedByHeuristic: string[] = [];
+    const remainingAfterHeuristic: TxRow[] = [];
+
+    if (categoryNames.length > 0) {
+      const heuristicGroups = new Map<string, string[]>();
+      for (const tx of remainingForAI) {
+        const category = heuristicCategory(tx.description, tx.amount, categoryNames);
+        if (category) {
+          if (!heuristicGroups.has(category)) heuristicGroups.set(category, []);
+          heuristicGroups.get(category)!.push(tx.id);
+          approvedByHeuristic.push(tx.id);
+        } else {
+          remainingAfterHeuristic.push(tx);
+        }
+      }
+      for (const [category, ids] of heuristicGroups.entries()) {
+        await supabase
+          .from("transactions")
+          .update({
+            category,
+            is_recurring: false,
+            status: "classified",
+            confidence: 75,
+          })
+          .in("id", ids);
+      }
+    } else {
+      remainingAfterHeuristic.push(...remainingForAI);
+    }
+
+    // ── CAMADA 3: Claude Haiku ─────────────────────────────────────────────────
     // Top padrões recorrentes para contexto do prompt
     const { data: topPatterns } = await supabase
       .from("recurrence_patterns")
@@ -307,7 +387,7 @@ Deno.serve(async (req) => {
       .limit(10);
 
     // Se não há categorias cadastradas, camada 3 não tem como classificar — pular IA
-    if (categoryNames.length === 0 && remainingForAI.length > 0) {
+    if (categoryNames.length === 0 && remainingAfterHeuristic.length > 0) {
       console.warn("[classify-batch] cliente sem categorias ativas — pulando camada 3, todas ficam pending");
     }
 
@@ -319,8 +399,8 @@ Deno.serve(async (req) => {
     if (categoryNames.length > 0) {
       // Divide os lançamentos restantes em lotes
       const batches: TxRow[][] = [];
-      for (let i = 0; i < remainingForAI.length; i += BATCH_SIZE) {
-        batches.push(remainingForAI.slice(i, i + BATCH_SIZE));
+      for (let i = 0; i < remainingAfterHeuristic.length; i += BATCH_SIZE) {
+        batches.push(remainingAfterHeuristic.slice(i, i + BATCH_SIZE));
       }
 
       // Executa os lotes em paralelo, em ondas de AI_CONCURRENCY (antes era sequencial → timeout em uploads grandes)
@@ -354,16 +434,15 @@ Deno.serve(async (req) => {
         }
         const resultIds = new Set(results.map((r) => r.id));
         for (const r of results) {
-          // Categoria desconhecida (alucinação): deixa como pending para revisão manual —
-          // nunca marca "classified" sem categoria válida (evita dado sujo nos relatórios).
-          if (!categoryNames.includes(r.cat)) {
-            console.error(`[classify-batch] AI hallucinated category "${r.cat}" for tx ${r.id} — deixando pending`);
+          const resolved = resolveCategory(r.cat, categoryNames);
+          if (!resolved) {
+            console.error(`[classify-batch] AI category not resolved "${r.cat}" for tx ${r.id} — deixando pending`);
             aiPending++;
             continue;
           }
-          const key = `${r.cat}||${r.rec ?? false}||${r.conf ?? 0}`;
+          const key = `${resolved}||${r.rec ?? false}||${r.conf ?? 0}`;
           if (!classifiedGroups.has(key)) {
-            classifiedGroups.set(key, { ids: [], category: r.cat, is_recurring: r.rec ?? false, confidence: r.conf ?? 0 });
+            classifiedGroups.set(key, { ids: [], category: resolved, is_recurring: r.rec ?? false, confidence: r.conf ?? 0 });
           }
           classifiedGroups.get(key)!.ids.push(r.id);
           aiClassified++;
@@ -387,11 +466,11 @@ Deno.serve(async (req) => {
           .in("id", ids);
       }
     } else {
-      aiPending = remainingForAI.length;
+      aiPending = remainingAfterHeuristic.length;
     }
 
     // Atualiza contadores do upload (classificados aguardando aprovação + pendentes de classificação)
-    const totalClassified = approvedByRule.length + approvedByRecurrence.length + aiClassified;
+    const totalClassified = approvedByRule.length + approvedByRecurrence.length + approvedByHeuristic.length + aiClassified;
     await supabase
       .from("uploads")
       .update({
@@ -406,6 +485,7 @@ Deno.serve(async (req) => {
       client_id,
       byRule: approvedByRule.length,
       byRecurrence: approvedByRecurrence.length,
+      byHeuristic: approvedByHeuristic.length,
       aiClassified,
       aiPending,
       totalClassified,

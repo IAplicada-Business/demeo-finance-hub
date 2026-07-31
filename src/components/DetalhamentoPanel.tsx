@@ -57,14 +57,14 @@ export function DetalhamentoPanel({ clientId, startDate, endDate }: Props) {
         .gte("date", startDate)
         .lte("date", endDate)
         .order("date"),
-      (supabase() as any)
+      supabase()
         .from("monthly_revenue_entries")
         .select("id, entry_date, invoice_ref, sales_channel, gross_amount, taxes_withheld")
         .eq("client_id", clientId)
         .gte("entry_date", startDate)
         .lte("entry_date", endDate)
         .order("entry_date"),
-    ]).then(([{ data: txData }, { data: revData }]: [{ data: unknown }, { data: unknown }]) => {
+    ]).then(([{ data: txData }, { data: revData }]) => {
       setTxs((txData as TxRow[] | null) ?? []);
       setRevenues((revData as RevenueEntry[] | null) ?? []);
       setLoading(false);

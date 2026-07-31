@@ -1,17 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useState, useRef, useEffect } from "react";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { AdminLayout, PageHeader } from "@/components/AdminLayout";
 import { brl } from "@/lib/utils";
+import { uploadPeriodFromIsoMonth, defaultUploadIsoMonth, inferUploadPeriodFromFilename, dominantIsoMonthFromDates } from "@/lib/dateUtils";
 import { supabase } from "@/lib/supabase";
 import { useCategories } from "@/hooks/useCategories";
 import { EditTransactionModal } from "@/components/EditTransactionModal";
+import { PendingApprovalBanner } from "@/components/PendingApprovalBanner";
+import {
+  approveTransactionsBatch,
+  syncUploadStatusAfterApproval,
+  type ApproveTxPayload,
+} from "@/lib/approveTransactions";
+import { installmentGroupId } from "@/lib/installmentGroupId";
 
 export const Route = createFileRoute("/admin/importar")({
   component: ImportarPage,
   head: () => ({ meta: [{ title: "Importar Extratos · Aurora" }] }),
 });
 
-type Stage = "idle" | "reading" | "identifying" | "classifying" | "done";
+type Stage = "idle" | "reading" | "classifying" | "done";
 
 interface Transaction {
   id: string;
@@ -41,21 +50,6 @@ interface InstallmentState {
   total: number;
 }
 
-function buildDescPattern(desc: string): string {
-  return desc.replace(/\d+/g, "").replace(/\s+/g, " ").trim().toLowerCase();
-}
-
-async function calcGroupId(txId: string, description: string, installmentTotal: number, date: string): Promise<string> {
-  const yearMonth = date.slice(0, 7);
-  const input = `${txId}:${buildDescPattern(description)}:${installmentTotal}:${yearMonth}`;
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
-  const b = new Uint8Array(buf);
-  b[6] = (b[6] & 0x0f) | 0x40;
-  b[8] = (b[8] & 0x3f) | 0x80;
-  const h = Array.from(b.slice(0, 16)).map((x) => x.toString(16).padStart(2, "0")).join("");
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
-}
-
 interface ClientOption {
   id: string;
   name: string;
@@ -80,10 +74,9 @@ function ImportarPage() {
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [clientId, setClientId] = useState("");
   const [clientsLoading, setClientsLoading] = useState(true);
-  const [uploadPeriod, setUploadPeriod] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  });
+  const [uploadPeriod, setUploadPeriod] = useState(defaultUploadIsoMonth);
+  const [periodInferredFromFile, setPeriodInferredFromFile] = useState(false);
+  const [periodMismatch, setPeriodMismatch] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -101,6 +94,21 @@ function ImportarPage() {
   const [installments, setInstallments] = useState<Record<string, InstallmentState>>({});
 
   const CATEGORIAS = useCategories(clientId);
+  const qc = useQueryClient();
+  const selectedClientName = clients.find((c) => c.id === clientId)?.name;
+
+  const { data: activeCategoryCount } = useQuery({
+    queryKey: ["categories", "active-count", clientId],
+    queryFn: async () => {
+      const { count } = await supabase()
+        .from("categories")
+        .select("*", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .eq("is_active", true);
+      return count ?? 0;
+    },
+    enabled: !!clientId,
+  });
 
   // Manual entry form
   const [manualOpen, setManualOpen] = useState(false);
@@ -134,6 +142,20 @@ function ImportarPage() {
     loadClients();
   }, []);
 
+
+  function applySelectedFiles(fileList: File[]) {
+    setFiles(fileList);
+    setError(null);
+    setPeriodMismatch(null);
+    const inferred = fileList.map((f) => inferUploadPeriodFromFilename(f.name)).find(Boolean);
+    if (inferred) {
+      setUploadPeriod(inferred);
+      setPeriodInferredFromFile(true);
+    } else {
+      setPeriodInferredFromFile(false);
+    }
+    if (clientId) setAwaitingConfirm(true);
+  }
 
   async function handleUpload(fileList: File[], uploadClientId = clientId) {
     if (!fileList.length) return;
@@ -176,7 +198,6 @@ function ImportarPage() {
         setStage("reading");
         const file_base64 = await toBase64(file);
 
-        setStage("identifying");
         setStage("classifying");
 
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-upload`, {
@@ -190,7 +211,7 @@ function ImportarPage() {
             file_base64,
             filename: file.name,
             client_id: uploadClientId,
-            period: uploadPeriod.split("-").reverse().join("/"),
+            period: uploadPeriodFromIsoMonth(uploadPeriod),
           }),
         });
 
@@ -215,6 +236,16 @@ function ImportarPage() {
     setTransactions(allTransactions);
     setFileBanks(allFileBanks);
     if (anyTimedOut) setClassifyTimedOut(true);
+
+    const dominant = dominantIsoMonthFromDates(allTransactions.map((t) => t.date).filter(Boolean));
+    if (dominant && dominant !== uploadPeriod) {
+      setPeriodMismatch(
+        `Os lançamentos são majoritariamente de ${uploadPeriodFromIsoMonth(dominant)}, mas o período selecionado é ${uploadPeriodFromIsoMonth(uploadPeriod)}. Ajuste o mês acima para o histórico ficar correto.`
+      );
+    } else {
+      setPeriodMismatch(null);
+    }
+
     setStage("done");
   }
 
@@ -230,9 +261,7 @@ function ImportarPage() {
     setDragOver(false);
     const dropped = Array.from(e.dataTransfer.files);
     if (!dropped.length) return;
-    setFiles(dropped);
-    setError(null);
-    if (clientId) setAwaitingConfirm(true);
+    applySelectedFiles(dropped);
   }
 
   function toggleAll() {
@@ -243,80 +272,66 @@ function ImportarPage() {
   async function approveTransactions(ids: string[]) {
     if (!ids.length) return;
     setApproving(true);
+    setError(null);
 
     try {
-      // Save installment fields for transactions that have parcelamento enabled
-      const withInst = ids.filter((id) => {
-        const inst = installments[id];
-        return inst?.enabled && inst.total >= 2 && inst.number >= 1 && inst.number <= inst.total;
-      });
-      if (withInst.length > 0) {
-        const tx = transactions;
-        await Promise.all(
-          withInst.map(async (id) => {
-            const t = tx.find((r) => r.id === id);
-            if (!t) return;
-            const inst = installments[id];
-            const groupId = await calcGroupId(id, t.description, inst.total, t.date);
-            await supabase()
-              .from("transactions")
-              .update({ installment_number: inst.number, installment_total: inst.total, installment_group_id: groupId })
-              .eq("id", id);
-          })
-        );
+      const toApprove = ids
+        .map((id) => transactions.find((t) => t.id === id))
+        .filter((t): t is Transaction => !!t && !!t.category?.trim() && t.status !== "approved");
+
+      if (!toApprove.length) {
+        setError("Selecione lançamentos classificados (com categoria) para aprovar.");
+        return;
       }
 
-      const { data: updated, error: err } = await supabase()
-        .from("transactions")
-        .update({ status: "approved" })
-        .in("id", ids)
-        .select("id");
+      const payloads: ApproveTxPayload[] = await Promise.all(
+        toApprove.map(async (t) => {
+          const inst = installments[t.id];
+          const base: ApproveTxPayload = {
+            id: t.id,
+            category: t.category!,
+            is_recurring: t.is_recurring ?? false,
+          };
+          if (inst?.enabled && inst.total >= 2 && inst.number >= 1 && inst.number <= inst.total) {
+            base.installment_number = inst.number;
+            base.installment_total = inst.total;
+            base.installment_group_id = await installmentGroupId(clientId, t.description, inst.total, t.date);
+          }
+          return base;
+        })
+      );
 
-      if (err) {
-        setError(`Erro ao aprovar: ${err.message}`);
-      } else if (!updated?.length) {
-        setError("Nenhum lançamento foi aprovado. Verifique sua sessão e tente novamente.");
-      } else {
-        const approvedIds = new Set((updated as { id: string }[]).map((r) => r.id));
-        setTransactions((prev) =>
-          prev.map((t) => {
-            if (!approvedIds.has(t.id)) return t;
-            const inst = installments[t.id];
-            return {
-              ...t,
-              status: "approved",
-              ...(inst?.enabled ? { installment_number: inst.number, installment_total: inst.total } : {}),
-            };
-          })
-        );
-        setSelected(new Set());
-
-        // Marca o upload como "approved" quando todos os lançamentos foram aprovados
-        const { data: txUploadRows } = await supabase()
-          .from("transactions")
-          .select("upload_id")
-          .in("id", Array.from(approvedIds))
-          .not("upload_id", "is", null);
-
-        const uploadIds = [...new Set((txUploadRows ?? []).map((r: { upload_id: string }) => r.upload_id))];
-
-        if (uploadIds.length > 0) {
-          await Promise.all(uploadIds.map(async (uploadId: string) => {
-            const { count } = await supabase()
-              .from("transactions")
-              .select("id", { count: "exact", head: true })
-              .eq("upload_id", uploadId)
-              .neq("status", "approved");
-            if (count === 0) {
-              await supabase().from("uploads").update({ status: "approved" }).eq("id", uploadId);
-            }
-          }));
-        }
+      const result = await approveTransactionsBatch(payloads);
+      if (!result.ok) {
+        setError(`Erro ao aprovar: ${result.error}`);
+        return;
       }
+
+      if (result.count < payloads.length) {
+        setError(`Apenas ${result.count} de ${payloads.length} lançamentos foram aprovados.`);
+      }
+
+      const approvedIds = new Set(payloads.map((p) => p.id));
+      setTransactions((prev) =>
+        prev.map((t) => {
+          if (!approvedIds.has(t.id)) return t;
+          const inst = installments[t.id];
+          return {
+            ...t,
+            status: "approved",
+            ...(inst?.enabled ? { installment_number: inst.number, installment_total: inst.total } : {}),
+          };
+        })
+      );
+      setSelected(new Set());
+      await syncUploadStatusAfterApproval([...approvedIds]);
+      await qc.invalidateQueries({ queryKey: ["pending-approval"] });
+      await qc.invalidateQueries({ queryKey: ["pendentes", "count"] });
     } catch (e) {
       setError(String(e));
+    } finally {
+      setApproving(false);
     }
-    setApproving(false);
   }
 
   function approveSelected() {
@@ -404,7 +419,9 @@ function ImportarPage() {
   // Contagens do resultado da importação (para o cabeçalho, botão e avisos)
   const classifiedCount = transactions.filter((t) => !!t.category && t.status !== "approved").length;
   const pendingCount = transactions.filter((t) => !t.category && t.status !== "approved").length;
+  const unapprovedCount = classifiedCount + pendingCount;
   const approvedCount = transactions.filter((t) => t.status === "approved").length;
+  const uploadPeriodLabel = uploadPeriodFromIsoMonth(uploadPeriod);
 
   return (
     <AdminLayout>
@@ -415,7 +432,69 @@ function ImportarPage() {
         description="Envie extratos bancários em qualquer formato. A IA identifica e classifica os lançamentos automaticamente."
       />
 
-      <div className="aurora-page">
+      <div className="aurora-page grid gap-8">
+        {clientId && activeCategoryCount === 0 && (
+          <div
+            className="flex items-start gap-3 px-5 py-4 rounded-xl text-[12px]"
+            style={{ background: "rgba(192,57,43,0.08)", border: "1px solid rgba(192,57,43,0.25)", color: "var(--foreground)" }}
+          >
+            <span style={{ fontSize: 16, lineHeight: 1 }}>!</span>
+            <div>
+              Este cliente ainda não tem <strong>plano de contas</strong> ativo. Envie o plano em{" "}
+              <Link to="/admin/plano-contas" className="aurora-link">Plano de Contas</Link>{" "}
+              antes de importar — a IA precisa das categorias do cliente para classificar.
+            </div>
+          </div>
+        )}
+
+        {clientId && (
+          <PendingApprovalBanner clientId={clientId} clientName={selectedClientName} />
+        )}
+
+        {/* Cliente + período do extrato (antes do upload) */}
+        <div className="grid lg:grid-cols-2 gap-5">
+          <div className="aurora-card">
+            <div className="aurora-cap mb-3">Cliente</div>
+            <select
+              value={clientId}
+              onChange={(e) => {
+                const id = e.target.value;
+                setClientId(id);
+                if (id && files.length > 0 && stage === "idle") setAwaitingConfirm(true);
+              }}
+              disabled={clientsLoading}
+              className="w-full bg-white px-3 py-2.5 text-[13px]"
+              style={{ border: "1px solid var(--line)" }}
+            >
+              <option value="">Escolher cliente</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="aurora-card">
+            <div className="aurora-cap mb-3">Período do extrato</div>
+            <input
+              type="month"
+              value={uploadPeriod}
+              onChange={(e) => {
+                setUploadPeriod(e.target.value);
+                setPeriodInferredFromFile(false);
+              }}
+              className="w-full bg-white px-3 py-2.5 text-[13px]"
+              style={{ border: "1px solid var(--line)" }}
+            />
+            <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)", lineHeight: 1.5 }}>
+              Mês de referência do extrato ({uploadPeriodLabel}). Padrão: mês anterior.
+              {periodInferredFromFile && (
+                <> Detectado automaticamente pelo nome do arquivo — confira antes de enviar.</>
+              )}
+            </p>
+          </div>
+        </div>
+
         {/* Upload zone */}
         <div
           onDragOver={(e) => {
@@ -440,9 +519,7 @@ function ImportarPage() {
             onChange={(e) => {
               const fileList = e.target.files ? Array.from(e.target.files) : [];
               if (!fileList.length) return;
-              setFiles(fileList);
-              setError(null);
-              if (clientId) setAwaitingConfirm(true);
+              applySelectedFiles(fileList);
             }}
           />
           <div className="aurora-serif text-[32px]" style={{ color: "var(--green)", letterSpacing: "-1px" }}>
@@ -456,44 +533,22 @@ function ImportarPage() {
 
         {/* File preview + form */}
         {files.length > 0 && (
-          <div className="grid lg:grid-cols-2 gap-5">
-            <div className="aurora-card">
-              <div className="aurora-cap mb-3">Arquivos enviados</div>
-              <ul className="flex flex-col gap-2">
-                {files.map((f) => {
-                  const fb = fileBanks.find((x) => x.name === f.name);
-                  return (
-                    <li key={f.name} className="text-[12px] flex items-center gap-2">
-                      <span style={{ color: "var(--green)" }}>▸</span>
-                      <span className="flex-1 truncate" title={f.name}>{f.name}</span>
-                      {fb && (
-                        <span className="text-[11px] shrink-0" style={{ color: "var(--sage)" }}>→ {fb.bank}</span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-            <div className="aurora-card">
-              <div className="aurora-cap mb-3">Cliente vinculado</div>
-              <select
-                value={clientId}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  setClientId(id);
-                  if (id && files.length > 0 && stage === "idle") setAwaitingConfirm(true);
-                }}
-                className="w-full bg-white px-3 py-2.5 text-[13px]"
-                style={{ border: "1px solid var(--line)" }}
-              >
-                <option value="">Escolher cliente</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="aurora-card">
+            <div className="aurora-cap mb-3">Arquivos selecionados</div>
+            <ul className="flex flex-col gap-2">
+              {files.map((f) => {
+                const fb = fileBanks.find((x) => x.name === f.name);
+                return (
+                  <li key={f.name} className="text-[12px] flex items-center gap-2">
+                    <span style={{ color: "var(--green)" }}>▸</span>
+                    <span className="flex-1 truncate" title={f.name}>{f.name}</span>
+                    {fb && (
+                      <span className="text-[11px] shrink-0" style={{ color: "var(--sage)" }}>→ {fb.bank}</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
 
@@ -510,7 +565,6 @@ function ImportarPage() {
                   ? `Arquivo ${currentFileIndex + 1} de ${files.length}: ${files[currentFileIndex]?.name} — `
                   : ""}
                 {stage === "reading" && "Lendo arquivo..."}
-                {stage === "identifying" && "Identificando lançamentos..."}
                 {stage === "classifying" && "Classificando com IA..."}
               </div>
               <div className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
@@ -550,6 +604,14 @@ function ImportarPage() {
           );
         })()}
 
+        {stage === "done" && periodMismatch && (
+          <div className="flex items-start gap-3 px-5 py-4 rounded-xl text-[12px]"
+            style={{ background: "rgba(192,57,43,0.08)", border: "1px solid rgba(192,57,43,0.25)", color: "var(--foreground)" }}>
+            <span style={{ fontSize: 16, lineHeight: 1 }}>!</span>
+            <div>{periodMismatch}</div>
+          </div>
+        )}
+
         {/* Aviso de timeout na classificação automática */}
         {stage === "done" && classifyTimedOut && (
           <div className="flex items-start gap-3 px-5 py-4 rounded-xl text-[12px]"
@@ -558,23 +620,6 @@ function ImportarPage() {
             <div>
               <strong style={{ fontWeight: 600 }}>Classificação automática expirou</strong> — os lançamentos foram importados, mas a IA não conseguiu classificá-los a tempo.
               Revise os itens com status <em>Pendente</em> e classifique manualmente ou aguarde a próxima execução automática.
-            </div>
-          </div>
-        )}
-
-        {/* Divisão do fluxo: classificados vão ao histórico ao aprovar; pendentes vão à revisão */}
-        {stage === "done" && (classifiedCount > 0 || pendingCount > 0) && (
-          <div className="flex items-start gap-3 px-5 py-4 rounded-xl text-[12px]"
-            style={{ background: "rgba(27,57,77,0.06)", border: "1px solid rgba(27,57,77,0.15)", color: "var(--foreground)" }}>
-            <span style={{ fontSize: 16, lineHeight: 1 }}>ℹ</span>
-            <div>
-              {classifiedCount > 0 && (
-                <><strong style={{ fontWeight: 600 }}>{classifiedCount} classificado(s)</strong> vão ao histórico do cliente ao clicar em <em>Aprovar classificados</em>. </>
-              )}
-              {pendingCount > 0 && (
-                <>Os <strong style={{ fontWeight: 600 }}>{pendingCount} sem categoria</strong> seguem para{" "}
-                  <Link to={"/admin/pendentes" as never} className="aurora-link">Pendentes</Link> para revisão manual.</>
-              )}
             </div>
           </div>
         )}
@@ -812,9 +857,9 @@ function ImportarPage() {
 
         {stage === "done" && clientId && (
           <div className="flex justify-end gap-5">
-            {pendingCount > 0 && (
+            {unapprovedCount > 0 && (
               <Link to={"/admin/pendentes" as never} className="aurora-link text-[12px]">
-                Revisar pendentes ({pendingCount}) →
+                Revisar em Pendentes ({unapprovedCount}) →
               </Link>
             )}
             <Link
@@ -1055,6 +1100,7 @@ function ImportarPage() {
       {awaitingConfirm && clientId && files.length > 0 && (
         <ConfirmUploadModal
           clientName={clients.find((c) => c.id === clientId)?.name ?? ""}
+          uploadPeriodLabel={uploadPeriodLabel}
           files={files}
           onConfirm={() => { setAwaitingConfirm(false); handleUpload(files); }}
           onCancel={() => { setAwaitingConfirm(false); setFiles([]); setError(null); if (inputRef.current) inputRef.current.value = ""; }}
@@ -1125,9 +1171,10 @@ function CancelUploadModal({
 }
 
 function ConfirmUploadModal({
-  clientName, files, onConfirm, onCancel,
+  clientName, uploadPeriodLabel, files, onConfirm, onCancel,
 }: {
   clientName: string;
+  uploadPeriodLabel: string;
   files: File[];
   onConfirm: () => void;
   onCancel: () => void;
@@ -1152,6 +1199,10 @@ function ConfirmUploadModal({
           <div className="flex justify-between items-center text-[13px]">
             <span style={{ color: "var(--muted-foreground)" }}>Cliente</span>
             <span style={{ fontWeight: 500 }}>{clientName}</span>
+          </div>
+          <div className="flex justify-between items-center text-[13px]">
+            <span style={{ color: "var(--muted-foreground)" }}>Período do extrato</span>
+            <span style={{ fontWeight: 500 }}>{uploadPeriodLabel}</span>
           </div>
 
           <div className="flex flex-col gap-1.5">

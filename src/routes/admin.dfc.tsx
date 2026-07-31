@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useState, useEffect, useMemo } from "react";
 import { AdminLayout, PageHeader } from "@/components/AdminLayout";
 import { brl } from "@/lib/utils";
@@ -6,6 +6,8 @@ import { todayISO, firstOfMonthISO } from "@/lib/dateUtils";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { supabase } from "@/lib/supabase";
 import { useDFCForecast } from "@/hooks/useDFCForecast";
+import type { PayableProjection } from "@/hooks/useDFCForecast";
+import { buildDfcCategoryRows, dfcPct, dfcVarPct, type DfcCategoryRow } from "@/lib/dfcEsperado";
 import { RecorrenciasPanel } from "@/components/RecorrenciasPanel";
 import { ContasPanel } from "@/components/ContasPanel";
 import { ExtratosPanel } from "@/components/ExtratosPanel";
@@ -13,6 +15,9 @@ import { computeDRE, DRE_EBITDA_PIVOT, type CatInfo } from "@/lib/dre";
 import { computeHealthLevel, healthMargemPct } from "@/lib/healthScore";
 import { HealthAlertCard } from "@/components/HealthAlertCard";
 import { DetalhamentoPanel } from "@/components/DetalhamentoPanel";
+import { PendingApprovalBanner } from "@/components/PendingApprovalBanner";
+import { FechamentoMensalPanel } from "@/components/FechamentoMensalPanel";
+import { LivroDiarioPanel } from "@/components/LivroDiarioPanel";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 export const Route = createFileRoute("/admin/dfc")({
@@ -44,18 +49,24 @@ function deltaPct(curr: number, prev: number): string | null {
   return (pct >= 0 ? "▲ +" : "▼ ") + pct.toFixed(1) + "%";
 }
 
-type DFCTab = "dfc" | "dre" | "recorrencias" | "contas" | "extratos" | "detalhamento";
+type DFCTab = "dfc" | "dre" | "detalhamento" | "recorrencias" | "contas" | "livro-diario" | "extratos" | "fechamento";
 
 const DFC_TABS: { key: DFCTab; label: string }[] = [
   { key: "dfc", label: "DFC" },
   { key: "dre", label: "DRE" },
   { key: "detalhamento", label: "Detalhamento" },
   { key: "contas", label: "Contas" },
+  { key: "livro-diario", label: "Livro Diário" },
   { key: "extratos", label: "Histórico de Extratos" },
   { key: "recorrencias", label: "Recorrências" },
+  { key: "fechamento", label: "Fechamento" },
 ];
 
-const VALID_TABS: DFCTab[] = ["dfc", "dre", "recorrencias", "contas", "extratos", "detalhamento"];
+const VALID_TABS: DFCTab[] = ["dfc", "dre", "detalhamento", "recorrencias", "contas", "livro-diario", "extratos", "fechamento"];
+
+function normalizeTab(tab: string | undefined): DFCTab {
+  return VALID_TABS.includes(tab as DFCTab) ? (tab as DFCTab) : "dfc";
+}
 
 function DFCPage() {
   const { clientId: preselectedId, tab: preselectedTab } = Route.useSearch();
@@ -63,15 +74,14 @@ function DFCPage() {
   const [clientId, setClientId] = useState(preselectedId ?? "");
   const [startDate, setStartDate] = useState(firstOfMonthISO());
   const [endDate, setEndDate] = useState(todayISO());
-  const [activeTab, setActiveTab] = useState<DFCTab>(
-    VALID_TABS.includes(preselectedTab as DFCTab) ? (preselectedTab as DFCTab) : "dfc"
-  );
+  const [activeTab, setActiveTab] = useState<DFCTab>(normalizeTab(preselectedTab));
   const [tx, setTx] = useState<Tx[]>([]);
   const [prevTx, setPrevTx] = useState<Tx[]>([]);
   const [loading, setLoading] = useState(false);
   const [contasTrigger, setContasTrigger] = useState(0);
   const [saldoInicial, setSaldoInicial] = useState(0);
   const [catMap, setCatMap] = useState<Map<string, CatInfo>>(new Map());
+  const [periodPayables, setPeriodPayables] = useState<(PayableProjection & { category: string | null })[]>([]);
 
   // Carrega lista de clientes; valida preselectedId e usa fallback se inválido
   useEffect(() => {
@@ -160,6 +170,20 @@ function DFCPage() {
     });
   }, [clientId, startDate, endDate]);
 
+  useEffect(() => {
+    if (!clientId) return;
+    supabase()
+      .from("payables")
+      .select("type, amount, due_date, category")
+      .eq("client_id", clientId)
+      .is("paid_at", null)
+      .gte("due_date", startDate)
+      .lte("due_date", endDate)
+      .then(({ data }) => {
+        setPeriodPayables((data ?? []) as (PayableProjection & { category: string | null })[]);
+      });
+  }, [clientId, startDate, endDate]);
+
   const receitas = useMemo(() => tx.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0), [tx]);
   const despesas = useMemo(() => tx.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0), [tx]);
   const resultado = receitas - despesas;
@@ -168,23 +192,17 @@ function DFCPage() {
   const prevReceitas = useMemo(() => prevTx.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0), [prevTx]);
   const prevDespesas = useMemo(() => prevTx.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0), [prevTx]);
 
-  const dfcEntradas = useMemo(() => {
-    const map = new Map<string, number>();
-    tx.filter((t) => t.amount > 0).forEach((t) => {
-      const cat = t.category || "Sem categoria";
-      map.set(cat, (map.get(cat) ?? 0) + t.amount);
-    });
-    return Array.from(map.entries()).map(([cat, val]) => ({ cat, val })).sort((a, b) => b.val - a.val);
-  }, [tx]);
-
-  const dfcSaidas = useMemo(() => {
-    const map = new Map<string, number>();
-    tx.filter((t) => t.amount < 0).forEach((t) => {
-      const cat = t.category || "Sem categoria";
-      map.set(cat, (map.get(cat) ?? 0) + Math.abs(t.amount));
-    });
-    return Array.from(map.entries()).map(([cat, val]) => ({ cat, val })).sort((a, b) => b.val - a.val);
-  }, [tx]);
+  const dfcRows = useMemo(
+    () => buildDfcCategoryRows(tx, prevTx, periodPayables, startDate, endDate),
+    [tx, prevTx, periodPayables, startDate, endDate]
+  );
+  const esperadoReceitas = useMemo(() => dfcRows.entradas.reduce((s, r) => s + r.esperado, 0), [dfcRows.entradas]);
+  const esperadoDespesas = useMemo(() => dfcRows.saidas.reduce((s, r) => s + r.esperado, 0), [dfcRows.saidas]);
+  const hasDfcTable =
+    tx.length > 0 ||
+    periodPayables.length > 0 ||
+    dfcRows.entradas.length > 0 ||
+    dfcRows.saidas.length > 0;
 
   const dre = useMemo(() => computeDRE(tx, catMap), [tx, catMap]);
 
@@ -261,6 +279,10 @@ function DFCPage() {
       </div>
 
       <div className="aurora-page">
+        {clientId && (
+          <PendingApprovalBanner clientId={clientId} clientName={activeClient?.name} />
+        )}
+
         {clientId && (activeTab === "dfc" || activeTab === "dre") && (
           <HealthAlertCard
             health={health}
@@ -273,9 +295,23 @@ function DFCPage() {
 
         {activeTab === "recorrencias" && <RecorrenciasPanel clientId={clientId} />}
         {activeTab === "contas" && <ContasPanel clientId={clientId} openTrigger={contasTrigger} />}
+        {activeTab === "livro-diario" && (
+          <LivroDiarioPanel
+            clientId={clientId}
+            startDate={startDate}
+            endDate={endDate}
+            onOpenContas={() => setActiveTab("contas")}
+          />
+        )}
         {activeTab === "extratos" && <ExtratosPanel clientId={clientId} startDate={startDate} endDate={endDate} />}
         {activeTab === "detalhamento" && (
           <DetalhamentoPanel clientId={clientId} startDate={startDate} endDate={endDate} />
+        )}
+        {activeTab === "fechamento" && clientId && (
+          <FechamentoMensalPanel
+            clientId={clientId}
+            monthlyClosingDay={activeClient?.monthly_closing_day ?? null}
+          />
         )}
 
         {activeTab === "dre" && (
@@ -377,9 +413,18 @@ function DFCPage() {
         </div>
 
         {/* Planilha DFC */}
-        {tx.length === 0 && !loading ? (
-          <div className="aurora-card text-[12px] text-center py-8" style={{ color: "var(--muted-foreground)" }}>
-            Nenhuma transação aprovada neste período.
+        {!hasDfcTable && !loading ? (
+          <div className="aurora-card text-[12px] text-center py-8 space-y-2" style={{ color: "var(--muted-foreground)" }}>
+            <p>Nenhuma movimentação aprovada em {periodoLabel}.</p>
+            {saldoInicial !== 0 && (
+              <p>O saldo inicial ({brl(saldoInicial)}) vem de lançamentos <strong>anteriores</strong> a este intervalo.</p>
+            )}
+            <p>
+              Ajuste o período acima,{" "}
+              <Link to="/admin/pendentes" search={{ clientId }} className="aurora-link">aprove classificados</Link>
+              {" "}ou importe extratos em{" "}
+              <Link to="/admin/importar" search={{ clientId }} className="aurora-link">Importar</Link>.
+            </p>
           </div>
         ) : (
           <div className="aurora-card p-0 overflow-hidden">
@@ -390,53 +435,37 @@ function DFCPage() {
               </div>
             </div>
             <table className="w-full">
+              <thead>
+                <tr style={{ background: "var(--linen)", borderBottom: "1px solid var(--line)" }}>
+                  {["Conta", "Realizado", "%", "Var %", "Esperado"].map((h) => (
+                    <th
+                      key={h}
+                      className={`${h === "Conta" ? "text-left px-8" : "text-right px-4"} py-3 aurora-cap`}
+                      style={{ fontWeight: 500 }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
               <tbody>
-                {/* ── Entradas ── */}
-                <tr style={{ background: "rgba(74,103,65,0.06)" }}>
-                  <td colSpan={2} className="px-6 py-2.5 text-[10px] uppercase" style={{ letterSpacing: "2px", fontWeight: 700, color: "var(--green)" }}>
-                    Entradas operacionais
-                  </td>
-                </tr>
-                {dfcEntradas.map((row) => (
-                  <tr key={`e-${row.cat}`} style={{ borderTop: "1px solid var(--line)" }}>
-                    <td className="px-8 py-2.5 text-[12px]" style={{ color: "var(--foreground)" }}>{row.cat}</td>
-                    <td className="px-6 py-2.5 aurora-value text-right" style={{ fontSize: 14, color: "var(--green)" }}>{brl(row.val)}</td>
-                  </tr>
-                ))}
-                <tr style={{ borderTop: "2px solid rgba(74,103,65,0.3)" }}>
-                  <td className="px-6 py-3 text-[11px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 700, color: "var(--green)" }}>Total Entradas</td>
-                  <td className="px-6 py-3 aurora-value text-right" style={{ fontSize: 16, color: "var(--green)", fontWeight: 700 }}>{brl(receitas)}</td>
-                </tr>
-
-                {/* ── Saídas ── */}
-                <tr style={{ background: "rgba(180,90,60,0.06)", borderTop: "1px solid var(--line)" }}>
-                  <td colSpan={2} className="px-6 py-2.5 text-[10px] uppercase" style={{ letterSpacing: "2px", fontWeight: 700, color: "var(--expense)" }}>
-                    Saídas operacionais
-                  </td>
-                </tr>
-                {dfcSaidas.map((row) => (
-                  <tr key={`s-${row.cat}`} style={{ borderTop: "1px solid var(--line)" }}>
-                    <td className="px-8 py-2.5 text-[12px]" style={{ color: "var(--foreground)" }}>{row.cat}</td>
-                    <td className="px-6 py-2.5 aurora-value text-right" style={{ fontSize: 14, color: "var(--expense)" }}>({brl(row.val)})</td>
-                  </tr>
-                ))}
-                <tr style={{ borderTop: "2px solid rgba(180,90,60,0.3)" }}>
-                  <td className="px-6 py-3 text-[11px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 700, color: "var(--expense)" }}>Total Saídas</td>
-                  <td className="px-6 py-3 aurora-value text-right" style={{ fontSize: 16, color: "var(--expense)", fontWeight: 700 }}>({brl(despesas)})</td>
-                </tr>
-
-                {/* ── Resultado + Saldo ── */}
-                <tr style={{ background: "var(--offwhite)", borderTop: "2px solid var(--line)" }}>
-                  <td className="px-6 py-3 text-[11px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 700 }}>Resultado do Período</td>
-                  <td className="px-6 py-3 aurora-value text-right" style={{ fontSize: 16, fontWeight: 700, color: resultado >= 0 ? "var(--green)" : "var(--expense)" }}>{brl(resultado)}</td>
+                <DfcSectionRows title="Entradas operacionais" accent="var(--green)" rows={dfcRows.entradas} totalReal={receitas} totalEsp={esperadoReceitas} />
+                <DfcSectionRows title="Saídas operacionais" accent="var(--expense)" rows={dfcRows.saidas} totalReal={despesas} totalEsp={esperadoDespesas} isExpense />
+                <tr style={{ background: "var(--linen)", borderTop: "2px solid var(--line)" }}>
+                  <td className="px-8 py-3 text-[11px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 700 }}>Resultado do Período</td>
+                  <td className="px-4 py-3 aurora-value text-right" style={{ fontSize: 16, fontWeight: 700, color: resultado >= 0 ? "var(--green)" : "var(--expense)" }}>{brl(resultado)}</td>
+                  <td colSpan={2} />
+                  <td className="px-4 py-3 aurora-value text-right" style={{ fontSize: 14, color: "var(--muted-foreground)" }}>{brl(esperadoReceitas - esperadoDespesas)}</td>
                 </tr>
                 <tr style={{ borderTop: "1px solid var(--line)" }}>
-                  <td className="px-6 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>Saldo Inicial</td>
-                  <td className="px-6 py-3 aurora-value text-right" style={{ fontSize: 14, color: "var(--navy)" }}>{brl(saldoInicial)}</td>
+                  <td className="px-8 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>Saldo Inicial</td>
+                  <td className="px-4 py-3 aurora-value text-right" style={{ fontSize: 14, color: "var(--navy)" }}>{brl(saldoInicial)}</td>
+                  <td colSpan={3} />
                 </tr>
-                <tr style={{ background: "var(--offwhite)", borderTop: "2px solid var(--line)" }}>
-                  <td className="px-6 py-3 text-[11px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 700 }}>Saldo Final</td>
-                  <td className="px-6 py-3 aurora-value text-right" style={{ fontSize: 18, fontWeight: 700, color: saldoFinal >= 0 ? "var(--green)" : "var(--expense)" }}>{brl(saldoFinal)}</td>
+                <tr style={{ background: "var(--linen)", borderTop: "2px solid var(--line)" }}>
+                  <td className="px-8 py-3 text-[11px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 700 }}>Saldo Final</td>
+                  <td className="px-4 py-3 aurora-value text-right" style={{ fontSize: 18, fontWeight: 700, color: saldoFinal >= 0 ? "var(--green)" : "var(--expense)" }}>{brl(saldoFinal)}</td>
+                  <td colSpan={3} />
                 </tr>
               </tbody>
             </table>
@@ -472,6 +501,59 @@ function DFCPage() {
       )}
       </div>
     </AdminLayout>
+  );
+}
+
+function DfcSectionRows({
+  title,
+  accent,
+  rows,
+  totalReal,
+  totalEsp,
+  isExpense = false,
+}: {
+  title: string;
+  accent: string;
+  rows: DfcCategoryRow[];
+  totalReal: number;
+  totalEsp: number;
+  isExpense?: boolean;
+}) {
+  const bg = isExpense ? "rgba(180,90,60,0.06)" : "rgba(74,103,65,0.06)";
+  const borderAccent = isExpense ? "rgba(180,90,60,0.3)" : "rgba(74,103,65,0.3)";
+  const fmt = (v: number) => (isExpense ? `(${brl(v)})` : brl(v));
+
+  return (
+    <>
+      <tr style={{ background: bg, borderTop: isExpense ? "1px solid var(--line)" : undefined }}>
+        <td colSpan={5} className="px-6 py-2.5 text-[10px] uppercase" style={{ letterSpacing: "2px", fontWeight: 700, color: accent }}>
+          {title}
+        </td>
+      </tr>
+      {rows.map((row) => {
+        const varPct = dfcVarPct(row.realizado, row.prevRealizado);
+        return (
+        <tr key={`${title}-${row.cat}`} style={{ borderTop: "1px solid var(--line)" }}>
+          <td className="px-8 py-2.5 text-[12px]" style={{ color: "var(--foreground)" }}>{row.cat}</td>
+          <td className="px-4 py-2.5 aurora-value text-right" style={{ fontSize: 14, color: accent }}>{fmt(row.realizado)}</td>
+          <td className="px-4 py-2.5 text-right text-[11px]" style={{ color: "var(--muted-foreground)" }}>{dfcPct(row.realizado, totalReal)}</td>
+          <td className="px-4 py-2.5 text-right text-[11px]" style={{ color: varPct?.startsWith("▲") ? "var(--green)" : varPct ? "var(--expense)" : "var(--muted-foreground)" }}>
+            {varPct ?? "—"}
+          </td>
+          <td className="px-4 py-2.5 aurora-value text-right" style={{ fontSize: 13, color: "var(--navy)" }}>{fmt(row.esperado)}</td>
+        </tr>
+        );
+      })}
+      <tr style={{ borderTop: `2px solid ${borderAccent}` }}>
+        <td className="px-8 py-3 text-[11px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 700, color: accent }}>
+          Total {isExpense ? "Saídas" : "Entradas"}
+        </td>
+        <td className="px-4 py-3 aurora-value text-right" style={{ fontSize: 16, color: accent, fontWeight: 700 }}>{fmt(totalReal)}</td>
+        <td className="px-4 py-3 text-right text-[11px]" style={{ color: "var(--muted-foreground)" }}>100%</td>
+        <td />
+        <td className="px-4 py-3 aurora-value text-right" style={{ fontSize: 14, color: "var(--navy)", fontWeight: 600 }}>{fmt(totalEsp)}</td>
+      </tr>
+    </>
   );
 }
 

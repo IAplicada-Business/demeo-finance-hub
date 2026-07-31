@@ -5,6 +5,7 @@ import { AdminLayout, PageHeader } from "@/components/AdminLayout";
 import { FilterMenu, FilterMenuOption } from "@/components/FilterMenu";
 import { StatusBadge, ClosingBadge, UploadRow } from "./admin.index";
 import { formatDatePtBR } from "@/lib/utils";
+import { currentIsoMonth, uploadPeriodFromIsoMonth } from "@/lib/dateUtils";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { SEGMENT_BENCHMARKS } from "@/lib/healthScore";
@@ -62,7 +63,8 @@ function ClientesPage() {
   const [novoOpen, setNovoOpen] = useState(false);
   const [editClient, setEditClient] = useState<ClientRow | null>(null);
   const [deleteClient, setDeleteClient] = useState<ClientRow | null>(null);
-  const currentPeriod = new Date().toISOString().slice(0, 7);
+  const closingPeriod = currentIsoMonth();
+  const uploadPeriod = uploadPeriodFromIsoMonth(closingPeriod);
   const qc = useQueryClient();
 
   const { data: clientes = [], isLoading, error } = useQuery({
@@ -79,24 +81,24 @@ function ClientesPage() {
   });
 
   const { data: uploadsData = [] } = useQuery({
-    queryKey: ["uploads-month", currentPeriod],
+    queryKey: ["uploads-month", uploadPeriod],
     queryFn: async (): Promise<UploadRow[]> => {
       const { data } = await supabase()
         .from("uploads")
         .select("client_id, period, tx_classified, tx_pending, status")
-        .eq("period", currentPeriod)
+        .eq("period", uploadPeriod)
         .order("created_at", { ascending: false });
       return (data ?? []) as UploadRow[];
     },
   });
 
   const { data: closingsData = [] } = useQuery({
-    queryKey: ["monthly-closings", currentPeriod],
+    queryKey: ["monthly-closings", closingPeriod],
     queryFn: async (): Promise<{ client_id: string }[]> => {
       const { data } = await supabase()
         .from("monthly_closings")
         .select("client_id")
-        .eq("period", currentPeriod)
+        .eq("period", closingPeriod)
         .not("completed_at", "is", null);
       return (data ?? []) as { client_id: string }[];
     },
@@ -114,11 +116,11 @@ function ClientesPage() {
 
   async function handleCloseMonth(clientId: string) {
     const { error } = await supabase().from("monthly_closings").upsert(
-      { client_id: clientId, period: currentPeriod, step1_done: true, step2_done: true, step3_done: true, step4_done: true, completed_at: new Date().toISOString() },
+      { client_id: clientId, period: closingPeriod, step1_done: true, step2_done: true, step3_done: true, step4_done: true, completed_at: new Date().toISOString() },
       { onConflict: "client_id,period" }
     );
     if (error) { toast.error("Erro ao fechar mês: " + error.message); return; }
-    qc.invalidateQueries({ queryKey: ["monthly-closings", currentPeriod] });
+    qc.invalidateQueries({ queryKey: ["monthly-closings", closingPeriod] });
   }
 
   const lista = clientes.filter((c) => {

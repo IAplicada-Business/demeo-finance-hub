@@ -2,8 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useCallback } from "react";
 import { AdminLayout, PageHeader } from "@/components/AdminLayout";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
-import { brl, currentMonthStr } from "@/lib/utils";
-import { todayISO, firstOfMonthISO, lastOfMonthISO, firstOfYearISO } from "@/lib/dateUtils";
+import { brl } from "@/lib/utils";
+import { todayISO, firstOfMonthISO, lastOfMonthISO, firstOfYearISO, isoMonthsInDateRange, uploadPeriodsInDateRange } from "@/lib/dateUtils";
 import { computeHealthLevel, healthMargemPct, HealthLevel, SEGMENT_BENCHMARKS } from "@/lib/healthScore";
 import { supabase } from "@/lib/supabase";
 import {
@@ -166,7 +166,9 @@ function AdminDashboard() {
   }, []);
 
   const loadDashboard = useCallback(async (start: string, end: string) => {
-    const currentPeriod = new Date().toISOString().slice(0, 7);
+    const isoMonths = isoMonthsInDateRange(start, end);
+    const uploadPeriods = uploadPeriodsInDateRange(start, end);
+    const endClosingPeriod = end.slice(0, 7);
 
     const [
       { data: clientsData },
@@ -184,23 +186,23 @@ function AdminDashboard() {
         .eq("status", "approved")
         .gte("date", start)
         .lte("date", end),
-      // Pendentes de todos os meses — Claudia precisa ver tudo que falta classificar
+      // Aguardando aprovação (classificados + sem categoria) — todos os meses
       supabase()
         .from("transactions")
         .select("client_id")
-        .eq("status", "pending"),
+        .in("status", ["pending", "classified"]),
       supabase().from("client_banks").select("client_id, bank_name"),
-      // Uploads do mês corrente — para badge de fechamento
+      // Uploads nos meses do intervalo (uploads.period = MM/YYYY)
       supabase()
         .from("uploads")
         .select("client_id, period, tx_classified, tx_pending, status")
-        .eq("period", currentMonthStr())
+        .in("period", uploadPeriods)
         .order("created_at", { ascending: false }),
-      // Fechamentos concluídos no mês corrente
+      // Fechamentos concluídos nos meses do intervalo (monthly_closings.period = YYYY-MM)
       supabase()
         .from("monthly_closings")
-        .select("client_id")
-        .eq("period", currentPeriod)
+        .select("client_id, period")
+        .in("period", isoMonths)
         .not("completed_at", "is", null),
     ]);
 
@@ -227,14 +229,27 @@ function AdminDashboard() {
       pendingByClient[t.client_id] = (pendingByClient[t.client_id] ?? 0) + 1;
     }
 
-    // Índice de upload do mês corrente por cliente (primeiro = mais recente)
+    // Agrega uploads do intervalo por cliente (soma pendentes + classificados)
     const uploadByClient: Record<string, UploadRow> = {};
     for (const u of (uploadsData ?? []) as UploadRow[]) {
-      if (!uploadByClient[u.client_id]) uploadByClient[u.client_id] = u;
+      const existing = uploadByClient[u.client_id];
+      if (!existing) {
+        uploadByClient[u.client_id] = { ...u };
+      } else {
+        uploadByClient[u.client_id] = {
+          ...existing,
+          tx_pending: existing.tx_pending + u.tx_pending,
+          tx_classified: existing.tx_classified + u.tx_classified,
+        };
+      }
     }
 
-    // Clientes com fechamento concluído no mês corrente
-    const closedSet = new Set((closingsData ?? []).map((c: { client_id: string }) => c.client_id));
+    // Fechamento concluído no mês final do filtro (ação operacional "Fechar mês")
+    const closedSet = new Set(
+      (closingsData ?? [])
+        .filter((c: { client_id: string; period: string }) => c.period === endClosingPeriod)
+        .map((c: { client_id: string }) => c.client_id)
+    );
 
     let totalPend = 0;
     const summaries: ClientSummary[] = clients.map((c) => {
@@ -268,7 +283,7 @@ function AdminDashboard() {
   }
 
   async function handleCloseMonth(clientId: string) {
-    const period = new Date().toISOString().slice(0, 7);
+    const period = endDate.slice(0, 7);
     const { error } = await supabase().from("monthly_closings").upsert(
       { client_id: clientId, period, step1_done: true, step2_done: true, step3_done: true, step4_done: true, completed_at: new Date().toISOString() },
       { onConflict: "client_id,period" }
@@ -839,11 +854,12 @@ export function ClosingBadge({ closing, isClosed, onClose }: {
       </span>
     );
   }
-  if (closing.tx_pending > 0) {
+  const awaitingApproval = (closing.tx_pending ?? 0) + (closing.tx_classified ?? 0);
+  if (awaitingApproval > 0) {
     return (
       <Link to={"/admin/pendentes" as never} className="inline-flex items-center gap-1.5 text-[10px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 600, background: "rgba(109,146,166,0.12)", color: "var(--tan)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>
         <span style={{ width: 5, height: 5, borderRadius: 999, background: "var(--tan)" }} />
-        {closing.tx_pending} pendente{closing.tx_pending !== 1 ? "s" : ""}
+        {awaitingApproval} aguardando aprovação
       </Link>
     );
   }

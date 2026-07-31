@@ -443,7 +443,7 @@ Retorne SOMENTE um JSON no formato abaixo, sem texto adicional:
 Regras:
 - bank: exatamente um dos valores listados acima (ou "Outro")
 - date: formato ISO YYYY-MM-DD obrigatório
-- description: texto limpo em MAIÚSCULAS, sem caracteres especiais extras
+- description: texto COMPLETO em MAIÚSCULAS — inclua histórico + favorecido/pagador/beneficiário quando existir na linha ou coluna adjacente (ex.: Caixa: não use só "DEB PIX CH", inclua o nome após o código)
 - amount: número (positivo = crédito/entrada, negativo = débito/saída)
 - Ignore linhas de saldo, totais e cabeçalhos
 - Inclua TODOS os lançamentos visíveis, sem filtrar
