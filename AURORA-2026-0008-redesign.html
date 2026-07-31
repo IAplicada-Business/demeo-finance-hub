@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proposta de Gestão Financeira — AURORA-2026-0008</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --linho:     #F7F1E8;
+    --verde:     #4A6741;
+    --salvia:    #8FA688;
+    --prussian:  #1B394D;
+    --ambar:     #B8956A;
+    --biscoito:  #D4B896;
+    --floresta:  #284C2B;
+    --areia:     #E0E4D6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { background: #d6d0c8; }
+
+  body {
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    color: #2c2c2c;
+    font-size: 10.5pt;
+    line-height: 1.7;
+  }
+
+  /* ─── Document wrapper (flows with content) ─────────── */
+  .document {
+    background: white;
+    width: 210mm;
+    margin: 0 auto;
+    padding: 18mm 24mm 20mm;
+  }
+
+  /* ─── Header ─────────────────────────────────────────── */
+  .doc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1.5px solid var(--biscoito);
+    margin-bottom: 26px;
+  }
+
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon { width: 30px; height: 30px; }
+
+  .logo-name {
+    font-family: 'Jost', sans-serif;
+    font-weight: 600;
+    font-size: 15pt;
+    color: var(--prussian);
+    letter-spacing: 0.02em;
+    line-height: 1;
+  }
+
+  .logo-sub {
+    font-size: 6.5pt;
+    font-weight: 300;
+    color: var(--salvia);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  .header-contact {
+    font-size: 8pt;
+    color: var(--salvia);
+    font-weight: 300;
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  /* ─── Document title ─────────────────────────────────── */
+  .doc-title {
+    margin-bottom: 22px;
+  }
+
+  .doc-title h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 22pt;
+    color: var(--prussian);
+    letter-spacing: 0.03em;
+    line-height: 1.15;
+  }
+
+  .title-rule {
+    height: 1px;
+    background: linear-gradient(to right, var(--biscoito), transparent);
+    margin-top: 10px;
+  }
+
+  /* ─── Section headers ────────────────────────────────── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    margin-bottom: 12px;
+  }
+
+  .section-header::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 14px;
+    background: var(--verde);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .section-header span {
+    font-size: 7.5pt;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--prussian);
+  }
+
+  .section-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--areia);
+  }
+
+  /* ─── Company + diagnosis row ────────────────────────── */
+  .top-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .company-block {
+    background: var(--linho);
+    border-left: 3px solid var(--verde);
+    padding: 14px 16px;
+    border-radius: 0 2px 2px 0;
+  }
+
+  .company-label {
+    font-size: 6.5pt;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--salvia);
+    margin-bottom: 4px;
+  }
+
+  .company-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18pt;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--prussian);
+    line-height: 1.1;
+  }
+
+  .company-info {
+    font-size: 9pt;
+    color: #5a5a5a;
+    margin-top: 5px;
+  }
+
+  .diagnosis-block {
+    padding: 14px 16px;
+    border: 1px solid var(--areia);
+    border-radius: 2px;
+  }
+
+  .diagnosis-label {
+    font-size: 6.5pt;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--salvia);
+    margin-bottom: 6px;
+  }
+
+  .diagnosis-text {
+    font-size: 9.5pt;
+    color: #3a3a3a;
+    line-height: 1.65;
+  }
+
+  /* ─── Scope + Price two-column ───────────────────────── */
+  .mid-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 16px;
+    margin-bottom: 20px;
+    align-items: start;
+  }
+
+  /* ─── Services list ──────────────────────────────────── */
+  .services-intro {
+    font-size: 9.5pt;
+    color: #3a3a3a;
+    margin-bottom: 10px;
+  }
+
+  .service-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    border: 1px solid var(--areia);
+    border-radius: 2px;
+    margin-bottom: 7px;
+  }
+
+  .service-icon {
+    width: 7px;
+    height: 7px;
+    background: var(--verde);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .service-name {
+    font-size: 9.5pt;
+    font-weight: 400;
+    color: var(--prussian);
+  }
+
+  /* ─── Price cards ────────────────────────────────────── */
+  .price-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .price-card {
+    background: var(--linho);
+    border-radius: 2px;
+    padding: 12px 14px;
+    border-top: 2px solid var(--verde);
+  }
+
+  .price-card-label {
+    font-size: 6.5pt;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--salvia);
+    margin-bottom: 5px;
+  }
+
+  .price-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22pt;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--prussian);
+    line-height: 1;
+  }
+
+  .price-period {
+    font-size: 7.5pt;
+    color: #aaa;
+    font-weight: 300;
+    margin-top: 4px;
+  }
+
+  /* ─── Summary table ──────────────────────────────────── */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .summary-table thead tr {
+    border-bottom: 1.5px solid var(--prussian);
+  }
+
+  .summary-table th {
+    font-size: 7pt;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--prussian);
+    padding: 5px 6px;
+    text-align: left;
+  }
+
+  .summary-table th:last-child { text-align: right; }
+
+  .summary-table td {
+    font-size: 9pt;
+    color: #2c2c2c;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--areia);
+  }
+
+  .summary-table td:last-child {
+    text-align: right;
+    font-weight: 400;
+    color: var(--prussian);
+  }
+
+  /* ─── Payment + closing row ──────────────────────────── */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .payment-box {
+    background: var(--prussian);
+    border-radius: 2px;
+    padding: 14px 16px;
+  }
+
+  .payment-box p {
+    font-size: 9.5pt;
+    color: white;
+    line-height: 1.65;
+    font-weight: 300;
+  }
+
+  .payment-box p + p { margin-top: 6px; }
+
+  .validity-note {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 10px;
+    font-size: 8pt;
+    color: var(--salvia);
+  }
+
+  .validity-note::before {
+    content: '';
+    display: block;
+    width: 5px;
+    height: 5px;
+    background: var(--ambar);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ─── Signature block ────────────────────────────────── */
+  .closing-block {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .closing-city {
+    font-size: 9pt;
+    color: var(--prussian);
+    margin-bottom: 6px;
+  }
+
+  .accord-label {
+    font-size: 7.5pt;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--salvia);
+    margin-bottom: 22px;
+  }
+
+  .signature-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .sig-block {
+    border-top: 1px solid var(--prussian);
+    padding-top: 7px;
+  }
+
+  .sig-name {
+    font-weight: 500;
+    font-size: 8.5pt;
+    color: var(--prussian);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .sig-cnpj {
+    font-size: 7.5pt;
+    color: var(--salvia);
+    margin-top: 2px;
+  }
+
+  /* ─── Footer ─────────────────────────────────────────── */
+  .doc-footer {
+    margin-top: 22px;
+    padding-top: 8px;
+    border-top: 1px solid var(--biscoito);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 7pt;
+    color: #aaa;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+  }
+
+  .doc-footer .doc-id {
+    color: var(--salvia);
+    font-weight: 400;
+  }
+
+  /* ─── Print ──────────────────────────────────────────── */
+  @media print {
+    html { background: white; }
+    .document { margin: 0; }
+    @page { size: A4; margin: 0; }
+
+    /* Preserva fundo escuro quando o navegador imprime gráficos de fundo */
+    .payment-box {
+      background: var(--prussian) !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      border: 1px solid var(--prussian);
+    }
+
+    .payment-box p {
+      color: #ffffff !important;
+    }
+  }
+
+  /* Fallback legível quando o navegador omite fundos (padrão em muitos diálogos de impressão) */
+  @media print {
+    @supports not (print-color-adjust: exact) {
+      .payment-box {
+        background: var(--linho) !important;
+        border: 1px solid var(--prussian);
+      }
+
+      .payment-box p {
+        color: var(--prussian) !important;
+      }
+    }
+  }
+
+  @media screen {
+    html { padding: 24px 0; }
+    .document { box-shadow: 0 2px 24px rgba(0,0,0,0.13); }
+  }
+</style>
+</head>
+<body>
+
+<div class="document">
+
+  <!-- Header -->
+  <header class="doc-header">
+    <div class="logo-area">
+      <svg class="logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2"  y="18" width="9" height="16" rx="1.5" fill="#4A6741"/>
+        <rect x="14" y="8"  width="9" height="26" rx="1.5" fill="#1B394D"/>
+        <rect x="26" y="13" width="8" height="21" rx="1.5" fill="#8FA688"/>
+      </svg>
+      <div>
+        <div class="logo-name">Aurora</div>
+        <div class="logo-sub">Gestão Financeira</div>
+      </div>
+    </div>
+    <div class="header-contact">
+      claudia@aurora.com.br<br>
+      19-98112.22.77 · whatsapp: 19-3702.48.78
+    </div>
+  </header>
+
+  <!-- Title -->
+  <div class="doc-title">
+    <h2>Proposta de Gestão<br>e Assessoria Financeira</h2>
+    <div class="title-rule"></div>
+  </div>
+
+  <!-- Empresa + Diagnóstico lado a lado -->
+  <div class="top-grid">
+    <div class="company-block">
+      <div class="company-label">Proposta elaborada para</div>
+      <div class="company-name">teste 2</div>
+      <div class="company-info">fasfafaf</div>
+    </div>
+    <div class="diagnosis-block">
+      <div class="diagnosis-label">Diagnóstico</div>
+      <div class="diagnosis-text">adfadadwd</div>
+    </div>
+  </div>
+
+  <!-- Escopo + Honorários lado a lado -->
+  <div class="section-header"><span>Escopo de Serviços</span></div>
+  <div class="mid-grid">
+    <div>
+      <p class="services-intro">Prestamos os seguintes serviços:</p>
+      <div class="service-card">
+        <div class="service-icon"></div>
+        <span class="service-name">Consultoria Pontual</span>
+      </div>
+      <div class="service-card">
+        <div class="service-icon"></div>
+        <span class="service-name">DFC Semanal</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="price-cards">
+        <div class="price-card">
+          <div class="price-card-label">Mensalidade</div>
+          <div class="price-value">R$ 900,00</div>
+          <div class="price-period">pré-pago até o dia 05</div>
+        </div>
+        <div class="price-card">
+          <div class="price-card-label">Implantação</div>
+          <div class="price-value">R$ 350,00</div>
+          <div class="price-period">pagamento único</div>
+        </div>
+      </div>
+
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>Serviço</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Consultoria Pontual</td>
+            <td>R$ 350,00</td>
+          </tr>
+          <tr>
+            <td>DFC Semanal</td>
+            <td>R$ 900,00</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Condições + Assinaturas lado a lado -->
+  <div class="section-header"><span>Prazo e Condições de Pagamento</span></div>
+  <div class="bottom-grid">
+    <div>
+      <div class="payment-box">
+        <p>À vista no aceite, depois mensalidade até o 5º dia útil.</p>
+        <p>Esta proposta é válida por 7 dias a partir de 23/06/2026.</p>
+      </div>
+      <div class="validity-note">Válida até 30/06/2026</div>
+    </div>
+
+    <div class="closing-block">
+      <p class="closing-city">Limeira, 23 de junho de 2026.</p>
+      <p class="accord-label">De acordo</p>
+      <div class="signature-row">
+        <div class="sig-block">
+          <div class="sig-name">Claudia de Meo</div>
+          <div class="sig-cnpj">CNPJ: 41.062.652/0001-38</div>
+        </div>
+        <div class="sig-block">
+          <div class="sig-name">Teste 2</div>
+          <div class="sig-cnpj">CNPJ: 112225544488</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="doc-footer">
+    <span>claudia@aurora.com.br · 19-98112.22.77 · whatsapp: 19-3702.48.78</span>
+    <span class="doc-id">AURORA-2026-0008</span>
+  </footer>
+
+</div>
+</body>
+</html>
