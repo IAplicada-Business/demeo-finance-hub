@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { AdminLayout, PageHeader } from "@/components/AdminLayout";
 import { supabase } from "@/lib/supabase";
 
@@ -87,22 +88,43 @@ function CategoriasPage() {
 
   async function addCategory(e: React.FormEvent) {
     e.preventDefault();
-    if (!newName.trim() || !clientId || saving) return;
-    setSaving(true);
-    const maxOrder = Math.max(0, ...categories.map((c) => c.sort_order));
-    const { error: err } = await supabase().from("categories").insert({
-      client_id: clientId,
-      name: newName.trim(),
-      group_name: newGroup,
-      type: newType,
-      sort_order: maxOrder + 1,
-    });
-    if (err) setError(err.message);
-    else {
-      setNewName("");
-      await loadCategories();
+    if (saving) return;
+    if (!clientId) {
+      toast.error("Selecione um cliente antes de adicionar a categoria.");
+      setError("Selecione um cliente.");
+      return;
     }
-    setSaving(false);
+    if (!newName.trim()) {
+      toast.error("Informe o nome da categoria.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const maxOrder = categories.reduce((m, c) => Math.max(m, c.sort_order ?? 0), 0);
+      const { error: err } = await supabase().from("categories").insert({
+        client_id: clientId,
+        name: newName.trim(),
+        group_name: newGroup,
+        type: newType,
+        is_active: true,
+        sort_order: maxOrder + 1,
+      });
+      if (err) {
+        setError(err.message);
+        toast.error("Não foi possível adicionar: " + err.message);
+        return;
+      }
+      setNewName("");
+      toast.success("Categoria adicionada.");
+      await loadCategories();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro inesperado";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function toggleActive(cat: Category) {
@@ -189,6 +211,7 @@ function CategoriasPage() {
             className="px-3 py-2 text-[13px]"
             style={{ border: "1px solid var(--line)", background: "#fff", minWidth: 220 , borderRadius: 12 }}
           >
+            {clients.length === 0 && <option value="">Carregando clientes...</option>}
             {clients.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
@@ -233,7 +256,7 @@ function CategoriasPage() {
               }}
               style={{ padding: "8px 12px", fontSize: 13, border: "1px solid var(--line)", background: "#fff" , borderRadius: 12 }}
             >
-              {GRUPOS.map((g) => <option key={g}>{g}</option>)}
+              {GRUPOS.map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
           </div>
 
@@ -250,15 +273,16 @@ function CategoriasPage() {
 
           <button
             type="submit"
-            disabled={saving || !newName.trim()}
-            className="px-5 py-2 text-[11px] uppercase"
+            disabled={saving || !newName.trim() || !clientId}
+            className="px-5 py-2 text-[11px] uppercase disabled:opacity-40"
             style={{
               background: "var(--green)",
               color: "#fff",
               letterSpacing: "2px",
               fontWeight: 500,
-              opacity: saving ? 0.6 : 1,
-            borderRadius: 999 }}
+              borderRadius: 999,
+              cursor: saving || !newName.trim() || !clientId ? "not-allowed" : "pointer",
+            }}
           >
             {saving ? "Salvando..." : "+ Adicionar"}
           </button>
@@ -315,7 +339,7 @@ function CategoriasPage() {
                                   className="text-[12px] px-2 py-1"
                                   style={{ border: "1px solid var(--line)" , borderRadius: 12 }}
                                 >
-                                  {GRUPOS.map((g) => <option key={g}>{g}</option>)}
+                                  {GRUPOS.map((g) => <option key={g} value={g}>{g}</option>)}
                                 </select>
                                 <select
                                   value={editType}
