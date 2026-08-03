@@ -47,8 +47,11 @@ function CategoriasPage() {
 
   const [newName, setNewName] = useState("");
   const [newGroup, setNewGroup] = useState(GRUPOS[0]);
-  const [newType, setNewType] = useState<"receita" | "despesa" | "transferencia">("despesa");
+  const [newType, setNewType] = useState<"receita" | "despesa" | "transferencia">(
+    GRUPOS[0] === "Receita" || GRUPOS[0] === "Receita não Operacional" ? "receita" : "despesa"
+  );
   const [saving, setSaving] = useState(false);
+  const canAdd = !!clientId && !!newName.trim() && !saving;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -86,8 +89,7 @@ function CategoriasPage() {
     setLoading(false);
   }
 
-  async function addCategory(e: React.FormEvent) {
-    e.preventDefault();
+  async function addCategory() {
     if (saving) return;
     if (!clientId) {
       toast.error("Selecione um cliente antes de adicionar a categoria.");
@@ -95,29 +97,38 @@ function CategoriasPage() {
       return;
     }
     if (!newName.trim()) {
-      toast.error("Informe o nome da categoria.");
+      toast.error("Digite o nome da categoria no campo Nome.");
+      setError("Digite o nome da categoria.");
       return;
     }
     setSaving(true);
     setError(null);
     try {
       const maxOrder = categories.reduce((m, c) => Math.max(m, c.sort_order ?? 0), 0);
-      const { error: err } = await supabase().from("categories").insert({
-        client_id: clientId,
-        name: newName.trim(),
-        group_name: newGroup,
-        type: newType,
-        is_active: true,
-        sort_order: maxOrder + 1,
-      });
+      const { data, error: err } = await supabase()
+        .from("categories")
+        .insert({
+          client_id: clientId,
+          name: newName.trim(),
+          group_name: newGroup,
+          type: newType,
+          is_active: true,
+          sort_order: maxOrder + 1,
+        })
+        .select("id, client_id, name, group_name, type, is_active, sort_order")
+        .single();
       if (err) {
         setError(err.message);
         toast.error("Não foi possível adicionar: " + err.message);
         return;
       }
+      if (data) {
+        setCategories((prev) => [...prev, data as Category].sort((a, b) => a.sort_order - b.sort_order));
+      } else {
+        await loadCategories();
+      }
       setNewName("");
       toast.success("Categoria adicionada.");
-      await loadCategories();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro inesperado";
       setError(msg);
@@ -228,19 +239,24 @@ function CategoriasPage() {
         )}
 
         {/* Formulário nova categoria */}
-        <form
-          onSubmit={addCategory}
+        <div
           className="flex flex-wrap items-end gap-3 p-5"
           style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 22 }}
         >
           <div className="flex flex-col gap-1.5">
-            <label className="aurora-cap">Nome</label>
+            <label className="aurora-cap" htmlFor="cat-new-name">Nome</label>
             <input
+              id="cat-new-name"
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void addCategory();
+                }
+              }}
               placeholder="Ex: Receita · Honorários"
-              required
               style={{ padding: "8px 12px", fontSize: 13, border: "1px solid var(--line)", background: "#fff", minWidth: 220 , borderRadius: 12 }}
             />
           </div>
@@ -253,6 +269,7 @@ function CategoriasPage() {
                 const g = e.target.value;
                 setNewGroup(g);
                 if (g === "Receita" || g === "Receita não Operacional") setNewType("receita");
+                else if (g === "Despesa Fixa" || g === "Despesa Variável") setNewType("despesa");
               }}
               style={{ padding: "8px 12px", fontSize: 13, border: "1px solid var(--line)", background: "#fff" , borderRadius: 12 }}
             >
@@ -272,21 +289,27 @@ function CategoriasPage() {
           </div>
 
           <button
-            type="submit"
-            disabled={saving || !newName.trim() || !clientId}
-            className="px-5 py-2 text-[11px] uppercase disabled:opacity-40"
+            type="button"
+            onClick={() => void addCategory()}
+            className="px-5 py-2 text-[11px] uppercase"
             style={{
-              background: "var(--green)",
+              background: canAdd ? "var(--green)" : "rgba(40,76,43,0.35)",
               color: "#fff",
               letterSpacing: "2px",
               fontWeight: 500,
               borderRadius: 999,
-              cursor: saving || !newName.trim() || !clientId ? "not-allowed" : "pointer",
+              cursor: saving ? "wait" : "pointer",
+              border: "none",
             }}
           >
             {saving ? "Salvando..." : "+ Adicionar"}
           </button>
-        </form>
+          {!newName.trim() && (
+            <div className="w-full text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+              Digite o nome da categoria e clique em + Adicionar.
+            </div>
+          )}
+        </div>
 
         {/* Lista agrupada */}
         {loading ? (
