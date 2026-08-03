@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { LogoMark } from "./Logo";
 import { ILogout } from "./Icon";
+import { fetchExtratoPendingCount } from "@/lib/pendingCounts";
 import { supabase } from "@/lib/supabase";
 import { useSession, useIsAdmin } from "@/lib/auth";
 import { useClickOutside, useLocalStorage } from "@/hooks/useClickOutside";
@@ -162,13 +163,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
 
   const { data: pendentesCount = 0 } = useQuery({
     queryKey: ["pendentes", "count"],
-    queryFn: async () => {
-      const { count } = await supabase()
-        .from("transactions")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "pending");
-      return count ?? 0;
-    },
+    queryFn: () => fetchExtratoPendingCount(),
     refetchInterval: 60_000,
   });
 

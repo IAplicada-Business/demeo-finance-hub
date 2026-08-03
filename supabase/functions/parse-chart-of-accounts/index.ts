@@ -3,8 +3,8 @@
 // Lê um arquivo de plano de contas (XLSX/CSV) enviado por cliente,
 // extrai as contas-folha (código contábil + nome) e:
 //   - mode "preview": devolve as contas parseadas SEM gravar (a gestora confere)
-//   - mode "commit":  guarda o arquivo (histórico) + ACRESCENTA as contas do
-//                     plano às categorias do cliente (mescla; não desativa as atuais).
+//   - mode "commit":  guarda o arquivo + acrescenta categorias do plano e
+//                     desativa as 16 categorias padrão Aurora (se existirem).
 //
 // Mapeia o nível 1 do código para os group_name que dre.ts já entende, então
 // DFC/DRE/relatórios continuam corretos sem nenhuma alteração nos consumidores:
@@ -18,12 +18,32 @@ import { corsHeaders as getCorsHeaders, handlePreflight, jsonResponse } from "..
 
 interface Account {
   code: string;
-  name: string;        // nome da conta (sem o código)
-  full_name: string;   // "3.1.1 · Receitas de Honorários…" (vira categories.name)
+  name: string;
+  full_name: string;
   group_name: string;
   type: "receita" | "despesa" | "transferencia";
   sort_order: number;
 }
+
+/** Categorias seed Aurora — desativadas ao commit do plano do cliente. */
+const DEFAULT_AURORA_CATEGORIES = [
+  "Receita · Vendas",
+  "Receita · Serviços",
+  "Receita · Convênios",
+  "Receita · Honorários",
+  "Receita · Delivery",
+  "Despesa Fixa · Aluguel",
+  "Despesa Fixa · Salários",
+  "Despesa Fixa · Utilidades",
+  "Despesa Fixa · Contabilidade",
+  "Despesa Variável · Insumos",
+  "Despesa Variável · Marketing",
+  "Despesa Variável · Manutenção",
+  "Investimento · Equipamentos",
+  "Investimento · Educação",
+  "Transferência",
+  "Outros",
+];
 
 // "6 .1.4" -> "6.1.4"; remove espaços internos e ponto final
 function normalizeCode(s: string): string {
@@ -208,6 +228,16 @@ Deno.serve(async (req) => {
       .from("categories")
       .upsert(catRows, { onConflict: "client_id,name" });
     if (upsertErr) return jsonResponse({ error: `Erro ao gravar categorias: ${upsertErr.message}` }, 500, origin);
+
+    // 4. Desativa categorias padrão Aurora — plano do cliente passa a ser a referência
+    const { error: deactErr } = await supabase
+      .from("categories")
+      .update({ is_active: false })
+      .eq("client_id", client_id)
+      .in("name", DEFAULT_AURORA_CATEGORIES);
+    if (deactErr) {
+      console.warn("[parse-chart-of-accounts] deactivate defaults:", deactErr.message);
+    }
 
     console.log("[parse-chart-of-accounts] commit", { client_id, accounts: accounts.length, coa_id: coaRow?.id });
 

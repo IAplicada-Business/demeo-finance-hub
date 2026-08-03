@@ -149,8 +149,7 @@ function PlanoContasPage() {
     if (
       !confirm(
         `Adicionar ${preview.length} contas ao plano de "${clientName}"?\n\n` +
-          `As categorias atuais são mantidas; as contas do plano são acrescentadas ` +
-          `e a IA passará a usá-las nas próximas importações.`,
+          `As contas do plano serão ativadas e as 16 categorias padrão Aurora (se existirem) serão desativadas.`,
       )
     )
       return;
@@ -189,7 +188,7 @@ function PlanoContasPage() {
         cap="Motor de classificação"
         title="Plano de Contas"
         emphasis="por cliente"
-        description="Suba o plano de contas do cliente (XLSX/CSV). Ele vira as categorias que a IA usa para classificar e replica automaticamente todos os meses."
+        description="Envie o plano de contas do cliente antes da primeira importação. O arquivo vira as categorias que a IA usa para classificar os extratos."
       />
 
       <div className="aurora-page">
@@ -249,7 +248,7 @@ function PlanoContasPage() {
               </>
             ) : (
               <div className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
-                Nenhum plano de contas enviado. Este cliente usa as categorias padrão.
+                Nenhum plano de contas enviado. Importação e classificação ficam bloqueadas até enviar o plano do cliente.
               </div>
             )}
           </div>

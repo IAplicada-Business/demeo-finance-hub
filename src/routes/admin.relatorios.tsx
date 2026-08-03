@@ -3,13 +3,14 @@ import { useState, useEffect } from "react";
 import { AdminLayout, PageHeader } from "@/components/AdminLayout";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { brl, formatDatePtBR } from "@/lib/utils";
-import { todayISO, firstOfMonthISO, lastOfMonthISO, firstOfYearISO } from "@/lib/dateUtils";
+import { todayISO, firstOfMonthISO, lastOfMonthISO, firstOfYearISO, isoMonthsInDateRange } from "@/lib/dateUtils";
 import { FilterMenu, FilterMenuOption } from "@/components/FilterMenu";
 import { supabase } from "@/lib/supabase";
 import * as XLSX from "xlsx";
 import { computeForecastMonths, type ForecastMonth, type PayableProjection } from "@/hooks/useDFCForecast";
 import { computeDRE, DRE_EBITDA_PIVOT, type CatInfo } from "@/lib/dre";
 import { computeHealthLevel, healthMargemPct, SEGMENT_BENCHMARKS } from "@/lib/healthScore";
+import { PendingApprovalBanner } from "@/components/PendingApprovalBanner";
 
 export const Route = createFileRoute("/admin/relatorios")({
   component: RelatoriosPage,
@@ -117,37 +118,25 @@ async function fetchCategories(clientId: string): Promise<Map<string, CatInfo>> 
   return map;
 }
 
-// Série mensal (6 meses até o mês do fim do período) — entradas × saídas por mês
-async function fetchMonthlySeries(clientId: string, endISO: string): Promise<MonthPoint[]> {
-  const endDt = new Date(endISO + "T12:00:00");
-  const mIdx = endDt.getMonth();
-  const yyyy = endDt.getFullYear();
-  const startDt = new Date(yyyy, mIdx - 5, 1);
-  const startStr = `${startDt.getFullYear()}-${String(startDt.getMonth() + 1).padStart(2, "0")}-01`;
-  const lastDay = new Date(yyyy, mIdx + 1, 0).getDate();
-  const endStr = `${yyyy}-${String(mIdx + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+// Série mensal dentro do intervalo exportado — entradas × saídas por mês
+async function fetchMonthlySeries(clientId: string, startISO: string, endISO: string): Promise<MonthPoint[]> {
+  const monthKeys = isoMonthsInDateRange(startISO, endISO);
   const { data } = await supabase()
     .from("transactions")
     .select("date, amount")
     .eq("client_id", clientId)
     .eq("status", "approved")
-    .gte("date", startStr)
-    .lte("date", endStr);
+    .gte("date", startISO)
+    .lte("date", endISO);
   const buckets = new Map<string, { ent: number; sai: number }>();
-  const order: string[] = [];
-  for (let i = 0; i < 6; i++) {
-    const dt = new Date(yyyy, mIdx - 5 + i, 1);
-    const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
-    buckets.set(key, { ent: 0, sai: 0 });
-    order.push(key);
-  }
+  for (const key of monthKeys) buckets.set(key, { ent: 0, sai: 0 });
   for (const t of (data ?? []) as { date: string; amount: number }[]) {
     const b = buckets.get(t.date.slice(0, 7));
     if (!b) continue;
     if (t.amount > 0) b.ent += t.amount;
     else b.sai += Math.abs(t.amount);
   }
-  return order.map((key) => {
+  return monthKeys.map((key) => {
     const mo = parseInt(key.slice(5, 7), 10);
     const b = buckets.get(key)!;
     return { label: MES_ABBR[mo - 1], ent: b.ent, sai: b.sai };
@@ -569,6 +558,13 @@ type RelTab = "exportar" | "historico";
 const REPORT_FORMATS = ["DFC", "DFC Gerencial"] as const;
 type ReportFormat = typeof REPORT_FORMATS[number];
 
+const REL_PRESETS = [
+  { label: "Mês atual", start: () => firstOfMonthISO(0), end: () => todayISO() },
+  { label: "Mês anterior", start: () => firstOfMonthISO(-1), end: () => lastOfMonthISO(-1) },
+  { label: "Trimestre", start: () => firstOfMonthISO(-2), end: () => lastOfMonthISO(0) },
+  { label: "Ano", start: () => `${new Date().getFullYear()}-01-01`, end: () => todayISO() },
+] as const;
+
 function RelatoriosPage() {
   const [activeTab, setActiveTab] = useState<RelTab>("exportar");
   const [clients, setClients] = useState<ClientRow[]>([]);
@@ -727,7 +723,7 @@ function RelatoriosPage() {
     const [txs, forecast, monthly, closed] = await Promise.all([
       fetchTxs(clientId, p),
       fetchForecast(clientId, p),
-      fetchMonthlySeries(clientId, p.end),
+      fetchMonthlySeries(clientId, p.start, p.end),
       fetchClosingStatus(clientId, p.end),
     ]);
     setExporting((e) => ({ ...e, [clientId]: null }));
@@ -766,7 +762,7 @@ function RelatoriosPage() {
     const forecast = r.forecast_json ?? await fetchForecast(r.client_id, p);
     if (r.type === "pdf") {
       const [monthly, closed] = await Promise.all([
-        fetchMonthlySeries(r.client_id, r.end_date),
+        fetchMonthlySeries(r.client_id, r.start_date, r.end_date),
         fetchClosingStatus(r.client_id, r.end_date),
       ]);
       const segment = clients.find((c) => c.id === r.client_id)?.segment ?? null;
@@ -822,6 +818,29 @@ function RelatoriosPage() {
               onStartChange={(d) => { setFilterStart(d); setActivePreset("Personalizado"); }}
               onEndChange={(d) => { setFilterEnd(d); setActivePreset("Personalizado"); }}
             />
+            <div className="flex flex-wrap gap-1.5">
+              {REL_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => {
+                    setFilterStart(preset.start());
+                    setFilterEnd(preset.end());
+                  }}
+                  className="text-[10px] uppercase px-2.5 py-1.5 transition-colors"
+                  style={{
+                    letterSpacing: "1.5px",
+                    fontWeight: 600,
+                    borderRadius: "999px",
+                    border: "1px solid var(--line)",
+                    color: "var(--muted-foreground)",
+                    background: "#fff",
+                  }}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
           </div>
         }
       />
@@ -848,7 +867,11 @@ function RelatoriosPage() {
         ))}
       </div>
 
-      <div className="aurora-page">
+      <div className="aurora-page flex flex-col gap-6">
+        <PendingApprovalBanner
+          clientId={filterClientId || undefined}
+          clientName={filterClientId ? clients.find((c) => c.id === filterClientId)?.name : undefined}
+        />
 
         {/* ── Aba: Exportar ─────────────────────────────────────────────────────── */}
         {activeTab === "exportar" && (

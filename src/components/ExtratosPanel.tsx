@@ -1,6 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { brl, formatDatePtBR } from "@/lib/utils";
+import { uploadPeriodInDateRange } from "@/lib/dateUtils";
+import { approveTransactionsBatch, syncUploadStatusAfterApproval } from "@/lib/approveTransactions";
+import { toastReconciliationSuggestions } from "@/lib/reconciliation";
 import { useCategories } from "@/hooks/useCategories";
 import { deleteUploadCascade } from "@/lib/uploads";
 
@@ -30,6 +34,7 @@ interface TxRecord {
 const MANUAL_KEY = "__manual__";
 
 export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: string; startDate?: string; endDate?: string }) {
+  const qc = useQueryClient();
   const [uploads, setUploads] = useState<UploadRecord[]>([]);
   const [txMap, setTxMap] = useState<Record<string, TxRecord[] | undefined>>({});
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -170,35 +175,81 @@ export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: stri
   async function approveUploadClassified(uploadId: string) {
     setApprovingUpload(uploadId);
     setErr(null);
-    const { data: updated, error } = await supabase()
+
+    const { data: classifiedTxs, error: fetchErr } = await supabase()
       .from("transactions")
-      .update({ status: "approved" })
+      .select("id, category, is_recurring, installment_number, installment_total, installment_group_id")
       .eq("upload_id", uploadId)
       .eq("status", "classified")
-      .select("id");
-    if (error) {
+      .not("category", "is", null);
+
+    if (fetchErr) {
       setApprovingUpload(null);
-      setErr(`Erro ao aprovar classificados: ${error.message}`);
+      setErr(`Erro ao carregar classificados: ${fetchErr.message}`);
       return;
     }
-    if (!updated?.length) {
-      // Nenhuma linha afetada (sessão/RLS) — não marca aprovado à toa
+    if (!classifiedTxs?.length) {
       setApprovingUpload(null);
-      setErr("Nenhum lançamento foi aprovado. Verifique sua sessão e tente novamente.");
+      setErr("Nenhum lançamento classificado com categoria para aprovar neste extrato.");
       return;
     }
-    // Reconta no banco (não confia no cache do load) para decidir o status do upload
-    // e refletir os pendentes reais que restaram.
-    const { count: remaining } = await supabase()
-      .from("transactions")
-      .select("id", { count: "exact", head: true })
-      .eq("upload_id", uploadId)
-      .neq("status", "approved");
-    if (remaining === 0) {
-      await supabase().from("uploads").update({ status: "approved" }).eq("id", uploadId);
-      setUploads((prev) => prev.map((u) => (u.id === uploadId ? { ...u, status: "approved" } : u)));
+
+    const result = await approveTransactionsBatch(
+      classifiedTxs.map((tx) => ({
+        id: tx.id,
+        category: tx.category!,
+        is_recurring: tx.is_recurring ?? false,
+        ...(tx.installment_number != null ? { installment_number: tx.installment_number } : {}),
+        ...(tx.installment_total != null ? { installment_total: tx.installment_total } : {}),
+        ...(tx.installment_group_id ? { installment_group_id: tx.installment_group_id } : {}),
+      })),
+      { clientId }
+    );
+
+    if (!result.ok) {
+      setApprovingUpload(null);
+      setErr(`Erro ao aprovar classificados: ${result.error}`);
+      return;
     }
-    setAwaiting((prev) => ({ ...prev, [uploadId]: { classified: 0, pending: remaining ?? 0 } }));
+
+    toastReconciliationSuggestions(result.reconcileSuggestions);
+
+    const attemptedIds = classifiedTxs.map((tx) => tx.id);
+    await syncUploadStatusAfterApproval(attemptedIds);
+
+    const [{ count: classifiedLeft }, { count: pendingLeft }] = await Promise.all([
+      supabase()
+        .from("transactions")
+        .select("id", { count: "exact", head: true })
+        .eq("upload_id", uploadId)
+        .eq("status", "classified"),
+      supabase()
+        .from("transactions")
+        .select("id", { count: "exact", head: true })
+        .eq("upload_id", uploadId)
+        .eq("status", "pending"),
+    ]);
+
+    const classified = classifiedLeft ?? 0;
+    const pending = pendingLeft ?? 0;
+    setUploads((prev) =>
+      prev.map((u) =>
+        u.id === uploadId
+          ? {
+              ...u,
+              tx_classified: classified,
+              tx_pending: pending,
+              status: classified === 0 && pending === 0 ? "approved" : u.status,
+            }
+          : u
+      )
+    );
+    setAwaiting((prev) => ({
+      ...prev,
+      [uploadId]: { classified, pending },
+    }));
+    await qc.invalidateQueries({ queryKey: ["pending-approval"] });
+    await qc.invalidateQueries({ queryKey: ["pendentes", "count"] });
     // Se estiver expandido, recarrega as transações aprovadas para refletir na tabela
     if (expanded.has(uploadId)) {
       const { data } = await supabase()
@@ -212,9 +263,16 @@ export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: stri
     setApprovingUpload(null);
   }
 
-  const filteredUploads = (startDate && endDate)
-    ? uploads.filter((u) => u.created_at >= startDate && u.created_at <= endDate + "T23:59:59")
-    : uploads;
+  const filteredUploads = useMemo(() => {
+    if (!startDate || !endDate) return uploads;
+    return uploads.filter((u) => uploadPeriodInDateRange(u.period, startDate, endDate));
+  }, [uploads, startDate, endDate]);
+
+  const filteredManualTxs = useMemo(() => {
+    const manual = txMap[MANUAL_KEY];
+    if (!manual?.length || !startDate || !endDate) return manual ?? [];
+    return manual.filter((t) => t.date >= startDate && t.date <= endDate);
+  }, [txMap, startDate, endDate]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -233,10 +291,12 @@ export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: stri
         </div>
       )}
 
-      {!loading && filteredUploads.length === 0 && !txMap[MANUAL_KEY]?.length && (
+      {!loading && filteredUploads.length === 0 && filteredManualTxs.length === 0 && (
         <div className="aurora-card text-center py-10">
           <div className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-            Nenhum extrato importado ainda.
+            {startDate && endDate && uploads.length > 0
+              ? "Nenhum extrato com o período selecionado no filtro de datas. Ajuste o intervalo ou importe com o mês correto."
+              : "Nenhum extrato importado ainda."}
           </div>
         </div>
       )}
@@ -325,8 +385,9 @@ export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: stri
                   <span>ℹ</span>
                   <span>
                     Nenhuma transação aprovada ainda.
-                    {aw.classified > 0 && <> Clique em <strong>Aprovar classificados</strong> acima para enviá-los ao histórico.</>}
-                    {aw.pending > 0 && <> {aw.pending} sem categoria aguardam revisão em <strong>Pendentes</strong>.</>}
+                    {(aw.classified + aw.pending) > 0 && (
+                      <> {aw.classified + aw.pending} lançamento{(aw.classified + aw.pending) !== 1 ? "s" : ""} aguardam aprovação em <strong>Pendentes</strong>.</>
+                    )}
                   </span>
                 </div>
               ) : (
@@ -390,9 +451,8 @@ export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: stri
         );
       })}
 
-      {(() => {
-        const manualTxs = txMap[MANUAL_KEY];
-        if (!manualTxs || manualTxs.length === 0) return null;
+      {filteredManualTxs.length > 0 && (() => {
+        const manualTxs = filteredManualTxs;
         const isExpanded = expanded.has(MANUAL_KEY);
         return (
           <div className="aurora-card p-0 overflow-hidden">

@@ -14,6 +14,7 @@ const BodySchema = z.object({
   segment: z.string().optional(),
   monthly_revenue_range: z.string().optional(),
   pain_point: z.string().optional(),
+  // Aceitamos qualquer formato; canonizamos depois (hífen → underscore).
   source_slug: z.string().default("landing_page"),
   utm_source: z.string().optional(),
   utm_medium: z.string().optional(),
@@ -136,12 +137,23 @@ Deno.serve(async (req) => {
 
   const sb = serviceClient();
 
-  // Resolve source_id
+  // Resolve source_id — canoniza o slug (hífen → underscore, lowercase, trim)
+  // pra evitar degradar silenciosamente quando a LP manda 'landing-page' e o
+  // seed grava 'landing_page'.
+  const canonicalSlug = (body.source_slug ?? "")
+    .toLowerCase()
+    .trim()
+    .replace(/[\s-]+/g, "_");
   const { data: source } = await sb
     .from("lead_sources")
-    .select("id")
-    .eq("slug", body.source_slug)
+    .select("id, slug")
+    .eq("slug", canonicalSlug)
     .maybeSingle();
+  if (!source) {
+    console.warn(
+      `[lead-intake] source_slug '${body.source_slug}' (canonizado: '${canonicalSlug}') não encontrado em lead_sources — registrando com source_id=null`,
+    );
+  }
   const source_id = source?.id ?? null;
 
   // Insere lead

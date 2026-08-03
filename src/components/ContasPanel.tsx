@@ -5,6 +5,15 @@ import { brl, formatDatePtBR } from "@/lib/utils";
 import { todayISO } from "@/lib/dateUtils";
 import { supabase } from "@/lib/supabase";
 import { FilterMenu, FilterMenuOption } from "@/components/FilterMenu";
+import {
+  createManualPayment,
+  rankTxCandidatesForPayable,
+  reconcilePayable as linkPayableToTx,
+  undoManualPayment,
+  unreconcilePayable,
+  type PayableMatchInput,
+  type TxMatchInput,
+} from "@/lib/reconciliation";
 
 interface Payable {
   id: string;
@@ -14,11 +23,13 @@ interface Payable {
   amount: number;
   due_date: string;
   paid_at: string | null;
+  matched_transaction_id: string | null;
   category: string | null;
   notes: string | null;
 }
 
 type FilterView = "pendentes" | "pagos" | "todos";
+type DisplayStatus = "pendente" | "vencido" | "conciliado" | "dinheiro" | "pago";
 
 interface FormState {
   type: string;
@@ -29,16 +40,22 @@ interface FormState {
   notes: string;
 }
 
-
-function displayStatus(p: Payable): "pago" | "vencido" | "pendente" {
+function displayStatus(p: Payable, txUploadMap: Map<string, string | null>): DisplayStatus {
+  if (p.matched_transaction_id) {
+    const uploadId = txUploadMap.get(p.matched_transaction_id);
+    if (uploadId === undefined) return "pago";
+    return uploadId ? "conciliado" : "dinheiro";
+  }
   if (p.paid_at) return "pago";
   if (p.due_date < todayISO()) return "vencido";
   return "pendente";
 }
 
-function PayableStatusBadge({ status }: { status: "pago" | "vencido" | "pendente" }) {
+function PayableStatusBadge({ status }: { status: DisplayStatus }) {
   const cfg = {
     pago: { bg: "rgba(74,124,89,0.12)", color: "var(--green)", label: "Pago" },
+    conciliado: { bg: "rgba(74,124,89,0.12)", color: "var(--green)", label: "Conciliado" },
+    dinheiro: { bg: "rgba(184,149,106,0.15)", color: "var(--tan)", label: "Pago em dinheiro" },
     vencido: { bg: "rgba(176,96,64,0.12)", color: "#B06040", label: "Vencido" },
     pendente: { bg: "var(--linen)", color: "var(--muted-foreground)", label: "Pendente" },
   }[status];
@@ -58,8 +75,10 @@ function PayableSection({
   accentColor,
   marking,
   view,
-  onMarkPaid,
-  onUndoPaid,
+  txUploadMap,
+  onReconcile,
+  onCashPaid,
+  onUndo,
   onDelete,
 }: {
   title: string;
@@ -67,8 +86,10 @@ function PayableSection({
   accentColor: string;
   marking: string | null;
   view: FilterView;
-  onMarkPaid: (id: string) => void;
-  onUndoPaid: (id: string) => void;
+  txUploadMap: Map<string, string | null>;
+  onReconcile: (p: Payable) => void;
+  onCashPaid: (id: string) => void;
+  onUndo: (p: Payable) => void;
   onDelete: (id: string) => void;
 }) {
   const subtotal = items.reduce((s, p) => s + p.amount, 0);
@@ -111,7 +132,8 @@ function PayableSection({
           </thead>
           <tbody>
             {items.map((p, idx) => {
-              const status = displayStatus(p);
+              const status = displayStatus(p, txUploadMap);
+              const isOpen = status === "pendente" || status === "vencido";
               const isMarking = marking === p.id;
               return (
                 <tr key={p.id} style={{ background: idx % 2 === 0 ? "#fff" : "#FAFBFA" }}>
@@ -140,23 +162,34 @@ function PayableSection({
                     <PayableStatusBadge status={status} />
                   </td>
                   <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      {status !== "pago" && (
-                        <button
-                          onClick={() => onMarkPaid(p.id)}
-                          disabled={isMarking}
-                          className="text-[10px] uppercase px-2.5 py-1 transition-opacity disabled:opacity-40"
-                          style={{ background: "var(--green)", color: "#fff", letterSpacing: "1.5px", fontWeight: 500, whiteSpace: "nowrap" , borderRadius: 999 }}
-                        >
-                          {isMarking ? "…" : "✓ Pago"}
-                        </button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {isOpen && (
+                        <>
+                          <button
+                            onClick={() => onReconcile(p)}
+                            disabled={isMarking}
+                            className="text-[10px] uppercase px-2.5 py-1 transition-opacity disabled:opacity-40"
+                            style={{ border: "1px solid var(--line)", color: "var(--navy)", letterSpacing: "1.5px", whiteSpace: "nowrap", borderRadius: 12 }}
+                          >
+                            Conciliar
+                          </button>
+                          <button
+                            onClick={() => onCashPaid(p.id)}
+                            disabled={isMarking}
+                            title="Dinheiro: registra no caixa. Banco: importe extrato e concilie."
+                            className="text-[10px] uppercase px-2.5 py-1 transition-opacity disabled:opacity-40"
+                            style={{ background: "var(--green)", color: "#fff", letterSpacing: "1.5px", fontWeight: 500, whiteSpace: "nowrap", borderRadius: 999 }}
+                          >
+                            {isMarking ? "…" : "✓ Pago (dinheiro)"}
+                          </button>
+                        </>
                       )}
-                      {status === "pago" && (
+                      {!isOpen && (
                         <button
-                          onClick={() => onUndoPaid(p.id)}
+                          onClick={() => onUndo(p)}
                           disabled={isMarking}
                           className="text-[10px] uppercase px-2.5 py-1 transition-opacity disabled:opacity-40"
-                          style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", letterSpacing: "1.5px", whiteSpace: "nowrap" , borderRadius: 12 }}
+                          style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", letterSpacing: "1.5px", whiteSpace: "nowrap", borderRadius: 12 }}
                         >
                           {isMarking ? "…" : "Desfazer"}
                         </button>
@@ -177,6 +210,134 @@ function PayableSection({
           </tbody>
         </table>
       )}
+    </div>
+  );
+}
+
+function ReconcileModal({
+  payable,
+  clientId,
+  onClose,
+  onReconciled,
+}: {
+  payable: Payable;
+  clientId: string;
+  onClose: () => void;
+  onReconciled: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [candidates, setCandidates] = useState<{ tx: TxMatchInput; score: number }[]>([]);
+  const [linking, setLinking] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      const { data, error: err } = await supabase()
+        .from("transactions")
+        .select("id, date, description, amount, category, status")
+        .eq("client_id", clientId)
+        .eq("status", "approved")
+        .is("payable_id", null)
+        .order("date", { ascending: false })
+        .limit(200);
+
+      if (cancelled) return;
+      if (err) {
+        setError(err.message);
+        setCandidates([]);
+      } else {
+        const payableInput: PayableMatchInput = {
+          id: payable.id,
+          type: payable.type,
+          amount: payable.amount,
+          due_date: payable.due_date,
+          description: payable.description,
+          category: payable.category,
+        };
+        setCandidates(rankTxCandidatesForPayable(payableInput, (data ?? []) as TxMatchInput[], 60));
+      }
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [clientId, payable]);
+
+  async function handleLink(txId: string) {
+    setLinking(txId);
+    const result = await linkPayableToTx(payable.id, txId);
+    if (!result.ok) {
+      toast.error(result.error);
+      setLinking(null);
+      return;
+    }
+    toast.success("Conta conciliada com o extrato.");
+    onReconciled();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.35)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="aurora-modal bg-white flex flex-col"
+        style={{ width: 560, maxHeight: "85vh", overflowY: "auto", borderTop: "3px solid var(--navy)" }}
+      >
+        <div className="px-6 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid var(--line)" }}>
+          <div>
+            <div className="aurora-cap mb-0.5">Conciliar</div>
+            <div className="aurora-serif text-[18px]">{payable.description}</div>
+            <div className="text-[12px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+              {brl(payable.amount)} · venc. {formatDatePtBR(payable.due_date)}
+            </div>
+          </div>
+          <button onClick={onClose} className="text-[16px] opacity-40 hover:opacity-70 transition-opacity">✕</button>
+        </div>
+
+        <div className="px-6 py-4">
+          {loading && <div className="text-[13px]">Buscando lançamentos no extrato...</div>}
+          {error && (
+            <div className="text-[12px] px-3 py-2" style={{ background: "rgba(176,96,64,0.1)", color: "#B06040" }}>
+              {error}
+            </div>
+          )}
+          {!loading && !error && candidates.length === 0 && (
+            <div className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+              Nenhum lançamento aprovado compatível. Importe e aprove o extrato primeiro.
+            </div>
+          )}
+          {!loading && candidates.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {candidates.map(({ tx, score }) => (
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between gap-3 px-4 py-3"
+                  style={{ border: "1px solid var(--line)", borderRadius: 12 }}
+                >
+                  <div className="min-w-0">
+                    <div className="text-[13px] truncate">{tx.description}</div>
+                    <div className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                      {formatDatePtBR(tx.date)} · {brl(Math.abs(tx.amount))} · score {score}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={linking !== null}
+                    onClick={() => handleLink(tx.id)}
+                    className="text-[10px] uppercase px-3 py-1.5 shrink-0 transition-opacity disabled:opacity-40"
+                    style={{ background: "var(--navy)", color: "#fff", letterSpacing: "1.5px", borderRadius: 999 }}
+                  >
+                    {linking === tx.id ? "…" : "Vincular"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -244,7 +405,7 @@ function NovoLancamentoModal({
         category: form.category.trim() || null,
         notes: form.notes.trim() || null,
       })
-      .select("id, client_id, type, description, amount, due_date, paid_at, category, notes")
+      .select("id, client_id, type, description, amount, due_date, paid_at, matched_transaction_id, category, notes")
       .single();
 
     if (err) { setError(err.message); setSaving(false); return; }
@@ -348,15 +509,26 @@ function NovoLancamentoModal({
 
 const PAGE_SIZE = 50;
 
-export function ContasPanel({ clientId, openTrigger }: { clientId: string; openTrigger?: number }) {
+export function ContasPanel({
+  clientId,
+  openTrigger,
+  onOpenLivro,
+}: {
+  clientId: string;
+  openTrigger?: number;
+  onOpenLivro?: () => void;
+}) {
   const [view, setView] = useState<FilterView>("pendentes");
   const [page, setPage] = useState(0);
   const [payables, setPayables] = useState<Payable[]>([]);
+  const [txUploadMap, setTxUploadMap] = useState<Map<string, string | null>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [marking, setMarking] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [reconcileTarget, setReconcileTarget] = useState<Payable | null>(null);
+  const [confirmCashId, setConfirmCashId] = useState<string | null>(null);
 
   useEffect(() => {
     if (openTrigger) setShowModal(true);
@@ -367,50 +539,91 @@ export function ContasPanel({ clientId, openTrigger }: { clientId: string; openT
     setError(null);
     const { data, error: err } = await supabase()
       .from("payables")
-      .select("id, client_id, type, description, amount, due_date, paid_at, category, notes")
+      .select("id, client_id, type, description, amount, due_date, paid_at, matched_transaction_id, category, notes")
       .eq("client_id", clientId)
       .order("due_date", { ascending: true });
-    if (err) setError(err.message);
-    else setPayables((data ?? []) as Payable[]);
+    if (err) {
+      setError(err.message);
+      setPayables([]);
+      setTxUploadMap(new Map());
+    } else {
+      const rows = (data ?? []) as Payable[];
+      setPayables(rows);
+      const matchedIds = rows.map((p) => p.matched_transaction_id).filter(Boolean) as string[];
+      if (matchedIds.length) {
+        const { data: txs } = await supabase()
+          .from("transactions")
+          .select("id, upload_id")
+          .in("id", matchedIds);
+        const map = new Map<string, string | null>();
+        for (const tx of txs ?? []) {
+          map.set(tx.id, tx.upload_id);
+        }
+        setTxUploadMap(map);
+      } else {
+        setTxUploadMap(new Map());
+      }
+    }
     setLoading(false);
   }
 
   useEffect(() => { if (clientId) loadPayables(); }, [clientId]);
 
-  async function markPaid(id: string) {
+  async function handleCashPaid(id: string) {
+    setConfirmCashId(null);
     setMarking(id);
-    const paid = todayISO();
-    const prev = payables;
-    setPayables((p) => p.map((r) => (r.id === id ? { ...r, paid_at: paid } : r)));
-    const { error: err } = await supabase().from("payables").update({ paid_at: paid }).eq("id", id);
-    if (err) {
-      console.error("[ContasPanel] markPaid failed, rolling back:", err.message);
-      setPayables(prev);
-      toast.error("Erro ao marcar como pago. Tente novamente.");
+    const result = await createManualPayment(id);
+    if (!result.ok) {
+      toast.error(result.error);
+    } else {
+      toast.success("Pagamento em dinheiro registrado no Livro Diário.");
+      await loadPayables();
     }
     setMarking(null);
   }
 
-  async function undoPaid(id: string) {
-    setMarking(id);
-    const { error: err } = await supabase().from("payables").update({ paid_at: null }).eq("id", id);
-    if (err) setError(err.message);
-    else setPayables((prev) => prev.map((p) => (p.id === id ? { ...p, paid_at: null } : p)));
+  async function handleUndo(p: Payable) {
+    setMarking(p.id);
+    const status = displayStatus(p, txUploadMap);
+    const result =
+      status === "conciliado"
+        ? await unreconcilePayable(p.id)
+        : await undoManualPayment(p.id);
+    if (!result.ok) {
+      toast.error(result.error);
+    } else {
+      toast.success("Baixa desfeita.");
+      await loadPayables();
+    }
     setMarking(null);
   }
 
   async function confirmDelete() {
     if (!confirmDeleteId) return;
     const id = confirmDeleteId;
+    const payable = payables.find((p) => p.id === id);
     setConfirmDeleteId(null);
+
+    // undo_manual_payment também desfaz conciliação (tx com upload_id) e remove tx de caixa
+    if (payable?.matched_transaction_id || payable?.paid_at) {
+      const unlink = await undoManualPayment(id);
+      if (!unlink.ok) {
+        toast.error(unlink.error);
+        return;
+      }
+    }
+
     const { error: err } = await supabase().from("payables").delete().eq("id", id);
     if (err) toast.error("Erro ao excluir lançamento.");
-    else setPayables((prev) => prev.filter((p) => p.id !== id));
+    else {
+      setPayables((prev) => prev.filter((p) => p.id !== id));
+      toast.success("Lançamento excluído.");
+    }
   }
 
   const filtered = payables.filter((p) => {
-    if (view === "pendentes") return !p.paid_at;
-    if (view === "pagos") return !!p.paid_at;
+    if (view === "pendentes") return !p.paid_at && !p.matched_transaction_id;
+    if (view === "pagos") return !!p.paid_at || !!p.matched_transaction_id;
     return true;
   });
 
@@ -421,14 +634,13 @@ export function ContasPanel({ clientId, openTrigger }: { clientId: string; openT
   const receber = paged.filter((p) => p.type === "receber");
   const pagar = paged.filter((p) => p.type === "pagar");
 
-  const pending = payables.filter((p) => !p.paid_at);
+  const pending = payables.filter((p) => !p.paid_at && !p.matched_transaction_id);
   const totalReceber = pending.filter((p) => p.type === "receber").reduce((s, p) => s + p.amount, 0);
   const totalPagar = pending.filter((p) => p.type === "pagar").reduce((s, p) => s + p.amount, 0);
   const saldoPrevisto = totalReceber - totalPagar;
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Header row with KPIs and "+ Novo" button */}
       <div className="flex items-start justify-between gap-4">
         <div className="grid grid-cols-3 gap-4 flex-1">
           <div className="aurora-card">
@@ -463,7 +675,6 @@ export function ContasPanel({ clientId, openTrigger }: { clientId: string; openT
         </div>
       )}
 
-      {/* View filter — dropdown no padrão Dashboard */}
       <div className="flex items-center gap-2">
         <FilterMenu
           label="Exibir"
@@ -491,7 +702,7 @@ export function ContasPanel({ clientId, openTrigger }: { clientId: string; openT
       {loading && (
         <div className="aurora-card flex items-center gap-4">
           <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: "var(--green)", borderTopColor: "transparent" }} />
-          <div className="text-[13px]">Carregando contas...</div>
+          <div className="text-[13px]">Carregando agenda...</div>
         </div>
       )}
 
@@ -503,8 +714,10 @@ export function ContasPanel({ clientId, openTrigger }: { clientId: string; openT
             accentColor="var(--green)"
             marking={marking}
             view={view}
-            onMarkPaid={markPaid}
-            onUndoPaid={undoPaid}
+            txUploadMap={txUploadMap}
+            onReconcile={setReconcileTarget}
+            onCashPaid={setConfirmCashId}
+            onUndo={handleUndo}
             onDelete={setConfirmDeleteId}
           />
           <PayableSection
@@ -513,8 +726,10 @@ export function ContasPanel({ clientId, openTrigger }: { clientId: string; openT
             accentColor="var(--navy)"
             marking={marking}
             view={view}
-            onMarkPaid={markPaid}
-            onUndoPaid={undoPaid}
+            txUploadMap={txUploadMap}
+            onReconcile={setReconcileTarget}
+            onCashPaid={setConfirmCashId}
+            onUndo={handleUndo}
             onDelete={setConfirmDeleteId}
           />
           {totalPages > 1 && (
@@ -542,6 +757,18 @@ export function ContasPanel({ clientId, openTrigger }: { clientId: string; openT
               </div>
             </div>
           )}
+          {onOpenLivro && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={onOpenLivro}
+                className="text-[11px] uppercase aurora-link"
+                style={{ letterSpacing: "1.5px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+              >
+                Ver no Livro Diário →
+              </button>
+            </div>
+          )}
         </>
       )}
 
@@ -554,6 +781,54 @@ export function ContasPanel({ clientId, openTrigger }: { clientId: string; openT
             setShowModal(false);
           }}
         />
+      )}
+
+      {reconcileTarget && (
+        <ReconcileModal
+          payable={reconcileTarget}
+          clientId={clientId}
+          onClose={() => setReconcileTarget(null)}
+          onReconciled={() => {
+            setReconcileTarget(null);
+            loadPayables();
+          }}
+        />
+      )}
+
+      {confirmCashId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.35)" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setConfirmCashId(null); }}
+        >
+          <div className="aurora-modal bg-white flex flex-col" style={{ width: 420, borderTop: "3px solid var(--green)" }}>
+            <div className="px-6 py-5" style={{ borderBottom: "1px solid var(--line)" }}>
+              <div className="aurora-cap mb-0.5">Pago em dinheiro</div>
+              <div className="aurora-serif text-[18px]">Registrar no caixa?</div>
+            </div>
+            <div className="px-6 py-4 text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+              Cria um lançamento aprovado no Livro Diário (Espécie). Para pagamento via banco, importe o extrato e use Conciliar.
+            </div>
+            <div className="px-6 pb-5 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmCashId(null)}
+                className="text-[11px] uppercase px-4 py-2"
+                style={{ color: "var(--muted-foreground)", letterSpacing: "1.5px" }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCashPaid(confirmCashId)}
+                className="text-[11px] uppercase px-5 py-2"
+                style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500, borderRadius: 999 }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {confirmDeleteId && (

@@ -26,6 +26,13 @@ test-results/
 *.test.local.*
 test-fixtures/
 
+# Scripts locais de diagnóstico/fix one-off (UUIDs de clientes reais)
+scripts/fix-*.mjs
+scripts/check-*-detail.mjs
+scripts/check-caixa-*.mjs
+scripts/reclassify-*.mjs
+scripts/check-teste-client.mjs
+
 # Logs
 logs
 *.log

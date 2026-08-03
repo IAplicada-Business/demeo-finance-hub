@@ -129,7 +129,7 @@ function ClientePage() {
       .from("transactions")
       .select("id, date, description, amount, category, status, is_recurring")
       .eq("client_id", clientId)
-      .in("status", ["approved", "pending"])
+      .in("status", ["approved", "pending", "classified"])
       .gte("date", start)
       .lte("date", end)
       .order("date", { ascending: false })
@@ -237,7 +237,10 @@ const receita = useMemo(
     [tx]
   );
   const saldo = receita - despesas;
-  const pendentes = useMemo(() => tx.filter((t) => t.status === "pending").length, [tx]);
+  const pendentes = useMemo(
+    () => tx.filter((t) => t.status === "pending" || t.status === "classified").length,
+    [tx]
+  );
 
   const health = useMemo(
     () => computeHealthLevel(receita, despesas, client?.segment ?? null),

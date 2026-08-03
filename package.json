@@ -13,7 +13,8 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPatterns=tests/unit",
     "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPatterns=tests/integration",
     "test:e2e": "playwright test",
-    "test:all": "node --experimental-vm-modules node_modules/jest/bin/jest.js && playwright test"
+    "test:all": "node --experimental-vm-modules node_modules/jest/bin/jest.js && playwright test",
+    "deploy:parse-extract": "supabase functions deploy parse-extract --project-ref ofvhmiugqkpzlgziqnjb"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",

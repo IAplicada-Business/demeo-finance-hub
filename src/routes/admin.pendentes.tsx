@@ -1,8 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AdminLayout, PageHeader } from "@/components/AdminLayout";
-import { brl, buildPattern, formatDatePtBR } from "@/lib/utils";
+import { buildPattern, formatDatePtBR, brl } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import {
+  approveTransactionsBatch,
+  ensureAdminSession,
+  syncUploadStatusAfterApproval,
+  upsertRecurringRules,
+} from "@/lib/approveTransactions";
+import { toastReconciliationSuggestions } from "@/lib/reconciliation";
+import { installmentGroupId } from "@/lib/installmentGroupId";
 import { EditTransactionModal } from "@/components/EditTransactionModal";
 
 export const Route = createFileRoute("/admin/pendentes")({
@@ -33,8 +42,15 @@ interface ClientInfo {
 }
 
 const PAGE_SIZE = 50;
+const UNAPPROVED_STATUSES = ["pending", "classified"] as const;
+
+function pageForTotal(total: number, preferred: number): number {
+  if (total <= 0) return 0;
+  return Math.min(preferred, Math.ceil(total / PAGE_SIZE) - 1);
+}
 
 function PendentesPage() {
+  const qc = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<PendingTx[]>([]);
   const [clientMap, setClientMap] = useState<Record<string, ClientInfo>>({});
@@ -74,11 +90,13 @@ function PendentesPage() {
     let txQuery = supabase()
       .from("transactions")
       .select("id, client_id, date, description, raw_description, amount, category, status")
-      .eq("status", "pending");
+      .in("status", [...UNAPPROVED_STATUSES])
+      .not("upload_id", "is", null);
     let countQuery = supabase()
       .from("transactions")
       .select("*", { count: "exact", head: true })
-      .eq("status", "pending");
+      .in("status", [...UNAPPROVED_STATUSES])
+      .not("upload_id", "is", null);
     if (!showAll) {
       txQuery = txQuery.gte("date", dateFrom);
       countQuery = countQuery.gte("date", dateFrom);
@@ -134,24 +152,21 @@ function PendentesPage() {
     setLoading(false);
   }
 
-  // UUID determinístico por evento de compra: (client_id, padrão, total de parcelas, YYYY-MM da tx).
-  // Incluir yearMonth garante que duas compras parceladas distintas do mesmo fornecedor e valor
-  // recebam group IDs diferentes, evitando mesclagem incorreta na projeção financeira.
-  async function deterministicGroupId(clientId: string, description: string, installmentTotal: number, date: string): Promise<string> {
-    const yearMonth = date.slice(0, 7);
-    const input = `${clientId}:${buildPattern(description)}:${installmentTotal}:${yearMonth}`;
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
-    const b = new Uint8Array(buf);
-    b[6] = (b[6] & 0x0f) | 0x40; // version 4
-    b[8] = (b[8] & 0x3f) | 0x80; // variant
-    const h = Array.from(b.slice(0, 16)).map((x) => x.toString(16).padStart(2, "0")).join("");
-    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
-  }
-
   async function saveClient(clientId: string, ids?: Set<string>) {
     const clientTxs = transactions.filter(
-      (t) => t.client_id === clientId && !!cats[t.id] && (ids ? ids.has(t.id) : true)
+      (t) => t.client_id === clientId && !!cats[t.id]?.trim() && (ids ? ids.has(t.id) : true)
     );
+    if (!clientTxs.length) {
+      setError("Selecione lançamentos com categoria antes de aprovar.");
+      return;
+    }
+
+    const sessionCheck = await ensureAdminSession();
+    if (!sessionCheck.ok) {
+      setError(sessionCheck.error);
+      return;
+    }
+
     setSaving(clientId);
     setError(null);
 
@@ -167,47 +182,52 @@ function PendentesPage() {
               ? {
                   installment_number: inst.number,
                   installment_total: inst.total,
-                  installment_group_id: await deterministicGroupId(tx.client_id, tx.description, inst.total, tx.date),
+                  installment_group_id: await installmentGroupId(tx.client_id, tx.description, inst.total, tx.date, tx.id),
                 }
               : {};
           return { tx, category, isRecurring, installmentFields };
         })
       );
 
-      // 1. Aprova todas as transações atomicamente (BEGIN/COMMIT único via RPC)
       const txUpdates = payloads.map(({ tx, category, isRecurring, installmentFields }) => ({
         id: tx.id,
         category,
         is_recurring: isRecurring,
         ...installmentFields,
       }));
-      const { error: approveErr } = await supabase().rpc("approve_transactions_batch", { p_updates: txUpdates });
-      if (approveErr) throw new Error(`Aprovação: ${approveErr.message}`);
 
-      // 2. Upsert de todas as regras recorrentes em um único roundtrip
-      const rulesToUpsert = payloads
-        .filter(({ isRecurring }) => isRecurring)
-        .map(({ tx, category }) => ({
-          client_id: tx.client_id,
-          pattern: buildPattern(tx.description),
-          category,
-          is_recurring: true,
-          hits: 2,
-          source: "manual",
-          is_active: true,
-        }));
+      const approveResult = await approveTransactionsBatch(txUpdates, { clientId });
+      if (!approveResult.ok) throw new Error(`Aprovação: ${approveResult.error}`);
 
-      if (rulesToUpsert.length > 0) {
-        const { error: rulesErr } = await supabase()
-          .from("classification_rules")
-          .upsert(rulesToUpsert, { onConflict: "client_id,pattern" });
-        if (rulesErr) throw new Error(`Regras: ${rulesErr.message}`);
-      }
+      toastReconciliationSuggestions(approveResult.reconcileSuggestions);
+
+      const rulesResult = await upsertRecurringRules(
+        payloads
+          .filter(({ isRecurring }) => isRecurring)
+          .map(({ tx, category }) => ({
+            client_id: tx.client_id,
+            pattern: buildPattern(tx.description),
+            category,
+          }))
+      );
+      if (!rulesResult.ok) throw new Error(`Regras: ${rulesResult.error}`);
+
+      const savedIds = new Set(clientTxs.map((t) => t.id));
+      await syncUploadStatusAfterApproval([...savedIds]);
 
       // Remove transações salvas da lista local e das seleções
-      const savedIds = new Set(clientTxs.map((t) => t.id));
-      setTransactions((prev) => prev.filter((t) => !savedIds.has(t.id)));
+      const remainingOnPage = transactions.filter((t) => !savedIds.has(t.id));
+      const newTotal = Math.max(0, totalCount - savedIds.size);
+      setTransactions(remainingOnPage);
       setSelected((prev) => { const next = { ...prev }; savedIds.forEach((id) => delete next[id]); return next; });
+      setTotalCount(newTotal);
+      await qc.invalidateQueries({ queryKey: ["pendentes", "count"] });
+      await qc.invalidateQueries({ queryKey: ["pending-approval"] });
+      if (remainingOnPage.length === 0 && newTotal > 0) {
+        const nextPage = pageForTotal(newTotal, page);
+        if (nextPage !== page) setPage(nextPage);
+        await loadData(nextPage);
+      }
     } catch (e) {
       setError(String(e));
     } finally {
@@ -255,10 +275,18 @@ function PendentesPage() {
     } else {
       setDeleteTarget(null);
       const remaining = transactions.filter((t) => t.id !== tx.id);
+      const newTotal = Math.max(0, totalCount - 1);
       setTransactions(remaining);
-      setTotalCount((c) => c - 1);
-      // Se a página ficou vazia e não é a primeira, volta uma página
-      if (remaining.length === 0 && page > 0) setPage((p) => p - 1);
+      setTotalCount(newTotal);
+      await qc.invalidateQueries({ queryKey: ["pendentes", "count"] });
+      await qc.invalidateQueries({ queryKey: ["pending-approval"] });
+      if (remaining.length === 0 && newTotal > 0) {
+        const nextPage = pageForTotal(newTotal, page);
+        if (nextPage !== page) setPage(nextPage);
+        await loadData(nextPage);
+      } else if (remaining.length === 0 && newTotal === 0 && page > 0) {
+        setPage(0);
+      }
     }
   }
 
@@ -280,7 +308,7 @@ function PendentesPage() {
         description={
           loading
             ? "Carregando..."
-            : `${transactions.length} lançamentos aguardando classificação em ${clientCount} clientes.`
+            : `${totalCount} lançamento${totalCount !== 1 ? "s" : ""} aguardando revisão/aprovação em ${clientCount} cliente${clientCount !== 1 ? "s" : ""}.`
         }
       />
 
@@ -301,16 +329,16 @@ function PendentesPage() {
               className="w-5 h-5 rounded-full border-2 animate-spin"
               style={{ borderColor: "var(--green)", borderTopColor: "transparent" }}
             />
-            <div className="text-[13px]">Carregando lançamentos pendentes...</div>
+            <div className="text-[13px]">Carregando lançamentos aguardando aprovação...</div>
           </div>
         )}
 
-        {!loading && transactions.length === 0 && (
+        {!loading && transactions.length === 0 && totalCount === 0 && (
           <div className="aurora-card text-center py-16">
             <div className="aurora-serif text-[24px]" style={{ color: "var(--green)" }}>✓</div>
             <div className="aurora-serif text-[20px] mt-2">Tudo em dia</div>
             <div className="text-[12px] mt-2" style={{ color: "var(--muted-foreground)" }}>
-              Nenhum lançamento pendente de classificação.
+              Nenhum lançamento aguardando aprovação.
             </div>
           </div>
         )}
@@ -318,7 +346,7 @@ function PendentesPage() {
         {totalCount > PAGE_SIZE && (
           <div className="flex items-center justify-between">
             <div className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-              Página {page + 1} de {Math.ceil(totalCount / PAGE_SIZE)} · {totalCount} lançamentos pendentes no total
+              Página {page + 1} de {Math.ceil(totalCount / PAGE_SIZE)} · {totalCount} aguardando aprovação no total
             </div>
             <div className="text-[11px] uppercase" style={{ color: "var(--tan)", letterSpacing: "1.5px" }}>
               Salve antes de navegar
@@ -369,6 +397,7 @@ function PendentesPage() {
           const isSaving = saving === cid;
           const isExpanded = expanded.has(cid);
           const priority = priorityMap[cid] ?? "media";
+          const withCategory = items.filter((t) => !!cats[t.id]?.trim()).length;
           return (
             <div key={cid} className="aurora-card p-0 overflow-hidden">
               <div
@@ -386,18 +415,18 @@ function PendentesPage() {
                     <div className="aurora-serif text-[20px]">
                       {client?.name ?? cid}{" "}
                       <em className="italic" style={{ color: "var(--green)" }}>
-                        · {items.length} pendentes
+                        · {items.length} aguardando aprovação
                       </em>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
                   {(() => {
-                    const selIds = new Set(items.filter((t) => selected[t.id]).map((t) => t.id));
-                    const selCount = selIds.size;
+                    const selWithCategory = items.filter((t) => selected[t.id] && !!cats[t.id]?.trim());
+                    const selCount = selWithCategory.length;
                     return selCount > 0 ? (
                       <button
-                        onClick={() => saveClient(cid, selIds)}
+                        onClick={() => saveClient(cid, new Set(selWithCategory.map((t) => t.id)))}
                         disabled={isSaving}
                         className="text-[10px] uppercase px-4 py-2 transition-opacity disabled:opacity-50"
                         style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
@@ -407,11 +436,11 @@ function PendentesPage() {
                     ) : (
                       <button
                         onClick={() => saveClient(cid)}
-                        disabled={isSaving}
+                        disabled={isSaving || withCategory === 0}
                         className="text-[10px] uppercase px-4 py-2 transition-opacity disabled:opacity-50"
                         style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
                       >
-                        {isSaving ? "Salvando..." : "Aprovar todos classificados"}
+                        {isSaving ? "Salvando..." : `Aprovar com categoria (${withCategory})`}
                       </button>
                     );
                   })()}
@@ -438,7 +467,7 @@ function PendentesPage() {
                         title="Selecionar todos"
                       />
                     </th>
-                    {["Data", "Descrição", "Valor", "Categoria", "Recorrente", "Parcelamento", ""].map((h) => (
+                    {["Data", "Descrição", "Valor", "Status", "Categoria", "Recorrente", "Parcelamento", ""].map((h) => (
                       <th
                         key={h}
                         className="text-left px-6 py-3 aurora-cap"
@@ -469,6 +498,21 @@ function PendentesPage() {
                       >
                         {t.amount >= 0 ? "+" : ""}
                         {brl(t.amount)}
+                      </td>
+                      <td className="px-6 py-3">
+                        <span
+                          className="inline-block px-2 py-0.5 text-[10px] uppercase"
+                          style={{
+                            letterSpacing: "1px",
+                            fontWeight: 600,
+                            background: cats[t.id]?.trim()
+                              ? "rgba(27,57,77,0.10)"
+                              : "rgba(184,149,106,0.15)",
+                            color: cats[t.id]?.trim() ? "var(--navy)" : "var(--tan)",
+                          }}
+                        >
+                          {cats[t.id]?.trim() ? "Classificado" : "Sem categoria"}
+                        </span>
                       </td>
                       <td className="px-6 py-3">
                         <select
