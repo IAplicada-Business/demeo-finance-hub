@@ -127,6 +127,19 @@ function ClientesPage() {
     qc.invalidateQueries({ queryKey: ["clients"] });
   }
 
+  async function handleReopenMonth(clientId: string) {
+    const { error } = await supabase()
+      .from("monthly_closings")
+      .update({ completed_at: null, updated_at: new Date().toISOString() })
+      .eq("client_id", clientId)
+      .eq("period", closingPeriod);
+    if (error) { toast.error("Erro ao reabrir mês: " + error.message); return; }
+    const sync = await syncClientStatusFromClosing(clientId, false);
+    if (!sync.ok) toast.error("Reaberto, mas status do cliente não atualizou: " + sync.error);
+    qc.invalidateQueries({ queryKey: ["monthly-closings", closingPeriod] });
+    qc.invalidateQueries({ queryKey: ["clients"] });
+  }
+
   const lista = clientes.filter((c) => {
     if (filtro === "Todos") return true;
     return c.status === filtro;
@@ -235,7 +248,12 @@ function ClientesPage() {
                     {c.client_banks.map((b) => b.bank_name).join(", ") || "—"}
                   </td>
                   <td className="px-6 py-4">
-                    <ClosingBadge closing={uploadByClient[c.id] ?? null} isClosed={closedSet.has(c.id)} onClose={() => handleCloseMonth(c.id)} />
+                    <ClosingBadge
+                      closing={uploadByClient[c.id] ?? null}
+                      isClosed={closedSet.has(c.id)}
+                      onClose={() => handleCloseMonth(c.id)}
+                      onReopen={() => handleReopenMonth(c.id)}
+                    />
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge status={c.status} />

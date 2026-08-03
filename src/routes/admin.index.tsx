@@ -298,6 +298,21 @@ function AdminDashboard() {
     setClosingAlerts((prev) => prev.map((a) => a.clientId === clientId ? { ...a, completed: true } : a));
   }
 
+  async function handleReopenMonth(clientId: string) {
+    const period = endDate.slice(0, 7);
+    const { error } = await supabase()
+      .from("monthly_closings")
+      .update({ completed_at: null, updated_at: new Date().toISOString() })
+      .eq("client_id", clientId)
+      .eq("period", period);
+    if (error) { console.error("[handleReopenMonth]", error); return; }
+    await syncClientStatusFromClosing(clientId, false);
+    setClientes((prev) =>
+      prev.map((c) => (c.id === clientId ? { ...c, isClosed: false, status: "Em andamento" } : c))
+    );
+    setClosingAlerts((prev) => prev.map((a) => a.clientId === clientId ? { ...a, completed: false } : a));
+  }
+
   const ativos = clientes.length;
   const comPendencia = clientes.filter((c) => c.pendentes > 0).length;
   const totalReceita = clientes.reduce((s, c) => s + c.receita, 0);
@@ -664,7 +679,7 @@ function AdminDashboard() {
             <table className="w-full">
               <thead>
                 <tr style={{ background: "#FAFBFA" }}>
-                  {["Cliente", "Bancos", "Saldo de Caixa", "Pendentes", "Fechamento", "Saúde", "Status"].map((h) => (
+                  {["Cliente", "Bancos", "Saldo de Caixa", "Pendentes", "Fechamento do período", "Saúde"].map((h) => (
                     <th key={h} className="text-left px-7 lg:px-9 py-4 text-[11px] uppercase" style={{ fontWeight: 600, letterSpacing: "2px", color: "var(--muted-foreground)" }}>
                       {h}
                     </th>
@@ -674,7 +689,7 @@ function AdminDashboard() {
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={7} className="px-7 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>Carregando...</td>
+                    <td colSpan={6} className="px-7 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>Carregando...</td>
                   </tr>
                 )}
                 {!loading && clientes.slice(0, 10).map((c) => (
@@ -703,13 +718,15 @@ function AdminDashboard() {
                       )}
                     </td>
                     <td className="px-7 lg:px-9 py-5">
-                      <ClosingBadge closing={c.closing} isClosed={c.isClosed} onClose={() => handleCloseMonth(c.id)} />
+                      <ClosingBadge
+                        closing={c.closing}
+                        isClosed={c.isClosed}
+                        onClose={() => handleCloseMonth(c.id)}
+                        onReopen={() => handleReopenMonth(c.id)}
+                      />
                     </td>
                     <td className="px-7 lg:px-9 py-5">
                       <HealthBadge health={c.health} margem={c.margem} segment={c.segment} />
-                    </td>
-                    <td className="px-7 lg:px-9 py-5">
-                      <StatusBadge status={c.status} />
                     </td>
                   </tr>
                 ))}
@@ -846,10 +863,11 @@ function TrendChart({ data }: { data: TrendPoint[] }) {
   );
 }
 
-export function ClosingBadge({ closing, isClosed, onClose }: {
+export function ClosingBadge({ closing, isClosed, onClose, onReopen }: {
   closing: UploadRow | null;
   isClosed: boolean;
   onClose: () => void;
+  onReopen?: () => void;
 }) {
   if (!closing) {
     return (
@@ -870,14 +888,27 @@ export function ClosingBadge({ closing, isClosed, onClose }: {
   }
   if (isClosed) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-[10px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 600, background: "rgba(74,103,65,0.10)", color: "var(--green)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>
-        <span style={{ width: 5, height: 5, borderRadius: 999, background: "var(--green)" }} />
-        Fechado
-      </span>
+      <div className="inline-flex items-center gap-2 flex-wrap">
+        <span className="inline-flex items-center gap-1.5 text-[10px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 600, background: "rgba(74,103,65,0.10)", color: "var(--green)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>
+          <span style={{ width: 5, height: 5, borderRadius: 999, background: "var(--green)" }} />
+          Fechado
+        </span>
+        {onReopen && (
+          <button
+            type="button"
+            onClick={onReopen}
+            className="text-[10px] uppercase transition-opacity hover:opacity-70"
+            style={{ letterSpacing: "1.5px", fontWeight: 600, color: "var(--muted-foreground)", background: "none", border: "1px solid var(--line)", padding: "4px 10px", borderRadius: 999, cursor: "pointer", whiteSpace: "nowrap" }}
+          >
+            Reabrir
+          </button>
+        )}
+      </div>
     );
   }
   return (
     <button
+      type="button"
       onClick={onClose}
       className="inline-flex items-center gap-1.5 text-[10px] uppercase transition-opacity hover:opacity-70"
       style={{ letterSpacing: "1.5px", fontWeight: 600, background: "transparent", color: "var(--green)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap", border: "1px solid var(--green)", cursor: "pointer" }}
@@ -910,13 +941,19 @@ function HealthBadge({ health, margem, segment }: { health: HealthLevel; margem:
 }
 
 export function StatusBadge({ status }: { status: string }) {
+  const normalized =
+    status === "Fechado" || status === "Pendente" || status === "Em andamento"
+      ? status
+      : status?.toLowerCase() === "active" || status?.toLowerCase() === "ativo"
+        ? "Em andamento"
+        : status || "Em andamento";
   const cfg =
-    status === "Fechado"    ? { bg: "rgba(40,76,43,0.12)",    color: "#284C2B" }
-    : status === "Pendente" ? { bg: "rgba(109,146,166,0.15)", color: "#8C6A40" }
-    : /* Em andamento */      { bg: "rgba(28,45,69,0.12)",    color: "#1C2D45" };
+    normalized === "Fechado"    ? { bg: "rgba(40,76,43,0.12)",    color: "#284C2B" }
+    : normalized === "Pendente" ? { bg: "rgba(109,146,166,0.15)", color: "#8C6A40" }
+    : /* Em andamento */          { bg: "rgba(28,45,69,0.12)",    color: "#1C2D45" };
   return (
     <span className="inline-flex items-center text-[11px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 600, background: cfg.bg, color: cfg.color, padding: "4px 12px", borderRadius: "999px", whiteSpace: "nowrap" }}>
-      {status}
+      {normalized}
     </span>
   );
 }
