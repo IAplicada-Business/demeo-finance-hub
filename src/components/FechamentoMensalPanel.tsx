@@ -163,7 +163,12 @@ export function FechamentoMensalPanel({
   const isCompleted = !!closing?.completed_at;
 
   async function toggleStep(stepKey: keyof Pick<MonthlyClosing, "step1_done" | "step2_done" | "step3_done" | "step4_done">) {
-    if (isCompleted || savingStep) return;
+    if (savingStep) return;
+    // Fechamento concluído trava o checklist — precisa reabrir antes
+    if (isCompleted) {
+      toast.info("Reabra o fechamento para alterar as etapas.");
+      return;
+    }
     setSavingStep(stepKey);
     const currentVal = closing ? closing[stepKey] : false;
     const newVal = !currentVal;
@@ -175,7 +180,7 @@ export function FechamentoMensalPanel({
         .eq("id", closing.id)
         .select("*")
         .single();
-      if (error) { toast.error("Erro ao salvar etapa"); }
+      if (error) { toast.error("Erro ao salvar etapa: " + error.message); }
       else { setClosing(data as MonthlyClosing); }
     } else {
       const newRow = {
@@ -192,26 +197,43 @@ export function FechamentoMensalPanel({
         .insert(newRow)
         .select("*")
         .single();
-      if (error) { toast.error("Erro ao salvar etapa"); }
+      if (error) { toast.error("Erro ao salvar etapa: " + error.message); }
       else { setClosing(data as MonthlyClosing); }
     }
     setSavingStep(null);
   }
 
   async function markCompleted() {
-    if (!allStepsDone || isCompleted || completing) return;
+    if (!allStepsDone || isCompleted || completing || !closing) return;
     setCompleting(true);
     const now = new Date().toISOString();
-    const patch = { completed_at: now, updated_at: now };
-    if (closing) {
-      const { data, error } = await supabase()
-        .from("monthly_closings")
-        .update(patch)
-        .eq("id", closing.id)
-        .select("*")
-        .single();
-      if (error) { toast.error("Erro ao concluir fechamento"); }
-      else { setClosing(data as MonthlyClosing); toast.success("Fechamento concluído!"); }
+    const { data, error } = await supabase()
+      .from("monthly_closings")
+      .update({ completed_at: now, updated_at: now })
+      .eq("id", closing.id)
+      .select("*")
+      .single();
+    if (error) toast.error("Erro ao concluir fechamento: " + error.message);
+    else {
+      setClosing(data as MonthlyClosing);
+      toast.success("Fechamento concluído!");
+    }
+    setCompleting(false);
+  }
+
+  async function reopenClosing() {
+    if (!closing?.completed_at || completing) return;
+    setCompleting(true);
+    const { data, error } = await supabase()
+      .from("monthly_closings")
+      .update({ completed_at: null, updated_at: new Date().toISOString() })
+      .eq("id", closing.id)
+      .select("*")
+      .single();
+    if (error) toast.error("Erro ao reabrir fechamento: " + error.message);
+    else {
+      setClosing(data as MonthlyClosing);
+      toast.success("Fechamento reaberto — você pode alterar as etapas.");
     }
     setCompleting(false);
   }
@@ -333,15 +355,35 @@ export function FechamentoMensalPanel({
             </span>
           )}
         </div>
-        {isCompleted && (
-          <span
-            className="inline-flex items-center gap-2 text-[10px] uppercase px-3 py-1.5"
-            style={{ background: "rgba(74,103,65,0.10)", color: "var(--green)", letterSpacing: "1.5px", fontWeight: 700, borderRadius: 999 }}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--green)" }} />
-            Concluído
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {isCompleted ? (
+            <>
+              <span
+                className="inline-flex items-center gap-2 text-[10px] uppercase px-3 py-1.5"
+                style={{ background: "rgba(74,103,65,0.10)", color: "var(--green)", letterSpacing: "1.5px", fontWeight: 700, borderRadius: 999 }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--green)" }} />
+                Concluído
+              </span>
+              <button
+                type="button"
+                onClick={reopenClosing}
+                disabled={completing}
+                className="text-[10px] uppercase px-3 py-1.5 transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", letterSpacing: "1.5px", fontWeight: 600, borderRadius: 999 }}
+              >
+                {completing ? "Reabrindo…" : "Reabrir"}
+              </button>
+            </>
+          ) : (
+            <span
+              className="inline-flex items-center gap-2 text-[10px] uppercase px-3 py-1.5"
+              style={{ background: "rgba(0,0,0,0.04)", color: "var(--muted-foreground)", letterSpacing: "1.5px", fontWeight: 700, borderRadius: 999 }}
+            >
+              Em andamento
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Checklist */}
@@ -398,16 +440,33 @@ export function FechamentoMensalPanel({
             );
           })}
         </div>
-        <div className="px-6 py-4 flex items-center justify-between" style={{ borderTop: "1px solid var(--line)", background: "var(--offwhite)" }}>
+        <div className="px-6 py-4 flex items-center justify-between gap-4" style={{ borderTop: "1px solid var(--line)", background: "var(--offwhite)" }}>
           <div className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
             {isCompleted
-              ? "Fechamento concluído para este período."
+              ? "Fechamento concluído para este período. Use Reabrir para editar as etapas."
               : allStepsDone
               ? "Todas as etapas concluídas. Clique para registrar o fechamento."
               : `${[closing?.step1_done, closing?.step2_done, closing?.step3_done, closing?.step4_done].filter(Boolean).length}/4 etapas concluídas`}
           </div>
-          {!isCompleted && (
+          {isCompleted ? (
             <button
+              type="button"
+              onClick={reopenClosing}
+              disabled={completing}
+              className="px-5 py-2.5 text-[10px] uppercase transition-opacity hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                border: "1px solid var(--green)",
+                color: "var(--green)",
+                letterSpacing: "2px",
+                fontWeight: 600,
+                borderRadius: 999,
+              }}
+            >
+              {completing ? "Reabrindo…" : "Reabrir fechamento"}
+            </button>
+          ) : (
+            <button
+              type="button"
               onClick={markCompleted}
               disabled={!allStepsDone || completing}
               className="px-5 py-2.5 text-[10px] uppercase transition-opacity hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -416,6 +475,7 @@ export function FechamentoMensalPanel({
                 color: allStepsDone ? "#fff" : "var(--muted-foreground)",
                 letterSpacing: "2px",
                 fontWeight: 600,
+                borderRadius: 999,
               }}
             >
               {completing ? "Salvando..." : "Marcar como Concluído"}
