@@ -182,7 +182,7 @@ function PendentesPage() {
               ? {
                   installment_number: inst.number,
                   installment_total: inst.total,
-                  installment_group_id: await installmentGroupId(tx.client_id, tx.description, inst.total, tx.date),
+                  installment_group_id: await installmentGroupId(tx.client_id, tx.description, inst.total, tx.date, tx.id),
                 }
               : {};
           return { tx, category, isRecurring, installmentFields };

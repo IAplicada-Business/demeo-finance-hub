@@ -186,11 +186,12 @@ function AdminDashboard() {
         .eq("status", "approved")
         .gte("date", start)
         .lte("date", end),
-      // Aguardando aprovação (classificados + sem categoria) — todos os meses
+      // Aguardando aprovação (extrato) — alinhado a Pendentes / banner (upload_id NOT NULL)
       supabase()
         .from("transactions")
         .select("client_id")
-        .in("status", ["pending", "classified"]),
+        .in("status", ["pending", "classified"])
+        .not("upload_id", "is", null),
       supabase().from("client_banks").select("client_id, bank_name"),
       // Uploads nos meses do intervalo (uploads.period = MM/YYYY)
       supabase()

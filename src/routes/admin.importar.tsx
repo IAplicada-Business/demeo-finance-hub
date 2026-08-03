@@ -296,7 +296,7 @@ function ImportarPage() {
           if (inst?.enabled && inst.total >= 2 && inst.number >= 1 && inst.number <= inst.total) {
             base.installment_number = inst.number;
             base.installment_total = inst.total;
-            base.installment_group_id = await installmentGroupId(clientId, t.description, inst.total, t.date);
+            base.installment_group_id = await installmentGroupId(clientId, t.description, inst.total, t.date, t.id);
           }
           return base;
         })
@@ -310,11 +310,20 @@ function ImportarPage() {
 
       toastReconciliationSuggestions(result.reconcileSuggestions);
 
-      if (result.count < payloads.length) {
-        setError(`Apenas ${result.count} de ${payloads.length} lançamentos foram aprovados.`);
+      // Refetch status real — aprovação parcial não deve marcar todos como approved na UI
+      const payloadIds = payloads.map((p) => p.id);
+      const { data: verifiedRows } = await supabase()
+        .from("transactions")
+        .select("id, status")
+        .in("id", payloadIds);
+      const approvedIds = new Set(
+        (verifiedRows ?? []).filter((r) => r.status === "approved").map((r) => r.id)
+      );
+
+      if (approvedIds.size < payloads.length) {
+        setError(`Apenas ${approvedIds.size} de ${payloads.length} lançamentos foram aprovados.`);
       }
 
-      const approvedIds = new Set(payloads.map((p) => p.id));
       setTransactions((prev) =>
         prev.map((t) => {
           if (!approvedIds.has(t.id)) return t;

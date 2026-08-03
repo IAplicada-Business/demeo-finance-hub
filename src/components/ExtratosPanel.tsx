@@ -214,20 +214,39 @@ export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: stri
 
     toastReconciliationSuggestions(result.reconcileSuggestions);
 
-    await syncUploadStatusAfterApproval(classifiedTxs.map((tx) => tx.id));
+    const attemptedIds = classifiedTxs.map((tx) => tx.id);
+    await syncUploadStatusAfterApproval(attemptedIds);
 
-    const { count: remaining } = await supabase()
-      .from("transactions")
-      .select("id", { count: "exact", head: true })
-      .eq("upload_id", uploadId)
-      .neq("status", "approved");
+    const [{ count: classifiedLeft }, { count: pendingLeft }] = await Promise.all([
+      supabase()
+        .from("transactions")
+        .select("id", { count: "exact", head: true })
+        .eq("upload_id", uploadId)
+        .eq("status", "classified"),
+      supabase()
+        .from("transactions")
+        .select("id", { count: "exact", head: true })
+        .eq("upload_id", uploadId)
+        .eq("status", "pending"),
+    ]);
 
-    if (remaining === 0) {
-      setUploads((prev) => prev.map((u) => (u.id === uploadId ? { ...u, status: "approved" } : u)));
-    }
+    const classified = classifiedLeft ?? 0;
+    const pending = pendingLeft ?? 0;
+    setUploads((prev) =>
+      prev.map((u) =>
+        u.id === uploadId
+          ? {
+              ...u,
+              tx_classified: classified,
+              tx_pending: pending,
+              status: classified === 0 && pending === 0 ? "approved" : u.status,
+            }
+          : u
+      )
+    );
     setAwaiting((prev) => ({
       ...prev,
-      [uploadId]: { classified: 0, pending: remaining ?? prev[uploadId]?.pending ?? 0 },
+      [uploadId]: { classified, pending },
     }));
     await qc.invalidateQueries({ queryKey: ["pending-approval"] });
     await qc.invalidateQueries({ queryKey: ["pendentes", "count"] });

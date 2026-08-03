@@ -1,14 +1,18 @@
 import { buildPattern } from "@/lib/utils";
 
-/** UUID determinístico por evento de compra parcelada (client_id + padrão + total + YYYY-MM). */
+/**
+ * UUID determinístico por compra parcelada.
+ * Inclui transactionId para não colidir duas compras iguais no mesmo mês.
+ */
 export async function installmentGroupId(
   clientId: string,
   description: string,
   installmentTotal: number,
-  date: string
+  date: string,
+  transactionId: string
 ): Promise<string> {
   const yearMonth = date.slice(0, 7);
-  const input = `${clientId}:${buildPattern(description)}:${installmentTotal}:${yearMonth}`;
+  const input = `${clientId}:${buildPattern(description)}:${installmentTotal}:${yearMonth}:${transactionId}`;
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
   const b = new Uint8Array(buf);
   b[6] = (b[6] & 0x0f) | 0x40;

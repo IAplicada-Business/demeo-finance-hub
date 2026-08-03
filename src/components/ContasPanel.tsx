@@ -601,10 +601,24 @@ export function ContasPanel({
   async function confirmDelete() {
     if (!confirmDeleteId) return;
     const id = confirmDeleteId;
+    const payable = payables.find((p) => p.id === id);
     setConfirmDeleteId(null);
+
+    // undo_manual_payment também desfaz conciliação (tx com upload_id) e remove tx de caixa
+    if (payable?.matched_transaction_id || payable?.paid_at) {
+      const unlink = await undoManualPayment(id);
+      if (!unlink.ok) {
+        toast.error(unlink.error);
+        return;
+      }
+    }
+
     const { error: err } = await supabase().from("payables").delete().eq("id", id);
     if (err) toast.error("Erro ao excluir lançamento.");
-    else setPayables((prev) => prev.filter((p) => p.id !== id));
+    else {
+      setPayables((prev) => prev.filter((p) => p.id !== id));
+      toast.success("Lançamento excluído.");
+    }
   }
 
   const filtered = payables.filter((p) => {
