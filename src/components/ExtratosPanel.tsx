@@ -4,9 +4,10 @@ import { supabase } from "@/lib/supabase";
 import { brl, formatDatePtBR } from "@/lib/utils";
 import { uploadPeriodInDateRange } from "@/lib/dateUtils";
 import { approveTransactionsBatch, syncUploadStatusAfterApproval } from "@/lib/approveTransactions";
-import { toastReconciliationSuggestions } from "@/lib/reconciliation";
+import { toastReconciliationSuggestions, undoManualPayment } from "@/lib/reconciliation";
 import { useCategories } from "@/hooks/useCategories";
 import { deleteUploadCascade } from "@/lib/uploads";
+import { toast } from "sonner";
 
 interface UploadRecord {
   id: string;
@@ -29,6 +30,7 @@ interface TxRecord {
   status: string;
   installment_number: number | null;
   installment_total: number | null;
+  payable_id: string | null;
 }
 
 const MANUAL_KEY = "__manual__";
@@ -68,7 +70,7 @@ export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: stri
           .order("created_at", { ascending: false }),
         supabase()
           .from("transactions")
-          .select("id, date, description, amount, category, status, installment_number, installment_total")
+          .select("id, date, description, amount, category, status, installment_number, installment_total, payable_id")
           .eq("client_id", clientId)
           .is("upload_id", null)
           .eq("status", "approved")
@@ -120,7 +122,7 @@ export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: stri
     if (txMap[uploadId] === undefined) {
       const { data } = await supabase()
         .from("transactions")
-        .select("id, date, description, amount, category, status, installment_number, installment_total")
+        .select("id, date, description, amount, category, status, installment_number, installment_total, payable_id")
         .eq("upload_id", uploadId)
         .eq("status", "approved")
         .order("date");
@@ -153,19 +155,52 @@ export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: stri
 
   async function handleDeleteTx(tx: TxRecord, uploadId: string) {
     setDeleting(true);
+    // Evita agenda quitada órfã (FK zera matched_transaction_id mas mantém paid_at)
+    if (tx.payable_id) {
+      const unlink = await undoManualPayment(tx.payable_id);
+      if (!unlink.ok) {
+        setDeleting(false);
+        toast.error(unlink.error);
+        return;
+      }
+      // undo_manual_payment já remove tx de caixa; conciliação só desvincula — ainda precisa deletar a linha do extrato
+      const { data: stillThere } = await supabase()
+        .from("transactions")
+        .select("id")
+        .eq("id", tx.id)
+        .maybeSingle();
+      if (!stillThere) {
+        setDeleting(false);
+        setDeleteTx(null);
+        setTxMap((prev) => ({
+          ...prev,
+          [uploadId]: (prev[uploadId] ?? []).filter((t) => t.id !== tx.id),
+        }));
+        if (uploadId !== MANUAL_KEY) {
+          setUploads((prev) =>
+            prev.map((u) => (u.id === uploadId ? { ...u, tx_total: Math.max(0, u.tx_total - 1) } : u))
+          );
+        }
+        toast.success("Lançamento excluído.");
+        return;
+      }
+    }
+
     const { error } = await supabase().from("transactions").delete().eq("id", tx.id);
     setDeleting(false);
-    if (!error) {
-      setDeleteTx(null);
-      setTxMap((prev) => ({
-        ...prev,
-        [uploadId]: (prev[uploadId] ?? []).filter((t) => t.id !== tx.id),
-      }));
-      if (uploadId !== MANUAL_KEY) {
-        setUploads((prev) =>
-          prev.map((u) => u.id === uploadId ? { ...u, tx_total: Math.max(0, u.tx_total - 1) } : u)
-        );
-      }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setDeleteTx(null);
+    setTxMap((prev) => ({
+      ...prev,
+      [uploadId]: (prev[uploadId] ?? []).filter((t) => t.id !== tx.id),
+    }));
+    if (uploadId !== MANUAL_KEY) {
+      setUploads((prev) =>
+        prev.map((u) => (u.id === uploadId ? { ...u, tx_total: Math.max(0, u.tx_total - 1) } : u))
+      );
     }
   }
 
@@ -254,7 +289,7 @@ export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: stri
     if (expanded.has(uploadId)) {
       const { data } = await supabase()
         .from("transactions")
-        .select("id, date, description, amount, category, status, installment_number, installment_total")
+        .select("id, date, description, amount, category, status, installment_number, installment_total, payable_id")
         .eq("upload_id", uploadId)
         .eq("status", "approved")
         .order("date");

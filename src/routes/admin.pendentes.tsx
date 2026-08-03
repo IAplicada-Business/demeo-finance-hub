@@ -201,9 +201,23 @@ function PendentesPage() {
 
       toastReconciliationSuggestions(approveResult.reconcileSuggestions);
 
+      // Refetch status real — aprovação parcial não deve remover tudo da UI
+      const attemptedIds = clientTxs.map((t) => t.id);
+      const { data: verifiedRows } = await supabase()
+        .from("transactions")
+        .select("id, status")
+        .in("id", attemptedIds);
+      const savedIds = new Set(
+        (verifiedRows ?? []).filter((r) => r.status === "approved").map((r) => r.id)
+      );
+
+      if (savedIds.size < attemptedIds.length) {
+        setError(`Apenas ${savedIds.size} de ${attemptedIds.length} lançamentos foram aprovados.`);
+      }
+
       const rulesResult = await upsertRecurringRules(
         payloads
-          .filter(({ isRecurring }) => isRecurring)
+          .filter(({ isRecurring, tx }) => isRecurring && savedIds.has(tx.id))
           .map(({ tx, category }) => ({
             client_id: tx.client_id,
             pattern: buildPattern(tx.description),
@@ -212,10 +226,9 @@ function PendentesPage() {
       );
       if (!rulesResult.ok) throw new Error(`Regras: ${rulesResult.error}`);
 
-      const savedIds = new Set(clientTxs.map((t) => t.id));
       await syncUploadStatusAfterApproval([...savedIds]);
 
-      // Remove transações salvas da lista local e das seleções
+      // Remove só as realmente aprovadas da lista local e das seleções
       const remainingOnPage = transactions.filter((t) => !savedIds.has(t.id));
       const newTotal = Math.max(0, totalCount - savedIds.size);
       setTransactions(remainingOnPage);

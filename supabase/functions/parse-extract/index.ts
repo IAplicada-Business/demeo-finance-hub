@@ -676,7 +676,7 @@ Deno.serve(async (req) => {
     // Anti-duplicata: não reimportar linha já quitada via agenda (pago manual ou conciliado)
     const { data: linkedTxs } = await supabase
       .from("transactions")
-      .select("id, date, amount, payable_id")
+      .select("id, date, amount, description, payable_id")
       .eq("client_id", upload.client_id)
       .not("payable_id", "is", null)
       .in("date", candidateDates);
@@ -687,6 +687,21 @@ Deno.serve(async (req) => {
       const db = new Date(b + "T12:00:00").getTime();
       return Math.round(Math.abs(da - db) / DAY_MS);
     }
+    function tokens(s: string): string[] {
+      return (s ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9 ]/g, " ")
+        .split(/\s+/)
+        .filter((w) => w.length >= 3);
+    }
+    function descOverlap(a: string, b: string): boolean {
+      const ta = tokens(a);
+      const tb = new Set(tokens(b));
+      if (ta.length === 0 || tb.size === 0) return false;
+      return ta.some((w) => tb.has(w));
+    }
 
     const payableLinked = (linkedTxs ?? []).filter((t) => t.payable_id);
     let payableDupSkipped = 0;
@@ -694,7 +709,8 @@ Deno.serve(async (req) => {
       const dup = payableLinked.some(
         (lt) =>
           Math.abs(Math.abs(lt.amount) - Math.abs(t.amount)) <= 0.01 &&
-          daysApart(lt.date, t.date) <= 3
+          daysApart(lt.date, t.date) <= 3 &&
+          descOverlap(lt.description ?? "", t.description ?? "")
       );
       if (dup) payableDupSkipped++;
       return !dup;
@@ -718,7 +734,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { error: insertError } = await supabase.from("transactions").insert(deduped);
+    const { error: insertError } = await supabase.from("transactions").insert(afterPayableDup);
 
     if (insertError) {
       await supabase
@@ -734,14 +750,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    const skippedNotes = [
+      duplicatesCount > 0 ? `${duplicatesCount} lançamento(s) duplicado(s) ignorado(s)` : null,
+      payableDupSkipped > 0 ? `${payableDupSkipped} já quitado(s) na agenda` : null,
+    ].filter(Boolean);
+
     await supabase
       .from("uploads")
       .update({
         status: "parsed",
         bank_name: resolvedBank,
-        tx_total: deduped.length,
-        tx_pending: deduped.length,
-        ...(duplicatesCount > 0 && { error_message: `${duplicatesCount} lançamento(s) duplicado(s) ignorado(s)` }),
+        tx_total: afterPayableDup.length,
+        tx_pending: afterPayableDup.length,
+        ...(skippedNotes.length > 0 && { error_message: skippedNotes.join("; ") }),
       })
       .eq("id", upload_id);
 

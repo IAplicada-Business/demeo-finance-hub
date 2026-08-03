@@ -64,25 +64,25 @@ export async function approveTransactionsBatch(
   }
 
   const ids = updates.map((u) => u.id);
-  const { count, error: verifyErr } = await supabase()
+  const { data: approvedRows, error: verifyErr } = await supabase()
     .from("transactions")
-    .select("id", { count: "exact", head: true })
+    .select("id")
     .in("id", ids)
     .eq("status", "approved");
 
   if (verifyErr) return { ok: false, error: verifyErr.message };
 
-  const approved = count ?? 0;
-  if (approved === 0) {
+  const approvedIds = (approvedRows ?? []).map((r) => r.id);
+  if (approvedIds.length === 0) {
     return { ok: false, error: "Nenhum lançamento foi aprovado. Verifique permissões de administrador." };
   }
 
   let reconcileSuggestions: number | undefined;
   if (opts?.clientId) {
-    reconcileSuggestions = await fetchReconciliationSuggestions(opts.clientId, ids);
+    reconcileSuggestions = await fetchReconciliationSuggestions(opts.clientId, approvedIds);
   }
 
-  return { ok: true, count: approved, reconcileSuggestions };
+  return { ok: true, count: approvedIds.length, reconcileSuggestions };
 }
 
 /** Upsert de regras recorrentes após aprovação (somente Pendentes). */
