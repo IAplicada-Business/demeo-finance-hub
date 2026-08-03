@@ -19,7 +19,18 @@ export interface DREData {
   resultadoLiquido: number;
 }
 
-export const DRE_GROUP_ORDER = ["Receita", "Despesa Fixa", "Despesa Variável", "Investimento", "Outros"];
+export const DRE_GROUP_ORDER = [
+  "Receita",
+  "Despesa Fixa",
+  "Despesa Variável",
+  "Investimento",
+  "Receita não Operacional",
+  "Outros",
+];
+
+function isReceitaGroup(groupName: string): boolean {
+  return groupName === "Receita" || groupName === "Receita não Operacional";
+}
 
 // ── DFC Gerencial ────────────────────────────────────────────────────────────
 
@@ -48,6 +59,7 @@ type DFCGroup = "receita" | "cv" | "df" | "inv" | "nopIn" | "nopOut";
 
 function dfcGroupOf(groupName: string, amount: number): DFCGroup {
   if (groupName === "Receita") return "receita";
+  if (groupName === "Receita não Operacional") return "nopIn";
   if (groupName === "Despesa Variável" || groupName === "Custo Variável") return "cv";
   if (groupName === "Despesa Fixa") return "df";
   if (groupName === "Investimento") return "inv";
@@ -119,7 +131,7 @@ export function computeDRE(
   for (const groupName of DRE_GROUP_ORDER) {
     const cats = groupMap.get(groupName);
     if (!cats) continue;
-    const isExpense = groupName !== "Receita";
+    const isExpense = !isReceitaGroup(groupName);
     const lines = Array.from(cats.entries())
       .map(([cat, total]) => ({ cat, total }))
       .sort((a, b) => b.total - a.total);
@@ -131,8 +143,9 @@ export function computeDRE(
   const despFixas      = groups.find((g) => g.name === "Despesa Fixa")?.subtotal ?? 0;
   const despVar        = groups.find((g) => g.name === "Despesa Variável")?.subtotal ?? 0;
   const investimentos  = groups.find((g) => g.name === "Investimento")?.subtotal ?? 0;
+  const receitaNaoOp   = groups.find((g) => g.name === "Receita não Operacional")?.subtotal ?? 0;
   const ebitda         = receitaBruta - despFixas - despVar;
-  const resultadoLiquido = ebitda - investimentos;
+  const resultadoLiquido = ebitda - investimentos + receitaNaoOp;
 
   return { groups, receitaBruta, despFixas, despVar, ebitda, investimentos, resultadoLiquido };
 }

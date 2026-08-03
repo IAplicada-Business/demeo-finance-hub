@@ -507,7 +507,7 @@ const receita = useMemo(
                     </thead>
                     <tbody>
                       {dre.groups.flatMap((g) => {
-                        const isReceita = g.name === "Receita";
+                        const isReceita = g.name === "Receita" || g.name === "Receita não Operacional";
                         const color = isReceita ? "var(--green)" : "var(--tan)";
                         const rows = [
                           <tr key={g.name + "_hdr"} style={{ background: "#F8F6F1" }}>

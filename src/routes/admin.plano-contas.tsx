@@ -31,7 +31,14 @@ interface PreviewAccount {
   sort_order: number;
 }
 
-const GROUP_ORDER = ["Receita", "Despesa Variável", "Despesa Fixa", "Investimento", "Outros"];
+const GROUP_ORDER = [
+  "Receita",
+  "Receita não Operacional",
+  "Despesa Variável",
+  "Despesa Fixa",
+  "Investimento",
+  "Outros",
+];
 
 function toBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

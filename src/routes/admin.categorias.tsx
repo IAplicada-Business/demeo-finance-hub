@@ -23,7 +23,14 @@ interface ClientOption {
   name: string;
 }
 
-const GRUPOS = ["Receita", "Despesa Fixa", "Despesa Variável", "Investimento", "Outros"];
+const GRUPOS = [
+  "Receita",
+  "Receita não Operacional",
+  "Despesa Fixa",
+  "Despesa Variável",
+  "Investimento",
+  "Outros",
+];
 const TIPOS = [
   { value: "receita", label: "Receita" },
   { value: "despesa", label: "Despesa" },
@@ -219,7 +226,11 @@ function CategoriasPage() {
             <label className="aurora-cap">Grupo</label>
             <select
               value={newGroup}
-              onChange={(e) => setNewGroup(e.target.value)}
+              onChange={(e) => {
+                const g = e.target.value;
+                setNewGroup(g);
+                if (g === "Receita" || g === "Receita não Operacional") setNewType("receita");
+              }}
               style={{ padding: "8px 12px", fontSize: 13, border: "1px solid var(--line)", background: "#fff" , borderRadius: 12 }}
             >
               {GRUPOS.map((g) => <option key={g}>{g}</option>)}
@@ -296,7 +307,11 @@ function CategoriasPage() {
                               <div className="flex gap-2">
                                 <select
                                   value={editGroup}
-                                  onChange={(e) => setEditGroup(e.target.value)}
+                                  onChange={(e) => {
+                                    const g = e.target.value;
+                                    setEditGroup(g);
+                                    if (g === "Receita" || g === "Receita não Operacional") setEditType("receita");
+                                  }}
                                   className="text-[12px] px-2 py-1"
                                   style={{ border: "1px solid var(--line)" , borderRadius: 12 }}
                                 >

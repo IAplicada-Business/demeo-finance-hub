@@ -102,7 +102,14 @@ function wrapText(text: string, maxChars: number): string[] {
 }
 
 // DRE computation (inline — sem módulo compartilhado)
-const DRE_ORDER = ["Receita", "Despesa Fixa", "Despesa Variável", "Investimento", "Outros"];
+const DRE_ORDER = [
+  "Receita",
+  "Despesa Fixa",
+  "Despesa Variável",
+  "Investimento",
+  "Receita não Operacional",
+  "Outros",
+];
 const DRE_EBITDA_AFTER = "Despesa Variável";
 
 interface CatInfo { group_name: string; }
@@ -132,8 +139,9 @@ function computeDRE(
   const despFixa = groups.find((g) => g.name === "Despesa Fixa")?.subtotal ?? 0;
   const despVar  = groups.find((g) => g.name === "Despesa Variável")?.subtotal ?? 0;
   const invest   = groups.find((g) => g.name === "Investimento")?.subtotal ?? 0;
+  const receitaNop = groups.find((g) => g.name === "Receita não Operacional")?.subtotal ?? 0;
   const ebitda   = receita - despFixa - despVar;
-  const resultado = ebitda - invest;
+  const resultado = ebitda - invest + receitaNop;
   return { groups, receita, despFixa, despVar, invest, ebitda, resultado };
 }
 
@@ -333,7 +341,7 @@ Deno.serve(async (req: Request) => {
 
     for (const g of dre.groups) {
       if (dy < 80) break;
-      const isReceita = g.name === "Receita";
+      const isReceita = g.name === "Receita" || g.name === "Receita não Operacional";
       const gColor = isReceita ? GREEN : TAN;
 
       // Grupo header
