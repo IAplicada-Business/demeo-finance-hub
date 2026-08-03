@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DateInput } from "@/components/DateInput";
 import { supabase } from "@/lib/supabase";
 
 interface TransactionUpdates {
@@ -74,9 +75,13 @@ export function EditTransactionModal({ tx, categories, cap = "Lançamento", onCl
           <div className="grid grid-cols-2 gap-4">
             <label className="block">
               <div className="aurora-cap mb-2">Data</div>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required
+              <DateInput
+                value={date}
+                onChange={setDate}
+                required
                 className="w-full bg-white px-3 py-2.5 text-[13px] outline-none"
-                style={{ border: "1px solid var(--line)" }} />
+                style={{ border: "1px solid var(--line)" }}
+              />
             </label>
             <label className="block">
               <div className="aurora-cap mb-2">Tipo</div>

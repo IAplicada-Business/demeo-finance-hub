@@ -7,6 +7,7 @@ import { StatusBadge, ClosingBadge, UploadRow } from "./admin.index";
 import { formatDatePtBR } from "@/lib/utils";
 import { currentIsoMonth, uploadPeriodFromIsoMonth } from "@/lib/dateUtils";
 import { supabase } from "@/lib/supabase";
+import { syncClientStatusFromClosing } from "@/lib/clientStatus";
 import { toast } from "sonner";
 import { SEGMENT_BENCHMARKS } from "@/lib/healthScore";
 
@@ -120,7 +121,10 @@ function ClientesPage() {
       { onConflict: "client_id,period" }
     );
     if (error) { toast.error("Erro ao fechar mês: " + error.message); return; }
+    const sync = await syncClientStatusFromClosing(clientId, true);
+    if (!sync.ok) toast.error("Mês fechado, mas status do cliente não atualizou: " + sync.error);
     qc.invalidateQueries({ queryKey: ["monthly-closings", closingPeriod] });
+    qc.invalidateQueries({ queryKey: ["clients"] });
   }
 
   const lista = clientes.filter((c) => {
@@ -480,6 +484,9 @@ function EditarClienteModal({ client, onClose }: { client: { id: string; name: s
             </button>
           ))}
         </div>
+        <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)", lineHeight: 1.45 }}>
+          Ao concluir o fechamento mensal o status passa a Fechado; ao reabrir, volta para Em andamento. Você ainda pode ajustar manualmente.
+        </p>
       </Field>
 
       <BancosField

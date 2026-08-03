@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { AdminLayout, PageHeader } from "@/components/AdminLayout";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
+import { DateInput } from "@/components/DateInput";
 import { brl, formatDatePtBR } from "@/lib/utils";
 import { todayISO, firstOfMonthISO, lastOfMonthISO, firstOfYearISO, isoMonthsInDateRange } from "@/lib/dateUtils";
 import { FilterMenu, FilterMenuOption } from "@/components/FilterMenu";
@@ -10,8 +11,6 @@ import * as XLSX from "xlsx";
 import { computeForecastMonths, type ForecastMonth, type PayableProjection } from "@/hooks/useDFCForecast";
 import { computeDRE, DRE_EBITDA_PIVOT, type CatInfo } from "@/lib/dre";
 import { computeHealthLevel, healthMargemPct, SEGMENT_BENCHMARKS } from "@/lib/healthScore";
-import { PendingApprovalBanner } from "@/components/PendingApprovalBanner";
-
 export const Route = createFileRoute("/admin/relatorios")({
   component: RelatoriosPage,
   head: () => ({ meta: [{ title: "Relatórios · Aurora" }] }),
@@ -868,11 +867,6 @@ function RelatoriosPage() {
       </div>
 
       <div className="aurora-page flex flex-col gap-6">
-        <PendingApprovalBanner
-          clientId={filterClientId || undefined}
-          clientName={filterClientId ? clients.find((c) => c.id === filterClientId)?.name : undefined}
-        />
-
         {/* ── Aba: Exportar ─────────────────────────────────────────────────────── */}
         {activeTab === "exportar" && (
           <div className="aurora-card p-0 overflow-hidden">
@@ -911,21 +905,19 @@ function RelatoriosPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-[10px] uppercase" style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)", fontWeight: 500 }}>De</span>
-                          <input
-                            type="date"
+                          <DateInput
                             value={p.start}
                             max={p.end}
-                            onChange={(e) => setPeriod(c.id, "start", e.target.value)}
+                            onChange={(iso) => setPeriod(c.id, "start", iso)}
                             className="text-[11px] px-2 py-1 outline-none"
                             style={{ border: "1px solid var(--line)", color: "var(--foreground)", background: "#fff", minWidth: 120 }}
                           />
                           <span className="text-[10px] uppercase" style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)", fontWeight: 500 }}>Até</span>
-                          <input
-                            type="date"
+                          <DateInput
                             value={p.end}
                             min={p.start}
                             max={todayISO()}
-                            onChange={(e) => setPeriod(c.id, "end", e.target.value)}
+                            onChange={(iso) => setPeriod(c.id, "end", iso)}
                             className="text-[11px] px-2 py-1 outline-none"
                             style={{ border: "1px solid var(--line)", color: "var(--foreground)", background: "#fff", minWidth: 120 }}
                           />

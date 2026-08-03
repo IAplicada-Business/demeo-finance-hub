@@ -234,8 +234,7 @@ function PendentesPage() {
       setTransactions(remainingOnPage);
       setSelected((prev) => { const next = { ...prev }; savedIds.forEach((id) => delete next[id]); return next; });
       setTotalCount(newTotal);
-      await qc.invalidateQueries({ queryKey: ["pendentes", "count"] });
-      await qc.invalidateQueries({ queryKey: ["pending-approval"] });
+      await qc.invalidateQueries({ queryKey: ["pendentes"] });
       if (remainingOnPage.length === 0 && newTotal > 0) {
         const nextPage = pageForTotal(newTotal, page);
         if (nextPage !== page) setPage(nextPage);
@@ -291,8 +290,7 @@ function PendentesPage() {
       const newTotal = Math.max(0, totalCount - 1);
       setTransactions(remaining);
       setTotalCount(newTotal);
-      await qc.invalidateQueries({ queryKey: ["pendentes", "count"] });
-      await qc.invalidateQueries({ queryKey: ["pending-approval"] });
+      await qc.invalidateQueries({ queryKey: ["pendentes"] });
       if (remaining.length === 0 && newTotal > 0) {
         const nextPage = pageForTotal(newTotal, page);
         if (nextPage !== page) setPage(nextPage);

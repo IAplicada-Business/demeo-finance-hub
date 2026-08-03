@@ -6,6 +6,7 @@ import { uploadPeriodInDateRange } from "@/lib/dateUtils";
 import { approveTransactionsBatch, syncUploadStatusAfterApproval } from "@/lib/approveTransactions";
 import { toastReconciliationSuggestions, undoManualPayment } from "@/lib/reconciliation";
 import { useCategories } from "@/hooks/useCategories";
+import { DateInput } from "@/components/DateInput";
 import { deleteUploadCascade } from "@/lib/uploads";
 import { toast } from "sonner";
 
@@ -283,8 +284,7 @@ export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: stri
       ...prev,
       [uploadId]: { classified, pending },
     }));
-    await qc.invalidateQueries({ queryKey: ["pending-approval"] });
-    await qc.invalidateQueries({ queryKey: ["pendentes", "count"] });
+    await qc.invalidateQueries({ queryKey: ["pendentes"] });
     // Se estiver expandido, recarrega as transações aprovadas para refletir na tabela
     if (expanded.has(uploadId)) {
       const { data } = await supabase()
@@ -818,9 +818,13 @@ function EditTxModal({
           <div className="grid grid-cols-2 gap-4">
             <label className="block">
               <div className="aurora-cap mb-2">Data</div>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required
+              <DateInput
+                value={date}
+                onChange={setDate}
+                required
                 className="w-full bg-white px-3 py-2.5 text-[13px] outline-none"
-                style={{ border: "1px solid var(--line)" }} />
+                style={{ border: "1px solid var(--line)" }}
+              />
             </label>
             <label className="block">
               <div className="aurora-cap mb-2">Tipo</div>

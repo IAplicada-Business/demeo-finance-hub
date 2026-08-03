@@ -6,8 +6,8 @@ import { brl } from "@/lib/utils";
 import { uploadPeriodFromIsoMonth, defaultUploadIsoMonth, inferUploadPeriodFromFilename, dominantIsoMonthFromDates } from "@/lib/dateUtils";
 import { supabase } from "@/lib/supabase";
 import { useCategories } from "@/hooks/useCategories";
+import { DateInput } from "@/components/DateInput";
 import { EditTransactionModal } from "@/components/EditTransactionModal";
-import { PendingApprovalBanner } from "@/components/PendingApprovalBanner";
 import {
   approveTransactionsBatch,
   syncUploadStatusAfterApproval,
@@ -96,8 +96,6 @@ function ImportarPage() {
 
   const CATEGORIAS = useCategories(clientId);
   const qc = useQueryClient();
-  const selectedClientName = clients.find((c) => c.id === clientId)?.name;
-
   const { data: activeCategoryCount } = useQuery({
     queryKey: ["categories", "active-count", clientId],
     queryFn: async () => {
@@ -112,7 +110,7 @@ function ImportarPage() {
   });
 
   // Manual entry form
-  const [manualOpen, setManualOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(true);
   const [manualDate, setManualDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [manualDesc, setManualDesc] = useState("");
   const [manualAmount, setManualAmount] = useState("");
@@ -337,8 +335,7 @@ function ImportarPage() {
       );
       setSelected(new Set());
       await syncUploadStatusAfterApproval([...approvedIds]);
-      await qc.invalidateQueries({ queryKey: ["pending-approval"] });
-      await qc.invalidateQueries({ queryKey: ["pendentes", "count"] });
+      await qc.invalidateQueries({ queryKey: ["pendentes"] });
     } catch (e) {
       setError(String(e));
     } finally {
@@ -457,10 +454,6 @@ function ImportarPage() {
               antes de importar — a IA precisa das categorias do cliente para classificar.
             </div>
           </div>
-        )}
-
-        {clientId && (
-          <PendingApprovalBanner clientId={clientId} clientName={selectedClientName} />
         )}
 
         {/* Cliente + período do extrato (antes do upload) */}
@@ -885,21 +878,34 @@ function ImportarPage() {
         )}
 
         {/* Manual entry */}
-        <div className="aurora-card p-0 overflow-hidden">
+        <div className="aurora-card p-0 overflow-hidden" style={{ borderLeft: "3px solid var(--green)" }}>
           <button
             type="button"
             onClick={() => { setManualOpen((v) => !v); setManualSuccess(false); setManualError(null); }}
-            className="w-full flex items-center justify-between px-6 py-4 text-left"
-            style={{ background: "var(--offwhite)", borderBottom: manualOpen ? "1px solid var(--line)" : "none" }}
+            className="w-full flex items-center justify-between px-7 py-6 text-left"
+            style={{ background: "#fff", borderBottom: manualOpen ? "1px solid var(--line)" : "none" }}
           >
             <div>
-              <div className="aurora-cap mb-0.5">Lançamento manual</div>
-              <div className="aurora-serif text-[16px]">
+              <div className="aurora-cap mb-1" style={{ color: "var(--green)" }}>Lançamento manual</div>
+              <div className="aurora-serif text-[20px]" style={{ color: "var(--navy)" }}>
                 Registrar pagamento em <em className="italic" style={{ color: "var(--green)" }}>espécie</em>
               </div>
+              <div className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
+                Caixa / Livro Diário — sem extrato bancário
+              </div>
             </div>
-            <span className="text-[18px]" style={{ color: "var(--muted-foreground)" }}>
-              {manualOpen ? "−" : "+"}
+            <span
+              className="text-[11px] uppercase px-4 py-2 shrink-0"
+              style={{
+                letterSpacing: "1.5px",
+                fontWeight: 500,
+                background: manualOpen ? "transparent" : "var(--green)",
+                color: manualOpen ? "var(--muted-foreground)" : "#fff",
+                border: manualOpen ? "1px solid var(--line)" : "none",
+                borderRadius: 999,
+              }}
+            >
+              {manualOpen ? "Fechar" : "Abrir formulário"}
             </span>
           </button>
 
@@ -923,10 +929,9 @@ function ImportarPage() {
                 {/* Data */}
                 <label className="block">
                   <div className="aurora-cap mb-2">Data</div>
-                  <input
-                    type="date"
+                  <DateInput
                     value={manualDate}
-                    onChange={(e) => setManualDate(e.target.value)}
+                    onChange={setManualDate}
                     required
                     className="w-full bg-white px-3 py-2.5 text-[13px] outline-none"
                     style={{ border: "1px solid var(--line)" }}

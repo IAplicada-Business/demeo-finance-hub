@@ -15,7 +15,6 @@ import { computeDRE, DRE_EBITDA_PIVOT, type CatInfo } from "@/lib/dre";
 import { computeHealthLevel, healthMargemPct } from "@/lib/healthScore";
 import { HealthAlertCard } from "@/components/HealthAlertCard";
 import { DetalhamentoPanel } from "@/components/DetalhamentoPanel";
-import { PendingApprovalBanner } from "@/components/PendingApprovalBanner";
 import { FechamentoMensalPanel } from "@/components/FechamentoMensalPanel";
 import { LivroDiarioPanel } from "@/components/LivroDiarioPanel";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -279,9 +278,6 @@ function DFCPage() {
       </div>
 
       <div className="aurora-page">
-        {clientId && (
-          <PendingApprovalBanner clientId={clientId} clientName={activeClient?.name} />
-        )}
 
         {clientId && (activeTab === "dfc" || activeTab === "dre") && (
           <HealthAlertCard

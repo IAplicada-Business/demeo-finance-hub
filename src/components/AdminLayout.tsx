@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { LogoMark } from "./Logo";
 import { ILogout } from "./Icon";
 import { fetchExtratoPendingCount } from "@/lib/pendingCounts";
+import { pendentesCountKey } from "@/lib/pendingQueryKeys";
 import { supabase } from "@/lib/supabase";
 import { useSession, useIsAdmin } from "@/lib/auth";
 import { useClickOutside, useLocalStorage } from "@/hooks/useClickOutside";
@@ -153,7 +154,6 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   const adminInitials = adminName.split(" ").slice(0, 2).map((w: string) => w[0]).join("").toUpperCase();
 
   const push = usePushNotifications();
-  const showBell = !!adminEmail && push.isSupported;
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -162,7 +162,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   }, []);
 
   const { data: pendentesCount = 0 } = useQuery({
-    queryKey: ["pendentes", "count"],
+    queryKey: pendentesCountKey(),
     queryFn: () => fetchExtratoPendingCount(),
     refetchInterval: 60_000,
   });
@@ -174,8 +174,10 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   const [expanded, setExpandedState] = useState<Record<string, boolean>>({});
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const userRef = useRef<HTMLDivElement | null>(null);
+  const bellRef = useRef<HTMLDivElement | null>(null);
   const qc = useQueryClient();
 
   // Hidrata do localStorage no client-side
@@ -186,6 +188,16 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   }, []);
 
   useClickOutside(userRef, () => setUserOpen(false), userOpen);
+  useClickOutside(bellRef, () => setBellOpen(false), bellOpen);
+
+  useEffect(() => {
+    if (!bellOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setBellOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [bellOpen]);
 
   // Fecha drawer ao navegar
   useEffect(() => {
@@ -285,39 +297,107 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Bell: push notifications (admin only) */}
-            {showBell && (
+            {/* Bell: pendências (sempre) + push opcional no dropdown */}
+            <div ref={bellRef} className="relative">
               <button
-                onClick={() =>
-                  push.isSubscribed ? push.unsubscribe() : push.subscribe(adminEmail)
-                }
-                disabled={push.loading}
-                title={push.isSubscribed ? "Desativar notificações push" : "Ativar notificações push"}
-                className="flex items-center justify-center transition-all"
+                type="button"
+                onClick={() => setBellOpen((v) => !v)}
+                aria-expanded={bellOpen}
+                aria-haspopup="true"
+                title="Notificações e pendências"
+                className="relative flex items-center justify-center transition-all"
                 style={{
                   width: 36,
                   height: 36,
                   borderRadius: 999,
                   border: "1px solid #EFEFEF",
-                  background: push.isSubscribed ? "rgba(40,76,43,0.07)" : "transparent",
-                  color: push.isSubscribed ? "var(--green)" : "var(--muted-foreground)",
-                  cursor: push.loading ? "wait" : "pointer",
-                  opacity: push.loading ? 0.6 : 1,
+                  background: bellOpen || pendentesCount > 0 ? "rgba(40,76,43,0.07)" : "transparent",
+                  color: pendentesCount > 0 ? "var(--green)" : "var(--muted-foreground)",
+                  cursor: "pointer",
                 }}
               >
-                {push.isSubscribed ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                  </svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {pendentesCount > 0 && (
+                  <span
+                    className="absolute flex items-center justify-center text-[9px] font-semibold"
+                    style={{
+                      top: -2,
+                      right: -2,
+                      minWidth: 16,
+                      height: 16,
+                      padding: "0 4px",
+                      borderRadius: 999,
+                      background: "var(--green)",
+                      color: "#fff",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {pendentesCount > 99 ? "99+" : pendentesCount}
+                  </span>
                 )}
               </button>
-            )}
+              {bellOpen && (
+                <div
+                  className="absolute right-0 mt-2 z-50 flex flex-col"
+                  style={{
+                    width: 280,
+                    background: "#fff",
+                    border: "1px solid var(--line)",
+                    borderRadius: 12,
+                    boxShadow: "0 12px 40px rgba(17,30,46,0.12)",
+                  }}
+                >
+                  <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--line)" }}>
+                    <div className="text-[10px] uppercase" style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)", fontWeight: 600 }}>
+                      Pendências
+                    </div>
+                    <div className="aurora-serif text-[16px] mt-1">
+                      {pendentesCount === 0
+                        ? "Nada aguardando aprovação"
+                        : `${pendentesCount} lançamento${pendentesCount !== 1 ? "s" : ""} de extrato`}
+                    </div>
+                  </div>
+                  <div className="p-2 flex flex-col gap-1">
+                    <Link
+                      to="/admin/pendentes"
+                      onClick={() => setBellOpen(false)}
+                      className="text-[12px] px-3 py-2.5 transition-opacity hover:opacity-80"
+                      style={{
+                        background: pendentesCount > 0 ? "var(--green)" : "transparent",
+                        color: pendentesCount > 0 ? "#fff" : "var(--navy)",
+                        borderRadius: 8,
+                        textDecoration: "none",
+                        fontWeight: 500,
+                      }}
+                    >
+                      Ir para Pendentes
+                    </Link>
+                    {push.isSupported && adminEmail && (
+                      <button
+                        type="button"
+                        disabled={push.loading}
+                        onClick={() =>
+                          push.isSubscribed ? push.unsubscribe() : push.subscribe(adminEmail)
+                        }
+                        className="text-left text-[12px] px-3 py-2.5 transition-opacity hover:opacity-70 disabled:opacity-50"
+                        style={{
+                          color: "var(--muted-foreground)",
+                          borderRadius: 8,
+                          background: "transparent",
+                          border: "none",
+                          cursor: push.loading ? "wait" : "pointer",
+                        }}
+                      >
+                        {push.isSubscribed ? "Desativar notificações push" : "Ativar notificações push"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Dropdown user */}
             <div ref={userRef} className="relative">

@@ -1,3 +1,5 @@
+import { DateInput } from "@/components/DateInput";
+
 interface DateRangeFilterProps {
   startDate: string;
   endDate: string;
@@ -5,6 +7,13 @@ interface DateRangeFilterProps {
   onStartChange: (d: string) => void;
   onEndChange: (d: string) => void;
 }
+
+const inputStyle = {
+  border: "1px solid var(--line)",
+  color: "var(--foreground)",
+  background: "#fff",
+  borderRadius: "var(--radius-sm)",
+} as const;
 
 export function DateRangeFilter({
   startDate,
@@ -21,18 +30,12 @@ export function DateRangeFilter({
       >
         De
       </span>
-      <input
-        type="date"
+      <DateInput
         value={startDate}
         max={endDate}
-        onChange={(e) => onStartChange(e.target.value)}
+        onChange={onStartChange}
         className="text-[12px] px-3 py-2 outline-none"
-        style={{
-          border: "1px solid var(--line)",
-          color: "var(--foreground)",
-          background: "#fff",
-          borderRadius: "var(--radius-sm)",
-        }}
+        style={inputStyle}
       />
       <span
         className="text-[11px] uppercase"
@@ -40,19 +43,13 @@ export function DateRangeFilter({
       >
         Até
       </span>
-      <input
-        type="date"
+      <DateInput
         value={endDate}
         min={startDate}
         max={maxDate}
-        onChange={(e) => onEndChange(e.target.value)}
+        onChange={onEndChange}
         className="text-[12px] px-3 py-2 outline-none"
-        style={{
-          border: "1px solid var(--line)",
-          color: "var(--foreground)",
-          background: "#fff",
-          borderRadius: "var(--radius-sm)",
-        }}
+        style={inputStyle}
       />
     </div>
   );

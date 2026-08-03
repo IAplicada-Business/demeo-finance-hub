@@ -6,6 +6,7 @@ import { brl } from "@/lib/utils";
 import { todayISO, firstOfMonthISO, lastOfMonthISO, firstOfYearISO, isoMonthsInDateRange, uploadPeriodsInDateRange } from "@/lib/dateUtils";
 import { computeHealthLevel, healthMargemPct, HealthLevel, SEGMENT_BENCHMARKS } from "@/lib/healthScore";
 import { supabase } from "@/lib/supabase";
+import { syncClientStatusFromClosing } from "@/lib/clientStatus";
 import {
   AreaChart,
   Area,
@@ -290,7 +291,10 @@ function AdminDashboard() {
       { onConflict: "client_id,period" }
     );
     if (error) { console.error("[handleCloseMonth]", error); return; }
-    setClientes((prev) => prev.map((c) => c.id === clientId ? { ...c, isClosed: true } : c));
+    await syncClientStatusFromClosing(clientId, true);
+    setClientes((prev) =>
+      prev.map((c) => (c.id === clientId ? { ...c, isClosed: true, status: "Fechado" } : c))
+    );
     setClosingAlerts((prev) => prev.map((a) => a.clientId === clientId ? { ...a, completed: true } : a));
   }
 

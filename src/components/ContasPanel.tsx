@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { brl, formatDatePtBR } from "@/lib/utils";
 import { todayISO } from "@/lib/dateUtils";
 import { supabase } from "@/lib/supabase";
+import { DateInput } from "@/components/DateInput";
 import { FilterMenu, FilterMenuOption } from "@/components/FilterMenu";
 import {
   createManualPayment,
@@ -474,7 +475,7 @@ function NovoLancamentoModal({
             </div>
             <div>
               <label className="aurora-cap mb-1 block">Vencimento *</label>
-              <input type="date" value={form.due_date} onChange={(e) => set("due_date", e.target.value)} style={inputStyle} />
+              <DateInput value={form.due_date} onChange={(iso) => set("due_date", iso)} required style={inputStyle} />
             </div>
           </div>
 

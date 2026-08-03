@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchExtratoPendingBreakdown } from "@/lib/pendingCounts";
+import { pendentesBreakdownKey } from "@/lib/pendingQueryKeys";
 
 export interface PendingApprovalCounts {
   classified: number;
@@ -9,8 +10,8 @@ export interface PendingApprovalCounts {
 /** Extratos aguardando revisão/aprovação (upload_id obrigatório — lançamentos manuais ficam fora). */
 export function usePendingApproval(clientId?: string) {
   return useQuery({
-    queryKey: ["pending-approval", clientId ?? "all"],
+    queryKey: pendentesBreakdownKey(clientId),
     queryFn: () => fetchExtratoPendingBreakdown(clientId),
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   });
 }

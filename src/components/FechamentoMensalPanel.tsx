@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { brl, formatDatePtBR, monthOptions, monthRangeDates } from "@/lib/utils";
 import { todayISO } from "@/lib/dateUtils";
 import { supabase } from "@/lib/supabase";
+import { DateInput } from "@/components/DateInput";
+import { syncClientStatusFromClosing } from "@/lib/clientStatus";
 import { computeDFCGerencial, type DFCGerencialData, type DFCLine, type CatInfo } from "@/lib/dre";
 
 interface RevenueEntry {
@@ -216,7 +218,9 @@ export function FechamentoMensalPanel({
     if (error) toast.error("Erro ao concluir fechamento: " + error.message);
     else {
       setClosing(data as MonthlyClosing);
-      toast.success("Fechamento concluído!");
+      const sync = await syncClientStatusFromClosing(clientId, true);
+      if (!sync.ok) toast.error("Fechamento ok, mas status do cliente não atualizou: " + sync.error);
+      else toast.success("Fechamento concluído — status do cliente: Fechado");
     }
     setCompleting(false);
   }
@@ -233,7 +237,9 @@ export function FechamentoMensalPanel({
     if (error) toast.error("Erro ao reabrir fechamento: " + error.message);
     else {
       setClosing(data as MonthlyClosing);
-      toast.success("Fechamento reaberto — você pode alterar as etapas.");
+      const sync = await syncClientStatusFromClosing(clientId, false);
+      if (!sync.ok) toast.error("Reaberto, mas status do cliente não atualizou: " + sync.error);
+      else toast.success("Fechamento reaberto — status do cliente: Em andamento");
     }
     setCompleting(false);
   }
@@ -815,11 +821,11 @@ export function FechamentoMensalPanel({
               <div className="grid grid-cols-2 gap-4">
                 <label className="flex flex-col gap-1.5">
                   <span className="aurora-cap">Data *</span>
-                  <input
-                    type="date"
+                  <DateInput
                     value={form.entry_date}
                     max={todayISO()}
-                    onChange={(e) => setForm((f) => ({ ...f, entry_date: e.target.value }))}
+                    onChange={(iso) => setForm((f) => ({ ...f, entry_date: iso }))}
+                    required
                     className="px-3 py-2.5 text-[12px] bg-white"
                     style={{ border: "1px solid var(--line)" }}
                   />

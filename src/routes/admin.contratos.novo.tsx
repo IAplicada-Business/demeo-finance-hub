@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AdminLayout, PageHeader } from "@/components/AdminLayout";
+import { DateInput } from "@/components/DateInput";
 import { supabase, FUNCTIONS_URL } from "@/lib/supabase";
 import { authHeaders } from "@/lib/auth";
 
@@ -199,10 +200,9 @@ function NovoContrato() {
               </label>
               <label>
                 <div className="aurora-cap mb-2">Data de início</div>
-                <input
-                  type="date"
+                <DateInput
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={setStartDate}
                   className="aurora-input"
                   disabled={!!result}
                 />
