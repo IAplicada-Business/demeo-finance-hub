@@ -80,7 +80,8 @@ export function rankMatches(
 ): ScoredMatch[] {
   return payables
     .map((payable) => ({ payable, score: scoreMatch(payable, tx) }))
-    .filter((s) => s.score >= minScore)
+    // Valor incompatível nunca entra no modal/toast (RPC também rejeita)
+    .filter((s) => s.score >= minScore && amountsMatch(s.payable, tx))
     .sort((a, b) => b.score - a.score);
 }
 
@@ -91,6 +92,6 @@ export function rankTxCandidatesForPayable(
 ): { tx: TxMatchInput; score: number }[] {
   return transactions
     .map((tx) => ({ tx, score: scoreMatch(payable, tx) }))
-    .filter((s) => s.score >= minScore)
+    .filter((s) => s.score >= minScore && amountsMatch(payable, tx))
     .sort((a, b) => b.score - a.score);
 }
