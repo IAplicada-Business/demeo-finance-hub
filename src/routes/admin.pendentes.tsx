@@ -63,8 +63,10 @@ function PendentesPage() {
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
-  const [showAll, setShowAll] = useState(false);
+  // Default: histórico completo — mesma regra do badge da sidebar/sino
+  const [showAll, setShowAll] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [clientTotals, setClientTotals] = useState<Record<string, number>>({});
 
   const dateFrom = useMemo(() => {
     const d = new Date();
@@ -75,6 +77,11 @@ function PendentesPage() {
   const [editTx, setEditTx] = useState<PendingTx | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PendingTx | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Garante que sidebar/sino reflitam o banco ao abrir Pendentes
+  useEffect(() => {
+    void qc.invalidateQueries({ queryKey: ["pendentes"] });
+  }, [qc]);
 
   useEffect(() => {
     loadData(page);
@@ -97,17 +104,31 @@ function PendentesPage() {
       .select("*", { count: "exact", head: true })
       .in("status", [...UNAPPROVED_STATUSES])
       .not("upload_id", "is", null);
+    // Contagem por cliente (sem paginação) — evita "45" na página vs badge total
+    let clientCountQuery = supabase()
+      .from("transactions")
+      .select("client_id")
+      .in("status", [...UNAPPROVED_STATUSES])
+      .not("upload_id", "is", null);
     if (!showAll) {
       txQuery = txQuery.gte("date", dateFrom);
       countQuery = countQuery.gte("date", dateFrom);
+      clientCountQuery = clientCountQuery.gte("date", dateFrom);
     }
 
-    const [{ data: txData, error: txErr }, { count }] = await Promise.all([
+    const [{ data: txData, error: txErr }, { count }, { data: clientRows }] = await Promise.all([
       txQuery.order("date", { ascending: false }).range(p * PAGE_SIZE, (p + 1) * PAGE_SIZE - 1),
       countQuery,
+      clientCountQuery,
     ]);
 
     setTotalCount(count ?? 0);
+    const totals: Record<string, number> = {};
+    for (const row of clientRows ?? []) {
+      const cid = (row as { client_id: string }).client_id;
+      totals[cid] = (totals[cid] ?? 0) + 1;
+    }
+    setClientTotals(totals);
 
     if (txErr) {
       setError(`Erro ao carregar transações: ${txErr.message}`);
@@ -319,7 +340,9 @@ function PendentesPage() {
         description={
           loading
             ? "Carregando..."
-            : `${totalCount} lançamento${totalCount !== 1 ? "s" : ""} aguardando revisão/aprovação em ${clientCount} cliente${clientCount !== 1 ? "s" : ""}.`
+            : showAll
+              ? `${totalCount} lançamento${totalCount !== 1 ? "s" : ""} aguardando revisão/aprovação.`
+              : `${totalCount} lançamento${totalCount !== 1 ? "s" : ""} nos últimos 90 dias (use “histórico completo” para ver todos).`
         }
       />
 
@@ -426,7 +449,7 @@ function PendentesPage() {
                     <div className="aurora-serif text-[20px]">
                       {client?.name ?? cid}{" "}
                       <em className="italic" style={{ color: "var(--green)" }}>
-                        · {items.length} aguardando aprovação
+                        · {clientTotals[cid] ?? items.length} aguardando aprovação
                       </em>
                     </div>
                   </div>
