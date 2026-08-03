@@ -42,11 +42,54 @@ interface MonthlyClosing {
   completed_at: string | null;
 }
 
-const CHECKLIST_STEPS = [
-  { key: "step1_done" as const, label: "Reunião de Documentos", desc: "Juntar NFs emitidas, cupons e recibos do mês" },
-  { key: "step2_done" as const, label: "Conciliação", desc: "Verificar se os valores das notas batem com o extrato bancário" },
-  { key: "step3_done" as const, label: "Apuração de Deduções", desc: "Subtrair descontos, cancelamentos e devoluções → Receita Operacional Líquida" },
-  { key: "step4_done" as const, label: "Relatório Contábil (DRE)", desc: "Organizar as informações no Demonstrativo de Resultados do Exercício" },
+type ChecklistLink =
+  | { kind: "anchor"; label: string; anchor: string }
+  | { kind: "tab"; label: string; tab: "extratos" | "contas" | "dre" | "dfc" | "detalhamento" }
+  | { kind: "route"; label: string; to: "/admin/importar" | "/admin/relatorios" | "/admin/pendentes" };
+
+const CHECKLIST_STEPS: {
+  key: "step1_done" | "step2_done" | "step3_done" | "step4_done";
+  label: string;
+  desc: string;
+  links: ChecklistLink[];
+}[] = [
+  {
+    key: "step1_done",
+    label: "Reunião de Documentos",
+    desc: "Juntar NFs emitidas, cupons e recibos do mês",
+    links: [
+      { kind: "anchor", label: "Receitas Brutas", anchor: "fechamento-receitas" },
+      { kind: "route", label: "Importar extratos", to: "/admin/importar" },
+    ],
+  },
+  {
+    key: "step2_done",
+    label: "Conciliação",
+    desc: "Verificar se os valores das notas batem com o extrato bancário",
+    links: [
+      { kind: "tab", label: "Extratos do banco", tab: "extratos" },
+      { kind: "tab", label: "Agenda", tab: "contas" },
+      { kind: "route", label: "Pendentes", to: "/admin/pendentes" },
+    ],
+  },
+  {
+    key: "step3_done",
+    label: "Apuração de Deduções",
+    desc: "Subtrair descontos, cancelamentos e devoluções → Receita Operacional Líquida",
+    links: [
+      { kind: "anchor", label: "Receitas Brutas", anchor: "fechamento-receitas" },
+      { kind: "anchor", label: "DFC Gerencial", anchor: "fechamento-dfc" },
+    ],
+  },
+  {
+    key: "step4_done",
+    label: "Relatório Contábil (DRE)",
+    desc: "Organizar as informações no Demonstrativo de Resultados do Exercício",
+    links: [
+      { kind: "tab", label: "Aba DRE", tab: "dre" },
+      { kind: "route", label: "Gerar relatório", to: "/admin/relatorios" },
+    ],
+  },
 ];
 
 function mmyyyyToYYYYMM(mmyyyy: string): string {
@@ -81,12 +124,21 @@ function parseBRLInput(raw: string): number {
   return parseFloat(raw.replace(/\./g, "").replace(",", ".")) || 0;
 }
 
+function scrollToAnchor(anchor: string) {
+  const el = document.getElementById(anchor);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 export function FechamentoMensalPanel({
   clientId,
   monthlyClosingDay,
+  onOpenTab,
 }: {
   clientId: string;
   monthlyClosingDay: number | null;
+  /** Troca de aba no DFC (extratos, dre, agenda…). */
+  onOpenTab?: (tab: "extratos" | "contas" | "dre" | "dfc" | "detalhamento") => void;
 }) {
   const periods = monthOptions(12);
   const [selectedPeriod, setSelectedPeriod] = useState(currentPeriod);
@@ -403,19 +455,21 @@ export function FechamentoMensalPanel({
             const done = closing ? closing[step.key] : false;
             const isLoading = savingStep === step.key;
             return (
-              <button
+              <div
                 key={step.key}
-                onClick={() => toggleStep(step.key)}
-                disabled={isCompleted || isLoading}
-                className="flex items-start gap-4 px-6 py-5 text-left transition-colors hover:opacity-90 disabled:cursor-not-allowed"
+                className="flex items-start gap-4 px-6 py-5"
                 style={{
                   borderBottom: idx < 2 ? "1px solid var(--line)" : undefined,
                   borderRight: idx % 2 === 0 ? "1px solid var(--line)" : undefined,
                   background: done ? "rgba(74,103,65,0.05)" : "#fff",
                 }}
               >
-                <div
-                  className="flex-shrink-0 mt-0.5 flex items-center justify-center"
+                <button
+                  type="button"
+                  onClick={() => toggleStep(step.key)}
+                  disabled={isCompleted || isLoading}
+                  aria-label={done ? `Desmarcar ${step.label}` : `Marcar ${step.label}`}
+                  className="flex-shrink-0 mt-0.5 flex items-center justify-center disabled:cursor-not-allowed"
                   style={{
                     width: 22,
                     height: 22,
@@ -423,6 +477,7 @@ export function FechamentoMensalPanel({
                     borderRadius: 12,
                     background: done ? "var(--green)" : "transparent",
                     transition: "all 0.15s",
+                    padding: 0,
                   }}
                 >
                   {done && (
@@ -433,16 +488,65 @@ export function FechamentoMensalPanel({
                   {isLoading && (
                     <div className="w-3 h-3 rounded-full border-2 animate-spin" style={{ borderColor: "var(--green)", borderTopColor: "transparent" }} />
                   )}
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="text-[12px]" style={{ fontWeight: done ? 700 : 500, color: done ? "var(--green)" : "var(--foreground)" }}>
-                    {idx + 1}. {step.label}
+                </button>
+                <div className="flex flex-col gap-1.5 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => !isCompleted && !isLoading && toggleStep(step.key)}
+                    disabled={isCompleted || isLoading}
+                    className="text-left disabled:cursor-not-allowed"
+                    style={{ background: "none", border: "none", padding: 0 }}
+                  >
+                    <div className="text-[12px]" style={{ fontWeight: done ? 700 : 500, color: done ? "var(--green)" : "var(--foreground)" }}>
+                      {idx + 1}. {step.label}
+                    </div>
+                    <div className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)", lineHeight: 1.5 }}>
+                      {step.desc}
+                    </div>
+                  </button>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1">
+                    {step.links.map((link) => {
+                      if (link.kind === "anchor") {
+                        return (
+                          <button
+                            key={link.anchor + link.label}
+                            type="button"
+                            onClick={() => scrollToAnchor(link.anchor)}
+                            className="text-[10px] uppercase"
+                            style={{ color: "var(--green)", letterSpacing: "1px", fontWeight: 600, background: "none", border: "none", padding: 0, textDecoration: "underline", cursor: "pointer" }}
+                          >
+                            {link.label} →
+                          </button>
+                        );
+                      }
+                      if (link.kind === "tab") {
+                        return (
+                          <button
+                            key={link.tab + link.label}
+                            type="button"
+                            onClick={() => onOpenTab?.(link.tab)}
+                            className="text-[10px] uppercase"
+                            style={{ color: "var(--green)", letterSpacing: "1px", fontWeight: 600, background: "none", border: "none", padding: 0, textDecoration: "underline", cursor: "pointer" }}
+                          >
+                            {link.label} →
+                          </button>
+                        );
+                      }
+                      return (
+                        <Link
+                          key={link.to + link.label}
+                          to={link.to as never}
+                          search={(link.to === "/admin/importar" ? { clientId } : undefined) as never}
+                          className="text-[10px] uppercase"
+                          style={{ color: "var(--green)", letterSpacing: "1px", fontWeight: 600, textDecoration: "underline" }}
+                        >
+                          {link.label} →
+                        </Link>
+                      );
+                    })}
                   </div>
-                  <div className="text-[11px]" style={{ color: "var(--muted-foreground)", lineHeight: 1.5 }}>
-                    {step.desc}
-                  </div>
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
@@ -491,7 +595,7 @@ export function FechamentoMensalPanel({
       </div>
 
       {/* DFC Gerencial */}
-      <div className="aurora-card p-0 overflow-hidden">
+      <div id="fechamento-dfc" className="aurora-card p-0 overflow-hidden scroll-mt-24">
         <div className="px-6 py-4" style={{ borderBottom: "1px solid var(--line)" }}>
           <div className="aurora-cap mb-1">Regime de Caixa</div>
           <div className="aurora-serif text-[20px]">
@@ -608,7 +712,7 @@ export function FechamentoMensalPanel({
       </div>
 
       {/* Tabela Receitas Brutas */}
-      <div className="aurora-card p-0 overflow-hidden">
+      <div id="fechamento-receitas" className="aurora-card p-0 overflow-hidden scroll-mt-24">
         <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid var(--line)" }}>
           <div>
             <div className="aurora-cap mb-1">Regime de Competência</div>

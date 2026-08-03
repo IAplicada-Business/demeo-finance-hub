@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import React, { useState, useEffect, useMemo } from "react";
 import { AdminLayout, PageHeader } from "@/components/AdminLayout";
 import { brl } from "@/lib/utils";
@@ -68,6 +68,7 @@ function normalizeTab(tab: string | undefined): DFCTab {
 }
 
 function DFCPage() {
+  const navigate = useNavigate({ from: "/admin/dfc" });
   const { clientId: preselectedId, tab: preselectedTab } = Route.useSearch();
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [clientId, setClientId] = useState(preselectedId ?? "");
@@ -81,6 +82,22 @@ function DFCPage() {
   const [saldoInicial, setSaldoInicial] = useState(0);
   const [catMap, setCatMap] = useState<Map<string, CatInfo>>(new Map());
   const [periodPayables, setPeriodPayables] = useState<(PayableProjection & { category: string | null })[]>([]);
+
+  useEffect(() => {
+    setActiveTab(normalizeTab(preselectedTab));
+  }, [preselectedTab]);
+
+  function selectTab(tab: DFCTab) {
+    setActiveTab(tab);
+    void navigate({
+      search: (prev) => ({
+        ...prev,
+        clientId: clientId || prev.clientId,
+        tab,
+      }),
+      replace: true,
+    });
+  }
 
   // Carrega lista de clientes; valida preselectedId e usa fallback se inválido
   useEffect(() => {
@@ -260,7 +277,7 @@ function DFCPage() {
         {DFC_TABS.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => selectTab(tab.key)}
             className="px-4 py-2 text-[11px] uppercase transition-all"
             style={{
               letterSpacing: "2px",
@@ -294,7 +311,7 @@ function DFCPage() {
           <ContasPanel
             clientId={clientId}
             openTrigger={contasTrigger}
-            onOpenLivro={() => setActiveTab("livro-diario")}
+            onOpenLivro={() => selectTab("livro-diario")}
           />
         )}
         {activeTab === "livro-diario" && (
@@ -302,7 +319,7 @@ function DFCPage() {
             clientId={clientId}
             startDate={startDate}
             endDate={endDate}
-            onOpenContas={() => setActiveTab("contas")}
+            onOpenContas={() => selectTab("contas")}
           />
         )}
         {activeTab === "extratos" && <ExtratosPanel clientId={clientId} startDate={startDate} endDate={endDate} />}
@@ -313,6 +330,7 @@ function DFCPage() {
           <FechamentoMensalPanel
             clientId={clientId}
             monthlyClosingDay={activeClient?.monthly_closing_day ?? null}
+            onOpenTab={(tab) => selectTab(tab)}
           />
         )}
 
