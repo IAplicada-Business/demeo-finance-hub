@@ -15,14 +15,20 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
   const qc = useQueryClient();
   const [editingCategory, setEditingCategory] = useState<Record<string, string>>({});
 
-  const { data: recorrencias = [], isLoading } = useQuery<RecorrenciaRow[]>({
+  const {
+    data: recorrencias = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery<RecorrenciaRow[]>({
     queryKey: ["pending-recorrencias", clientId],
     enabled: !!clientId,
     queryFn: async () => {
-      const { data, error } = await supabase().rpc("pending_recurrences", {
+      const { data, error: rpcError } = await supabase().rpc("pending_recurrences", {
         p_client_id: clientId,
       });
-      if (error) throw error;
+      if (rpcError) throw rpcError;
       return (data ?? []) as RecorrenciaRow[];
     },
   });
@@ -43,64 +49,65 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
 
   const confirmMutation = useMutation({
     mutationFn: async ({ pattern, category }: { pattern: string; category: string }) => {
-      // Delete any stale rules for this exact pattern before inserting fresh
-      await supabase()
-        .from("classification_rules")
-        .delete()
-        .eq("client_id", clientId)
-        .eq("pattern", pattern);
-      const { error } = await supabase().from("classification_rules").insert({
-        client_id: clientId,
-        pattern,
-        category,
-        is_recurring: true,
-        hits: 2,
-        source: "approval",
-        is_active: true,
-      });
-      if (error) throw error;
+      // Upsert: regras criadas pelo trigger de aprovação (is_recurring=false) passam a recorrentes
+      const { error: upsertError } = await supabase().from("classification_rules").upsert(
+        {
+          client_id: clientId,
+          pattern,
+          category,
+          is_recurring: true,
+          hits: 2,
+          source: "approval",
+          is_active: true,
+          last_used: new Date().toISOString(),
+        },
+        { onConflict: "client_id,pattern" }
+      );
+      if (upsertError) throw upsertError;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pending-recorrencias", clientId] });
-      toast.success("Regra salva com sucesso");
+      toast.success("Recorrência confirmada");
     },
     onError: (err: Error) => {
       console.error("[RecorrenciasPanel] confirm failed:", err);
-      toast.error("Erro ao salvar regra");
+      toast.error("Erro ao salvar regra: " + err.message);
     },
   });
 
   const rejectMutation = useMutation({
-    mutationFn: async (pattern: string) => {
-      await supabase()
-        .from("classification_rules")
-        .delete()
-        .eq("client_id", clientId)
-        .eq("pattern", pattern);
-      const { error } = await supabase().from("classification_rules").insert({
-        client_id: clientId,
-        pattern,
-        category: null,
-        is_recurring: false,
-        hits: 0,
-        source: "rejected",
-        is_active: false,
-      });
-      if (error) throw error;
+    mutationFn: async ({ pattern, category }: { pattern: string; category: string }) => {
+      const { error: upsertError } = await supabase().from("classification_rules").upsert(
+        {
+          client_id: clientId,
+          pattern,
+          category: category || "—",
+          is_recurring: false,
+          hits: 0,
+          source: "rejected",
+          is_active: false,
+          last_used: new Date().toISOString(),
+        },
+        { onConflict: "client_id,pattern" }
+      );
+      if (upsertError) throw upsertError;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pending-recorrencias", clientId] });
-      toast.success("Lançamento rejeitado");
+      toast.success("Padrão rejeitado — não volta como recorrência");
     },
     onError: (err: Error) => {
       console.error("[RecorrenciasPanel] reject failed:", err);
-      toast.error("Erro ao rejeitar");
+      toast.error("Erro ao rejeitar: " + err.message);
     },
   });
 
   function handleConfirm(row: RecorrenciaRow) {
     const category = editingCategory[row.pattern] ?? row.modal_category;
-    if (!category.trim()) return;
+    if (!category?.trim()) {
+      toast.error("Selecione uma categoria antes de confirmar.");
+      return;
+    }
     confirmMutation.mutate({ pattern: row.pattern, category });
   }
 
@@ -118,17 +125,36 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
         </div>
       )}
 
-      {!isLoading && recorrencias.length === 0 && (
+      {isError && (
+        <div className="aurora-card flex flex-col gap-3 py-8 px-6">
+          <div className="aurora-serif text-[20px]" style={{ color: "var(--expense)" }}>
+            Não foi possível carregar as recorrências
+          </div>
+          <div className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+            {(error as Error)?.message || "Erro desconhecido"}
+          </div>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="self-start text-[10px] uppercase px-4 py-2"
+            style={{ background: "var(--green)", color: "#fff", letterSpacing: "1.5px", borderRadius: 999 }}
+          >
+            Tentar de novo
+          </button>
+        </div>
+      )}
+
+      {!isLoading && !isError && recorrencias.length === 0 && (
         <div className="aurora-card text-center py-14">
           <div className="aurora-serif text-[24px]" style={{ color: "var(--green)" }}>✓</div>
           <div className="aurora-serif text-[20px] mt-2">Nenhuma recorrência pendente</div>
           <div className="text-[12px] mt-2" style={{ color: "var(--muted-foreground)" }}>
-            Todos os padrões detectados já têm regra definida.
+            Padrões com ≥2 lançamentos aprovados nos últimos 90 dias aparecem aqui para confirmar como recorrentes.
           </div>
         </div>
       )}
 
-      {!isLoading && recorrencias.length > 0 && (
+      {!isLoading && !isError && recorrencias.length > 0 && (
         <div className="aurora-panel">
           <div
             className="px-7 py-4"
@@ -249,7 +275,12 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
                               Alterar
                             </button>
                             <button
-                              onClick={() => rejectMutation.mutate(row.pattern)}
+                              onClick={() =>
+                                rejectMutation.mutate({
+                                  pattern: row.pattern,
+                                  category: row.modal_category || "—",
+                                })
+                              }
                               disabled={busy}
                               className="text-[10px] uppercase px-3 py-1.5 disabled:opacity-40"
                               style={{ border: "1px solid var(--tan)", color: "var(--tan)", letterSpacing: "1.5px" }}
