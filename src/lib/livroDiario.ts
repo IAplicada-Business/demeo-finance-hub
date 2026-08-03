@@ -17,6 +17,8 @@ export interface LivroDiarioRow {
   amount: number;
   status: LivroDiarioStatus;
   sortDate: string;
+  /** Vinculado a conta na agenda */
+  reconciled?: boolean;
 }
 
 export interface ApprovedTxInput {
@@ -26,6 +28,7 @@ export interface ApprovedTxInput {
   bank: string;
   category: string | null;
   amount: number;
+  payable_id?: string | null;
 }
 
 export interface UnpaidPayableInput {
@@ -64,6 +67,7 @@ export function buildLivroDiarioRows(
       amount: tx.amount,
       status: "realizado",
       sortDate: tx.date,
+      reconciled: !!tx.payable_id,
     });
   }
 

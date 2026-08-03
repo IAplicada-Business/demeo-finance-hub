@@ -13,6 +13,7 @@ import {
   syncUploadStatusAfterApproval,
   type ApproveTxPayload,
 } from "@/lib/approveTransactions";
+import { toastReconciliationSuggestions } from "@/lib/reconciliation";
 import { installmentGroupId } from "@/lib/installmentGroupId";
 
 export const Route = createFileRoute("/admin/importar")({
@@ -301,11 +302,13 @@ function ImportarPage() {
         })
       );
 
-      const result = await approveTransactionsBatch(payloads);
+      const result = await approveTransactionsBatch(payloads, { clientId });
       if (!result.ok) {
         setError(`Erro ao aprovar: ${result.error}`);
         return;
       }
+
+      toastReconciliationSuggestions(result.reconcileSuggestions);
 
       if (result.count < payloads.length) {
         setError(`Apenas ${result.count} de ${payloads.length} lançamentos foram aprovados.`);

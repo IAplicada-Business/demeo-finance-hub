@@ -731,8 +731,10 @@ export type Database = {
           description: string
           due_date: string
           id: string
+          matched_transaction_id: string | null
           notes: string | null
           paid_at: string | null
+          source_upload_id: string | null
           type: string
         }
         Insert: {
@@ -743,8 +745,10 @@ export type Database = {
           description: string
           due_date: string
           id?: string
+          matched_transaction_id?: string | null
           notes?: string | null
           paid_at?: string | null
+          source_upload_id?: string | null
           type: string
         }
         Update: {
@@ -755,8 +759,10 @@ export type Database = {
           description?: string
           due_date?: string
           id?: string
+          matched_transaction_id?: string | null
           notes?: string | null
           paid_at?: string | null
+          source_upload_id?: string | null
           type?: string
         }
         Relationships: [
@@ -765,6 +771,20 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payables_matched_transaction_id_fkey"
+            columns: ["matched_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payables_source_upload_id_fkey"
+            columns: ["source_upload_id"]
+            isOneToOne: false
+            referencedRelation: "uploads"
             referencedColumns: ["id"]
           },
         ]
@@ -1133,6 +1153,7 @@ export type Database = {
           installment_number: number | null
           installment_total: number | null
           is_recurring: boolean | null
+          payable_id: string | null
           raw_description: string | null
           status: string
           upload_id: string | null
@@ -1153,6 +1174,7 @@ export type Database = {
           installment_number?: number | null
           installment_total?: number | null
           is_recurring?: boolean | null
+          payable_id?: string | null
           raw_description?: string | null
           status?: string
           upload_id?: string | null
@@ -1173,6 +1195,7 @@ export type Database = {
           installment_number?: number | null
           installment_total?: number | null
           is_recurring?: boolean | null
+          payable_id?: string | null
           raw_description?: string | null
           status?: string
           upload_id?: string | null
@@ -1183,6 +1206,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_payable_id_fkey"
+            columns: ["payable_id"]
+            isOneToOne: false
+            referencedRelation: "payables"
             referencedColumns: ["id"]
           },
           {
@@ -1199,6 +1229,7 @@ export type Database = {
           bank_name: string
           client_id: string
           created_at: string | null
+          document_type: string
           error_message: string | null
           filename: string
           id: string
@@ -1213,6 +1244,7 @@ export type Database = {
           bank_name: string
           client_id: string
           created_at?: string | null
+          document_type?: string
           error_message?: string | null
           filename: string
           id?: string
@@ -1227,6 +1259,7 @@ export type Database = {
           bank_name?: string
           client_id?: string
           created_at?: string | null
+          document_type?: string
           error_message?: string | null
           filename?: string
           id?: string
@@ -1374,6 +1407,22 @@ export type Database = {
     Functions: {
       approve_transactions_batch: {
         Args: { p_updates: Json }
+        Returns: undefined
+      }
+      create_manual_payment: {
+        Args: { p_bank?: string; p_date?: string; p_payable_id: string }
+        Returns: string
+      }
+      reconcile_payable: {
+        Args: { p_payable_id: string; p_transaction_id: string }
+        Returns: string
+      }
+      undo_manual_payment: {
+        Args: { p_payable_id: string }
+        Returns: undefined
+      }
+      unreconcile_payable: {
+        Args: { p_payable_id: string }
         Returns: undefined
       }
       build_pattern: { Args: { raw: string }; Returns: string }

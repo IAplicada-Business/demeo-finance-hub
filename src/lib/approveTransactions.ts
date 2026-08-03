@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { fetchReconciliationSuggestions } from "@/lib/reconciliation";
 
 export interface ApproveTxPayload {
   id: string;
@@ -10,8 +11,12 @@ export interface ApproveTxPayload {
 }
 
 export type ApproveBatchResult =
-  | { ok: true; count: number }
+  | { ok: true; count: number; reconcileSuggestions?: number }
   | { ok: false; error: string };
+
+export interface ApproveBatchOptions {
+  clientId?: string;
+}
 
 export interface RecurringRulePayload {
   client_id: string;
@@ -33,7 +38,10 @@ export async function ensureAdminSession(): Promise<{ ok: true } | { ok: false; 
 }
 
 /** Aprovação atômica via RPC (Importar, Pendentes, Extratos). */
-export async function approveTransactionsBatch(updates: ApproveTxPayload[]): Promise<ApproveBatchResult> {
+export async function approveTransactionsBatch(
+  updates: ApproveTxPayload[],
+  opts?: ApproveBatchOptions
+): Promise<ApproveBatchResult> {
   if (!updates.length) {
     return { ok: false, error: "Nenhum lançamento classificado para aprovar." };
   }
@@ -69,7 +77,12 @@ export async function approveTransactionsBatch(updates: ApproveTxPayload[]): Pro
     return { ok: false, error: "Nenhum lançamento foi aprovado. Verifique permissões de administrador." };
   }
 
-  return { ok: true, count: approved };
+  let reconcileSuggestions: number | undefined;
+  if (opts?.clientId) {
+    reconcileSuggestions = await fetchReconciliationSuggestions(opts.clientId, ids);
+  }
+
+  return { ok: true, count: approved, reconcileSuggestions };
 }
 
 /** Upsert de regras recorrentes após aprovação (somente Pendentes). */

@@ -50,7 +50,7 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
     Promise.all([
       supabase()
         .from("transactions")
-        .select("id, date, description, bank, category, amount")
+        .select("id, date, description, bank, category, amount, payable_id")
         .eq("client_id", clientId)
         .eq("status", "approved")
         .gte("date", startDate)
@@ -99,7 +99,9 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
             </em>
           </div>
           <p className="text-[12px] mt-2" style={{ color: "var(--muted-foreground)" }}>
-            Extratos aprovados aparecem como <strong>Realizado</strong>; contas a pagar/receber sem baixa vêm de{" "}
+            <strong style={{ color: "var(--green)" }}>Verde</strong> = já no banco ·{" "}
+            <strong>cinza</strong> = ainda na agenda. Extratos aprovados aparecem como{" "}
+            <strong>Realizado</strong>; contas sem baixa vêm da{" "}
             {onOpenContas ? (
               <button
                 type="button"
@@ -107,10 +109,10 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
                 className="aurora-link"
                 style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
               >
-                Contas
+                Agenda
               </button>
             ) : (
-              "Contas"
+              "Agenda"
             )}
             .
           </p>
@@ -209,7 +211,17 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
                   <td className="px-5 py-3 text-[12px]" style={{ color: "var(--navy)" }}>
                     {row.category ?? "—"}
                   </td>
-                  <td className="px-5 py-3 text-[12px]">{row.description}</td>
+                  <td className="px-5 py-3 text-[12px]">
+                    {row.description}
+                    {row.reconciled && (
+                      <span
+                        className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase"
+                        style={{ background: "rgba(74,124,89,0.12)", color: "var(--green)", letterSpacing: "1px", fontWeight: 600 }}
+                      >
+                        Conciliado
+                      </span>
+                    )}
+                  </td>
                   <td className="px-5 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                     {row.bank ?? "—"}
                   </td>

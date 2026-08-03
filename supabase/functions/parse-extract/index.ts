@@ -673,7 +673,38 @@ Deno.serve(async (req) => {
       console.log(`[parse-extract] ${duplicatesCount} transação(ões) duplicada(s) ignorada(s)`);
     }
 
-    if (deduped.length === 0) {
+    // Anti-duplicata: não reimportar linha já quitada via agenda (pago manual ou conciliado)
+    const { data: linkedTxs } = await supabase
+      .from("transactions")
+      .select("id, date, amount, payable_id")
+      .eq("client_id", upload.client_id)
+      .not("payable_id", "is", null)
+      .in("date", candidateDates);
+
+    const DAY_MS = 86400000;
+    function daysApart(a: string, b: string): number {
+      const da = new Date(a + "T12:00:00").getTime();
+      const db = new Date(b + "T12:00:00").getTime();
+      return Math.round(Math.abs(da - db) / DAY_MS);
+    }
+
+    const payableLinked = (linkedTxs ?? []).filter((t) => t.payable_id);
+    let payableDupSkipped = 0;
+    const afterPayableDup = deduped.filter((t) => {
+      const dup = payableLinked.some(
+        (lt) =>
+          Math.abs(Math.abs(lt.amount) - Math.abs(t.amount)) <= 0.01 &&
+          daysApart(lt.date, t.date) <= 3
+      );
+      if (dup) payableDupSkipped++;
+      return !dup;
+    });
+
+    if (payableDupSkipped > 0) {
+      console.log(`[parse-extract] ${payableDupSkipped} lançamento(s) ignorado(s) — já quitado na agenda`);
+    }
+
+    if (afterPayableDup.length === 0) {
       await supabase
         .from("uploads")
         .update({

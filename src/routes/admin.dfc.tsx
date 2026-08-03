@@ -55,9 +55,9 @@ const DFC_TABS: { key: DFCTab; label: string }[] = [
   { key: "dfc", label: "DFC" },
   { key: "dre", label: "DRE" },
   { key: "detalhamento", label: "Detalhamento" },
-  { key: "contas", label: "Contas" },
+  { key: "contas", label: "Agenda" },
   { key: "livro-diario", label: "Livro Diário" },
-  { key: "extratos", label: "Histórico de Extratos" },
+  { key: "extratos", label: "Extratos do banco" },
   { key: "recorrencias", label: "Recorrências" },
   { key: "fechamento", label: "Fechamento" },
 ];
@@ -294,7 +294,13 @@ function DFCPage() {
         )}
 
         {activeTab === "recorrencias" && <RecorrenciasPanel clientId={clientId} />}
-        {activeTab === "contas" && <ContasPanel clientId={clientId} openTrigger={contasTrigger} />}
+        {activeTab === "contas" && (
+          <ContasPanel
+            clientId={clientId}
+            openTrigger={contasTrigger}
+            onOpenLivro={() => setActiveTab("livro-diario")}
+          />
+        )}
         {activeTab === "livro-diario" && (
           <LivroDiarioPanel
             clientId={clientId}

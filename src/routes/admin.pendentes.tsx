@@ -10,6 +10,7 @@ import {
   syncUploadStatusAfterApproval,
   upsertRecurringRules,
 } from "@/lib/approveTransactions";
+import { toastReconciliationSuggestions } from "@/lib/reconciliation";
 import { installmentGroupId } from "@/lib/installmentGroupId";
 import { EditTransactionModal } from "@/components/EditTransactionModal";
 
@@ -195,8 +196,10 @@ function PendentesPage() {
         ...installmentFields,
       }));
 
-      const approveResult = await approveTransactionsBatch(txUpdates);
+      const approveResult = await approveTransactionsBatch(txUpdates, { clientId });
       if (!approveResult.ok) throw new Error(`Aprovação: ${approveResult.error}`);
+
+      toastReconciliationSuggestions(approveResult.reconcileSuggestions);
 
       const rulesResult = await upsertRecurringRules(
         payloads

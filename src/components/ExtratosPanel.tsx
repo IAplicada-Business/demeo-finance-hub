@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { brl, formatDatePtBR } from "@/lib/utils";
 import { uploadPeriodInDateRange } from "@/lib/dateUtils";
 import { approveTransactionsBatch, syncUploadStatusAfterApproval } from "@/lib/approveTransactions";
+import { toastReconciliationSuggestions } from "@/lib/reconciliation";
 import { useCategories } from "@/hooks/useCategories";
 import { deleteUploadCascade } from "@/lib/uploads";
 
@@ -201,7 +202,8 @@ export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: stri
         ...(tx.installment_number != null ? { installment_number: tx.installment_number } : {}),
         ...(tx.installment_total != null ? { installment_total: tx.installment_total } : {}),
         ...(tx.installment_group_id ? { installment_group_id: tx.installment_group_id } : {}),
-      }))
+      })),
+      { clientId }
     );
 
     if (!result.ok) {
@@ -209,6 +211,8 @@ export function ExtratosPanel({ clientId, startDate, endDate }: { clientId: stri
       setErr(`Erro ao aprovar classificados: ${result.error}`);
       return;
     }
+
+    toastReconciliationSuggestions(result.reconcileSuggestions);
 
     await syncUploadStatusAfterApproval(classifiedTxs.map((tx) => tx.id));
 
