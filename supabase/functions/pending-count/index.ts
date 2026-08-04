@@ -1,5 +1,6 @@
 ﻿// Aurora · Edge Function: pending-count
-// Retorna o total de transações pendentes agrupado por cliente.
+// Retorna extratos aguardando revisão (pending + classified, upload_id obrigatório)
+// agrupado por cliente. Alinhado com badge/UI e src/lib/pendingCounts.ts.
 // Usado pelo n8n para o digest agendado das 09:00.
 //
 // Auth: aceita Bearer token de admin JWT ou header X-Aurora-Service-Key (n8n/cron).
@@ -30,7 +31,8 @@ Deno.serve(async (req) => {
     const { data: rows, error } = await supabase
       .from("transactions")
       .select("client_id, clients!inner(name)")
-      .eq("status", "pending");
+      .in("status", ["pending", "classified"])
+      .not("upload_id", "is", null);
 
     if (error) return jsonResponse({ error: error.message }, 500, origin);
 

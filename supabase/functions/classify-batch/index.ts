@@ -358,7 +358,8 @@ Deno.serve(async (req) => {
       const recurrenceMap = new Map<string, string>();
       for (const r of recurrences ?? []) {
         // modal_category é NULL em empate de MODE() — descartar para não aprovar sem categoria
-        if (r.modal_category) recurrenceMap.set(r.pattern, r.modal_category);
+        const cat = r.modal_category?.trim();
+        if (cat && activeCategories.has(cat)) recurrenceMap.set(r.pattern, cat);
       }
 
       // Decisão em memória — sem queries dentro do loop
@@ -377,6 +378,7 @@ Deno.serve(async (req) => {
 
       // Batch-update por categoria (1 query por categoria única)
       for (const [category, ids] of recurrenceMatches.entries()) {
+        if (!category?.trim() || !activeCategories.has(category.trim())) continue;
         await supabase
           .from("transactions")
           .update({
