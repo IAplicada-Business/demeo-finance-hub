@@ -74,6 +74,12 @@ export function monthRangeDates(mmyyyy: string): { start: string; end: string } 
   return { start, end };
 }
 
+/** ISO yyyy-mm-dd → MM/YYYY (mês civil do fim do intervalo). */
+export function isoToMmyyyy(iso: string): string {
+  const [yyyy, mm] = iso.slice(0, 10).split("-");
+  return `${mm}/${yyyy}`;
+}
+
 export function currentMonthStr(): string {
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, "0");

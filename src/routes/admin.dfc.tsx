@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import React, { useState, useEffect, useMemo } from "react";
 import { AdminLayout, PageHeader } from "@/components/AdminLayout";
-import { brl } from "@/lib/utils";
+import { brl, isoToMmyyyy, monthRangeDates } from "@/lib/utils";
 import { todayISO, firstOfMonthISO } from "@/lib/dateUtils";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { supabase } from "@/lib/supabase";
@@ -87,7 +87,23 @@ function DFCPage() {
     setActiveTab(normalizeTab(preselectedTab));
   }, [preselectedTab]);
 
+  // Ao abrir Fechamento (URL ou aba), alinha intervalo ao mês civil completo
+  useEffect(() => {
+    if (activeTab !== "fechamento") return;
+    const { start, end } = monthRangeDates(isoToMmyyyy(endDate));
+    if (startDate !== start || endDate !== end) {
+      setStartDate(start);
+      setEndDate(end);
+    }
+  }, [activeTab]);
+
   function selectTab(tab: DFCTab) {
+    if (tab === "fechamento") {
+      const mmyyyy = isoToMmyyyy(endDate);
+      const { start, end } = monthRangeDates(mmyyyy);
+      setStartDate(start);
+      setEndDate(end);
+    }
     setActiveTab(tab);
     void navigate({
       search: (prev) => ({
@@ -235,6 +251,14 @@ function DFCPage() {
     ? new Date(startDate + "T12:00:00").toLocaleDateString("pt-BR")
     : `${new Date(startDate + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} – ${new Date(endDate + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}`;
 
+  const fechamentoPeriod = isoToMmyyyy(endDate);
+
+  function setFechamentoPeriod(mmyyyy: string) {
+    const { start, end } = monthRangeDates(mmyyyy);
+    setStartDate(start);
+    setEndDate(end);
+  }
+
   return (
     <AdminLayout>
       <PageHeader
@@ -252,13 +276,15 @@ function DFCPage() {
             >
               {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            <DateRangeFilter
-              startDate={startDate}
-              endDate={endDate}
-              maxDate={todayISO()}
-              onStartChange={setStartDate}
-              onEndChange={setEndDate}
-            />
+            {activeTab !== "fechamento" && (
+              <DateRangeFilter
+                startDate={startDate}
+                endDate={endDate}
+                maxDate={todayISO()}
+                onStartChange={setStartDate}
+                onEndChange={setEndDate}
+              />
+            )}
             {activeTab === "contas" && (
               <button
                 onClick={() => setContasTrigger((n) => n + 1)}
@@ -329,6 +355,8 @@ function DFCPage() {
         {activeTab === "fechamento" && clientId && (
           <FechamentoMensalPanel
             clientId={clientId}
+            period={fechamentoPeriod}
+            onPeriodChange={setFechamentoPeriod}
             monthlyClosingDay={activeClient?.monthly_closing_day ?? null}
             onOpenTab={(tab) => selectTab(tab)}
           />

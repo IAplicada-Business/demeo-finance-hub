@@ -64,15 +64,27 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
         .gte("due_date", startDate)
         .lte("due_date", endDate)
         .order("due_date"),
-    ]).then(([txRes, payRes]) => {
+    ]).then(async ([txRes, payRes]) => {
       if (txRes.error || payRes.error) {
         setError(txRes.error?.message ?? payRes.error?.message ?? "Erro ao carregar livro diário");
         setRows([]);
       } else {
+        const txs = (txRes.data ?? []) as ApprovedTxInput[];
+        const payableIds = [...new Set(txs.map((t) => t.payable_id).filter(Boolean))] as string[];
+        let linkedDueById: Record<string, string> = {};
+        if (payableIds.length > 0) {
+          const { data: linked } = await supabase()
+            .from("payables")
+            .select("id, due_date")
+            .in("id", payableIds);
+          linkedDueById = Object.fromEntries((linked ?? []).map((p) => [p.id, p.due_date as string]));
+        }
         setRows(
           buildLivroDiarioRows(
-            (txRes.data ?? []) as ApprovedTxInput[],
-            (payRes.data ?? []) as UnpaidPayableInput[]
+            txs,
+            (payRes.data ?? []) as UnpaidPayableInput[],
+            undefined,
+            linkedDueById
           )
         );
       }
@@ -100,8 +112,8 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
           </div>
           <p className="text-[12px] mt-2" style={{ color: "var(--muted-foreground)" }}>
             <strong style={{ color: "var(--green)" }}>Verde</strong> = já no banco ·{" "}
-            <strong>cinza</strong> = ainda na agenda. Extratos aprovados aparecem como{" "}
-            <strong>Realizado</strong>; contas sem baixa vêm da{" "}
+            <strong>cinza</strong> = ainda na agenda. Extratos aprovados usam a{" "}
+            <strong>data do extrato</strong>; se conciliados com a agenda, o vencimento original aparece à esquerda. Contas em aberto vêm da{" "}
             {onOpenContas ? (
               <button
                 type="button"
@@ -190,7 +202,7 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
           <table className="w-full">
             <thead>
               <tr style={{ background: "var(--linen)" }}>
-                {["Data esperada", "Data realizada", "Plano de contas", "Histórico", "Conta bancária", "Valor", "Status"].map(
+                {["Vencimento", "Data no extrato", "Plano de contas", "Histórico", "Conta bancária", "Valor", "Status"].map(
                   (h) => (
                     <th key={h} className="text-left px-5 py-3 aurora-cap" style={{ fontWeight: 500, whiteSpace: "nowrap" }}>
                       {h}

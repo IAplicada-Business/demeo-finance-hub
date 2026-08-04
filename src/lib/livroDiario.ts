@@ -51,15 +51,18 @@ export function agendadoStatus(dueDate: string, today = todayISO()): "no_prazo" 
 export function buildLivroDiarioRows(
   transactions: ApprovedTxInput[],
   payables: UnpaidPayableInput[],
-  today = todayISO()
+  today = todayISO(),
+  linkedPayableDueById: Record<string, string> = {}
 ): LivroDiarioRow[] {
   const rows: LivroDiarioRow[] = [];
 
   for (const tx of transactions) {
+    const linkedDue = tx.payable_id ? linkedPayableDueById[tx.payable_id] : null;
     rows.push({
       id: tx.id,
       source: "transaction",
-      expectedDate: null,
+      // Vencimento: da agenda vinculada, senão data do lançamento no extrato
+      expectedDate: linkedDue ?? tx.date,
       realizedDate: tx.date,
       category: tx.category,
       description: tx.description,

@@ -75,7 +75,6 @@ const CHECKLIST_STEPS: {
     label: "Apuração de Deduções",
     desc: "Subtrair descontos, cancelamentos e devoluções → Receita Operacional Líquida",
     links: [
-      { kind: "tab", label: "Detalhamento (impostos)", tab: "detalhamento" },
       { kind: "anchor", label: "DFC Gerencial", anchor: "fechamento-dfc" },
     ],
   },
@@ -95,13 +94,6 @@ function mmyyyyToYYYYMM(mmyyyy: string): string {
   return `${yyyy}-${mm}`;
 }
 
-function currentPeriod(): string {
-  const now = new Date();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const yyyy = String(now.getFullYear());
-  return `${mm}/${yyyy}`;
-}
-
 function scrollToAnchor(anchor: string) {
   const el = document.getElementById(anchor);
   if (!el) return;
@@ -110,16 +102,19 @@ function scrollToAnchor(anchor: string) {
 
 export function FechamentoMensalPanel({
   clientId,
+  period,
+  onPeriodChange,
   monthlyClosingDay,
   onOpenTab,
 }: {
   clientId: string;
+  /** Mês de fechamento (MM/YYYY) — sincronizado com o filtro global da página. */
+  period: string;
+  onPeriodChange: (mmyyyy: string) => void;
   monthlyClosingDay: number | null;
   /** Troca de aba no DFC (extratos, dre, agenda…). */
   onOpenTab?: (tab: "extratos" | "contas" | "dre" | "dfc" | "detalhamento") => void;
 }) {
-  const periods = monthOptions(12);
-  const [selectedPeriod, setSelectedPeriod] = useState(currentPeriod);
   const [entries, setEntries] = useState<RevenueEntry[]>([]);
   const [closing, setClosing] = useState<MonthlyClosing | null>(null);
   const [loadingData, setLoadingData] = useState(false);
@@ -130,12 +125,12 @@ export function FechamentoMensalPanel({
   const [catMap, setCatMap] = useState<Map<string, CatInfo>>(new Map());
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
-  const dbPeriod = mmyyyyToYYYYMM(selectedPeriod);
+  const dbPeriod = mmyyyyToYYYYMM(period);
 
   useEffect(() => {
     if (!clientId) return;
     setLoadingData(true);
-    const { start, end } = monthRangeDates(selectedPeriod);
+    const { start, end } = monthRangeDates(period);
     Promise.all([
       supabase()
         .from("monthly_revenue_entries")
@@ -182,7 +177,7 @@ export function FechamentoMensalPanel({
       setCatMap(map);
       setLoadingData(false);
     });
-  }, [clientId, selectedPeriod, dbPeriod]);
+  }, [clientId, period, dbPeriod]);
 
   const allStepsDone = closing
     ? closing.step1_done && closing.step2_done && closing.step3_done && closing.step4_done
@@ -293,12 +288,12 @@ export function FechamentoMensalPanel({
         <div className="flex items-center gap-3">
           <span className="aurora-cap">Período</span>
           <select
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
+            value={period}
+            onChange={(e) => onPeriodChange(e.target.value)}
             className="bg-white px-3 py-2 text-[12px]"
             style={{ border: "1px solid var(--line)" }}
           >
-            {periods.map((p) => (
+            {monthOptions(12).map((p) => (
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
