@@ -164,10 +164,10 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   const { data: pendentesCount = 0 } = useQuery({
     queryKey: pendentesCountKey(),
     queryFn: () => fetchExtratoPendingCount(),
-    staleTime: 0,
-    refetchOnMount: "always",
+    staleTime: 30_000,
+    refetchOnMount: true,
     refetchOnWindowFocus: true,
-    refetchInterval: 30_000,
+    refetchInterval: false,
   });
 
   const [getCollapsed, setCollapsed] = useLocalStorage<boolean>("aurora.admin.collapsed", false);

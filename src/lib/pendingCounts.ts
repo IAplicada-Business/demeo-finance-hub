@@ -1,39 +1,58 @@
 import { supabase } from "@/lib/supabase";
 
-/** Total de extratos aguardando revisão (classified + pending, upload_id obrigatório). */
-export async function fetchExtratoPendingCount(clientId?: string): Promise<number> {
+export const PENDING_STATUSES = ["pending", "classified"] as const;
+
+export type PendingQueryOpts = {
+  clientId?: string;
+  dateFrom?: string;
+};
+
+type SelectOpts = { count: "exact"; head: true };
+
+/** Query builder com filtros de pendência (extratos aguardando revisão). */
+export function pendingTransactionsFilter(
+  select: string,
+  selectOpts?: SelectOpts,
+  filterOpts?: PendingQueryOpts
+) {
   let query = supabase()
     .from("transactions")
-    .select("*", { count: "exact", head: true })
-    .in("status", ["pending", "classified"])
+    .select(select, selectOpts)
+    .in("status", [...PENDING_STATUSES])
     .not("upload_id", "is", null);
 
-  if (clientId) {
-    query = query.eq("client_id", clientId);
+  if (filterOpts?.clientId) {
+    query = query.eq("client_id", filterOpts.clientId);
+  }
+  if (filterOpts?.dateFrom) {
+    query = query.gte("date", filterOpts.dateFrom);
   }
 
-  const { count } = await query;
+  return query;
+}
+
+/** Total de extratos aguardando revisão (classified + pending, upload_id obrigatório). */
+export async function fetchExtratoPendingCount(clientId?: string): Promise<number> {
+  const { count } = await pendingTransactionsFilter("*", { count: "exact", head: true }, { clientId });
   return count ?? 0;
 }
 
 /** Contagem separada classified / pending (extratos only). */
-export async function fetchExtratoPendingBreakdown(clientId?: string): Promise<{ classified: number; pending: number }> {
-  let classifiedQuery = supabase()
-    .from("transactions")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "classified")
-    .not("upload_id", "is", null);
-  let pendingQuery = supabase()
-    .from("transactions")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "pending")
-    .not("upload_id", "is", null);
+export async function fetchExtratoPendingBreakdown(
+  clientId?: string
+): Promise<{ classified: number; pending: number }> {
+  const filterOpts = clientId ? { clientId } : undefined;
 
-  if (clientId) {
-    classifiedQuery = classifiedQuery.eq("client_id", clientId);
-    pendingQuery = pendingQuery.eq("client_id", clientId);
-  }
+  const [{ count: classified }, { count: pending }] = await Promise.all([
+    pendingTransactionsFilter("*", { count: "exact", head: true }, filterOpts).eq(
+      "status",
+      "classified"
+    ),
+    pendingTransactionsFilter("*", { count: "exact", head: true }, filterOpts).eq(
+      "status",
+      "pending"
+    ),
+  ]);
 
-  const [{ count: classified }, { count: pending }] = await Promise.all([classifiedQuery, pendingQuery]);
   return { classified: classified ?? 0, pending: pending ?? 0 };
 }

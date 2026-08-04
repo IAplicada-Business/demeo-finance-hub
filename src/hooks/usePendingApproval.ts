@@ -12,9 +12,9 @@ export function usePendingApproval(clientId?: string) {
   return useQuery({
     queryKey: pendentesBreakdownKey(clientId),
     queryFn: () => fetchExtratoPendingBreakdown(clientId),
-    staleTime: 0,
-    refetchOnMount: "always",
+    staleTime: 30_000,
+    refetchOnMount: true,
     refetchOnWindowFocus: true,
-    refetchInterval: 30_000,
+    refetchInterval: false,
   });
 }
