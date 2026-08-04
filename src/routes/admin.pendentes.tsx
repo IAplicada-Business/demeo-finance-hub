@@ -17,6 +17,7 @@ import {
   confidenceLabel,
   confidenceStyle,
   confidenceTier,
+  effectiveConfidence,
   CONFIDENCE_TOOLTIP,
 } from "@/lib/confidence";
 import { pendingTransactionsFilter } from "@/lib/pendingCounts";
@@ -616,7 +617,9 @@ function PendentesPage() {
                         </td>
                         <td className="px-6 py-3">
                           {(() => {
-                            const tier = confidenceTier(t.confidence);
+                            const category = cats[t.id]?.trim() || t.category?.trim() || "";
+                            const conf = effectiveConfidence(t.confidence, category);
+                            const tier = confidenceTier(conf);
                             const style = confidenceStyle(tier);
                             return (
                               <span
@@ -627,9 +630,9 @@ function PendentesPage() {
                                   background: style.background,
                                   color: style.color,
                                 }}
-                                title={CONFIDENCE_TOOLTIP}
+                                title={category ? CONFIDENCE_TOOLTIP : "Selecione uma categoria para ver a confiança da classificação"}
                               >
-                                {confidenceLabel(t.confidence)}
+                                {confidenceLabel(conf)}
                               </span>
                             );
                           })()}

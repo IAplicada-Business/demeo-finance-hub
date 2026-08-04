@@ -1,7 +1,16 @@
 export type ConfidenceTier = "high" | "medium" | "low" | "none";
 
 export const CONFIDENCE_TOOLTIP =
-  "Regra (100) · Recorrência (90) · Heurística (75) · IA (variável)";
+  "Regra (100) · Recorrência (90) · Heurística (75) · IA (variável) · Só exibido com categoria sugerida";
+
+/** Confiança só vale quando há categoria — evita 100% com “Sem categoria”. */
+export function effectiveConfidence(
+  conf: number | null,
+  category: string | null | undefined
+): number | null {
+  if (!category?.trim()) return null;
+  return conf;
+}
 
 export function confidenceTier(conf: number | null): ConfidenceTier {
   if (conf == null || conf <= 0) return "none";

@@ -233,6 +233,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    const { data: categoriesRaw } = await supabase
+      .from("categories")
+      .select("name")
+      .eq("client_id", client_id)
+      .eq("is_active", true)
+      .order("sort_order");
+
+    const categoryNames = (categoriesRaw ?? []).map((c) => c.name);
+    const activeCategories = new Set(categoryNames);
+
     // ── CAMADA 1: Regras ativas ────────────────────────────────────────────────
     // Filtra is_active=true; padrões mais longos têm prioridade (mais específicos)
     const { data: rulesRaw } = await supabase
@@ -241,8 +251,13 @@ Deno.serve(async (req) => {
       .eq("client_id", client_id)
       .eq("is_active", true);
 
-    // Ordena por comprimento decrescente (padrão mais específico ganha no desempate)
-    const rules: Rule[] = (rulesRaw ?? []).sort((a, b) => b.pattern.length - a.pattern.length);
+    // Ordena por comprimento decrescente; descarta regra sem categoria válida no plano
+    const rules: Rule[] = (rulesRaw ?? [])
+      .filter((r) => {
+        const cat = r.category?.trim();
+        return !!cat && activeCategories.has(cat);
+      })
+      .sort((a, b) => b.pattern.length - a.pattern.length);
 
     const approvedByRule: string[] = [];
     const remainingAfterRules: TxRow[] = [];
@@ -272,6 +287,7 @@ Deno.serve(async (req) => {
         txGroups.get(key)!.ids.push(tx.id);
       }
       for (const { ids, category, is_recurring } of txGroups.values()) {
+        if (!category?.trim() || !activeCategories.has(category.trim())) continue;
         await supabase
           .from("transactions")
           .update({
@@ -336,17 +352,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Categorias do banco (camadas 2.5 e 3)
-    const { data: categoriesRaw } = await supabase
-      .from("categories")
-      .select("name")
-      .eq("client_id", client_id)
-      .eq("is_active", true)
-      .order("sort_order");
-
-    const categoryNames = (categoriesRaw ?? []).map((c) => c.name);
-
-    // ── CAMADA 2.5: Heurística para históricos abreviados (Caixa etc.) ────────
+    // Categorias do banco (camadas 2.5 e 3) — já carregadas acima
     const approvedByHeuristic: string[] = [];
     const remainingAfterHeuristic: TxRow[] = [];
 
