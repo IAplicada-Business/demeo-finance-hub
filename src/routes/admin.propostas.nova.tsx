@@ -18,7 +18,12 @@ export const Route = createFileRoute("/admin/propostas/nova")({
   validateSearch: (s) => SearchSchema.parse(s),
 });
 
-type Deal = { id: string; contact_name: string; company: string | null; contact_email: string | null };
+type Deal = {
+  id: string;
+  contact_name: string;
+  company: string | null;
+  contact_email: string | null;
+};
 
 type DraftItem = {
   service_id: string | null;
@@ -66,7 +71,12 @@ function NovaProposta() {
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [emitting, setEmitting] = useState(false);
-  const [result, setResult] = useState<{ pdf_url: string | null; public_url: string; number: string; proposal_id?: string } | null>(null);
+  const [result, setResult] = useState<{
+    pdf_url: string | null;
+    public_url: string;
+    number: string;
+    proposal_id?: string;
+  } | null>(null);
   const [sending, setSending] = useState(false);
 
   const { data: openDeals = [] } = useQuery({
@@ -113,8 +123,12 @@ function NovaProposta() {
     setDraft((d) => ({ ...d, items: d.items.filter((_, i) => i !== idx) }));
   }
 
-  const totalMonthly = draft.items.filter((i) => i.unit === "mensal").reduce((s, i) => s + i.quantity * i.unit_price, 0);
-  const totalOneOff = draft.items.filter((i) => i.unit !== "mensal").reduce((s, i) => s + i.quantity * i.unit_price, 0);
+  const totalMonthly = draft.items
+    .filter((i) => i.unit === "mensal")
+    .reduce((s, i) => s + i.quantity * i.unit_price, 0);
+  const totalOneOff = draft.items
+    .filter((i) => i.unit !== "mensal")
+    .reduce((s, i) => s + i.quantity * i.unit_price, 0);
 
   async function emit() {
     if (!draft.deal_id || !draft.client_name || draft.items.length === 0) {
@@ -179,7 +193,12 @@ function NovaProposta() {
 
   return (
     <AdminLayout>
-      <PageHeader cap="Comercial" title="Nova" emphasis="proposta" description="Wizard guiado em 5 etapas." />
+      <PageHeader
+        cap="Comercial"
+        title="Nova"
+        emphasis="proposta"
+        description="Wizard guiado em 5 etapas."
+      />
 
       <div className="aurora-page">
         {/* Steps */}
@@ -235,16 +254,32 @@ function NovaProposta() {
               </select>
               <div className="grid md:grid-cols-2 gap-4 mt-4">
                 <Field label="Nome do cliente">
-                  <input value={draft.client_name} onChange={(e) => setDraft({ ...draft, client_name: e.target.value })} className="aurora-input" />
+                  <input
+                    value={draft.client_name}
+                    onChange={(e) => setDraft({ ...draft, client_name: e.target.value })}
+                    className="aurora-input"
+                  />
                 </Field>
                 <Field label="E-mail">
-                  <input value={draft.client_email} onChange={(e) => setDraft({ ...draft, client_email: e.target.value })} className="aurora-input" />
+                  <input
+                    value={draft.client_email}
+                    onChange={(e) => setDraft({ ...draft, client_email: e.target.value })}
+                    className="aurora-input"
+                  />
                 </Field>
                 <Field label="Telefone">
-                  <input value={draft.client_phone} onChange={(e) => setDraft({ ...draft, client_phone: e.target.value })} className="aurora-input" />
+                  <input
+                    value={draft.client_phone}
+                    onChange={(e) => setDraft({ ...draft, client_phone: e.target.value })}
+                    className="aurora-input"
+                  />
                 </Field>
                 <Field label="CNPJ/CPF">
-                  <input value={draft.client_document} onChange={(e) => setDraft({ ...draft, client_document: e.target.value })} className="aurora-input" />
+                  <input
+                    value={draft.client_document}
+                    onChange={(e) => setDraft({ ...draft, client_document: e.target.value })}
+                    className="aurora-input"
+                  />
                 </Field>
               </div>
             </>
@@ -258,7 +293,13 @@ function NovaProposta() {
                 <button
                   onClick={() => setPickerOpen(true)}
                   className="text-[10px] uppercase px-4 py-2"
-                  style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+                  style={{
+                    background: "var(--green)",
+                    color: "#fff",
+                    letterSpacing: "2px",
+                    fontWeight: 500,
+                    borderRadius: 999,
+                  }}
                 >
                   + Adicionar
                 </button>
@@ -305,7 +346,10 @@ function NovaProposta() {
                           style={{ width: 110 }}
                         />
                       </td>
-                      <td className="px-3 py-2 aurora-serif text-[16px]" style={{ color: "var(--green)" }}>
+                      <td
+                        className="px-3 py-2 aurora-serif text-[16px]"
+                        style={{ color: "var(--green)" }}
+                      >
                         {brl(it.quantity * it.unit_price)}
                       </td>
                       <td className="px-3 py-2">
@@ -317,7 +361,11 @@ function NovaProposta() {
                   ))}
                   {draft.items.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-3 py-8 text-center" style={{ color: "var(--muted-foreground)" }}>
+                      <td
+                        colSpan={6}
+                        className="px-3 py-8 text-center"
+                        style={{ color: "var(--muted-foreground)" }}
+                      >
                         Nenhum item ainda.
                       </td>
                     </tr>
@@ -328,7 +376,10 @@ function NovaProposta() {
                     <td colSpan={4} className="px-3 py-3 aurora-cap text-right">
                       Total mensal
                     </td>
-                    <td className="px-3 py-3 aurora-serif text-[18px]" style={{ color: "var(--green)" }}>
+                    <td
+                      className="px-3 py-3 aurora-serif text-[18px]"
+                      style={{ color: "var(--green)" }}
+                    >
                       {brl(totalMonthly)}
                     </td>
                   </tr>
@@ -336,7 +387,10 @@ function NovaProposta() {
                     <td colSpan={4} className="px-3 py-3 aurora-cap text-right">
                       Total único
                     </td>
-                    <td className="px-3 py-3 aurora-serif text-[18px]" style={{ color: "var(--tan)" }}>
+                    <td
+                      className="px-3 py-3 aurora-serif text-[18px]"
+                      style={{ color: "var(--tan)" }}
+                    >
                       {brl(totalOneOff)}
                     </td>
                   </tr>
@@ -392,20 +446,36 @@ function NovaProposta() {
             <>
               <div className="aurora-cap">Preview</div>
               <div className="aurora-serif text-[24px] mb-2">Como vai aparecer</div>
-              <div className="p-6" style={{ border: "1px solid var(--line)", background: "var(--offwhite)" }}>
+              <div
+                className="p-6"
+                style={{ border: "1px solid var(--line)", background: "var(--offwhite)" }}
+              >
                 <div className="aurora-cap">{draft.client_name}</div>
                 <div className="aurora-serif text-[32px]" style={{ color: "var(--green)" }}>
-                  Proposta · {brl(totalMonthly)} <span className="text-[14px]" style={{ color: "var(--muted-foreground)" }}>/ mês</span>
+                  Proposta · {brl(totalMonthly)}{" "}
+                  <span className="text-[14px]" style={{ color: "var(--muted-foreground)" }}>
+                    / mês
+                  </span>
                 </div>
-                <p className="mt-3 text-[12px]" style={{ color: "var(--muted-foreground)", lineHeight: 1.7 }}>
+                <p
+                  className="mt-3 text-[12px]"
+                  style={{ color: "var(--muted-foreground)", lineHeight: 1.7 }}
+                >
                   {draft.intro_text || "—"}
                 </p>
-                <p className="mt-2 text-[12px]" style={{ color: "var(--muted-foreground)", lineHeight: 1.7 }}>
+                <p
+                  className="mt-2 text-[12px]"
+                  style={{ color: "var(--muted-foreground)", lineHeight: 1.7 }}
+                >
                   {draft.diagnosis_text || "—"}
                 </p>
                 <ul className="mt-4 flex flex-col gap-2">
                   {draft.items.map((it, idx) => (
-                    <li key={idx} className="flex justify-between text-[12px]" style={{ borderBottom: "1px solid var(--line)", paddingBottom: 4 }}>
+                    <li
+                      key={idx}
+                      className="flex justify-between text-[12px]"
+                      style={{ borderBottom: "1px solid var(--line)", paddingBottom: 4 }}
+                    >
                       <span>
                         {it.description} <span className="aurora-cap ml-2">{it.unit}</span>
                       </span>
@@ -420,7 +490,8 @@ function NovaProposta() {
                 </div>
               </div>
               <p className="text-[11px] mt-3" style={{ color: "var(--muted-foreground)" }}>
-                Preview simplificado — o PDF final é renderizado pela edge function <code>proposal-generate</code>.
+                Preview simplificado — o PDF final é renderizado pela edge function{" "}
+                <code>proposal-generate</code>.
               </p>
             </>
           )}
@@ -430,13 +501,20 @@ function NovaProposta() {
               <div className="aurora-cap">Emitir</div>
               <div className="aurora-serif text-[24px] mb-2">Pronto?</div>
               <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
-                Vamos criar a proposta, salvar os itens, gerar o PDF e gerar o link público. Você pode enviar pelo WhatsApp ou pelo e-mail.
+                Vamos criar a proposta, salvar os itens, gerar o PDF e gerar o link público. Você
+                pode enviar pelo WhatsApp ou pelo e-mail.
               </p>
               <button
                 disabled={emitting}
                 onClick={emit}
                 className="self-start text-[10px] uppercase px-6 py-3 disabled:opacity-50"
-                style={{ background: "var(--green)", color: "#fff", letterSpacing: "2.5px", fontWeight: 500 , borderRadius: 999 }}
+                style={{
+                  background: "var(--green)",
+                  color: "#fff",
+                  letterSpacing: "2.5px",
+                  fontWeight: 500,
+                  borderRadius: 999,
+                }}
               >
                 {emitting ? "Gerando…" : "Emitir proposta →"}
               </button>
@@ -445,7 +523,9 @@ function NovaProposta() {
 
           {step === 5 && result && (
             <>
-              <div className="aurora-cap" style={{ color: "var(--green)" }}>Emitida</div>
+              <div className="aurora-cap" style={{ color: "var(--green)" }}>
+                Emitida
+              </div>
               <div className="aurora-serif text-[28px] mb-3">Proposta {result.number} pronta</div>
               <div className="grid md:grid-cols-2 gap-4">
                 {result.pdf_url && (
@@ -470,7 +550,10 @@ function NovaProposta() {
                   className="aurora-card p-6 text-left"
                 >
                   <div className="aurora-cap mb-1">Link público</div>
-                  <div className="text-[11px] break-all" style={{ color: "var(--muted-foreground)" }}>
+                  <div
+                    className="text-[11px] break-all"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
                     {result.public_url}
                   </div>
                   <div className="aurora-link mt-2">Copiar →</div>
@@ -483,7 +566,10 @@ function NovaProposta() {
                     onClick={async () => {
                       setSending(true);
                       try {
-                        const headers = { "Content-Type": "application/json", ...(await authHeaders()) };
+                        const headers = {
+                          "Content-Type": "application/json",
+                          ...(await authHeaders()),
+                        };
                         const r = await fetch(`${FUNCTIONS_URL}/proposal-send`, {
                           method: "POST",
                           headers,
@@ -501,7 +587,12 @@ function NovaProposta() {
                       }
                     }}
                     className="text-[10px] uppercase px-4 py-2 disabled:opacity-50"
-                    style={{ border: "1px solid var(--green)", color: "var(--green)", letterSpacing: "2px" , borderRadius: 12 }}
+                    style={{
+                      border: "1px solid var(--green)",
+                      color: "var(--green)",
+                      letterSpacing: "2px",
+                      borderRadius: 12,
+                    }}
                   >
                     {sending ? "Enviando…" : "Enviar por e-mail →"}
                   </button>
@@ -513,10 +604,18 @@ function NovaProposta() {
 
         {/* Nav */}
         <div className="flex justify-between mt-6">
-          <button disabled={step === 1} onClick={() => goStep(step - 1)} className="aurora-link disabled:opacity-30">
+          <button
+            disabled={step === 1}
+            onClick={() => goStep(step - 1)}
+            className="aurora-link disabled:opacity-30"
+          >
             ← Voltar
           </button>
-          <button disabled={step === 5} onClick={() => goStep(step + 1)} className="aurora-link disabled:opacity-30">
+          <button
+            disabled={step === 5}
+            onClick={() => goStep(step + 1)}
+            className="aurora-link disabled:opacity-30"
+          >
             Próximo →
           </button>
         </div>

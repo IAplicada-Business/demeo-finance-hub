@@ -61,8 +61,7 @@ export function MagneticButton({ href, children, variant = "solid", style, targe
           ...base,
           background: `linear-gradient(135deg, ${FOREST} 0%, #1f3a22 100%)`,
           color: "#fff",
-          boxShadow:
-            "0 10px 28px -10px rgba(40,76,43,0.5), 0 2px 6px rgba(40,76,43,0.2)",
+          boxShadow: "0 10px 28px -10px rgba(40,76,43,0.5), 0 2px 6px rgba(40,76,43,0.2)",
           ...style,
         }}
       >
@@ -71,8 +70,7 @@ export function MagneticButton({ href, children, variant = "solid", style, targe
           style={{
             position: "absolute",
             inset: 0,
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 50%)",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 50%)",
             pointerEvents: "none",
           }}
         />

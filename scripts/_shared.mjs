@@ -9,8 +9,14 @@ export function loadEnv(path) {
         .filter((l) => l && !l.startsWith("#"))
         .map((l) => {
           const i = l.indexOf("=");
-          return [l.slice(0, i), l.slice(i + 1).replace(/^<|>$/g, "").replace(/^"|"$/g, "")];
-        })
+          return [
+            l.slice(0, i),
+            l
+              .slice(i + 1)
+              .replace(/^<|>$/g, "")
+              .replace(/^"|"$/g, ""),
+          ];
+        }),
     );
   } catch {
     return {};

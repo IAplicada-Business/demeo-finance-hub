@@ -30,7 +30,9 @@ function ConfigurarAcessoPage() {
       setType(tokenType);
     }
 
-    const { data: { subscription } } = supabase().auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase().auth.onAuthStateChange((_event, session) => {
       if (session) setReady(true);
     });
 
@@ -38,14 +40,17 @@ function ConfigurarAcessoPage() {
       // Forçar a sessão do link de convite/recuperação, sobrescrevendo qualquer sessão
       // existente (ex: admin logada no mesmo browser). Sem isso, updateUser usaria
       // a sessão errada e retornaria 422.
-      supabase().auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+      supabase()
+        .auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
         .then(({ data, error }) => {
           if (!error && data.session) setReady(true);
         });
     } else {
-      supabase().auth.getSession().then(({ data }) => {
-        if (data.session) setReady(true);
-      });
+      supabase()
+        .auth.getSession()
+        .then(({ data }) => {
+          if (data.session) setReady(true);
+        });
     }
 
     return () => subscription.unsubscribe();
@@ -68,7 +73,10 @@ function ConfigurarAcessoPage() {
     setLoading(false);
 
     if (updateErr) {
-      setError(updateErr.message ?? "Não foi possível definir a senha. Solicite um novo convite à Claudia.");
+      setError(
+        updateErr.message ??
+          "Não foi possível definir a senha. Solicite um novo convite à Claudia.",
+      );
       return;
     }
 
@@ -87,9 +95,11 @@ function ConfigurarAcessoPage() {
       <div
         className="absolute pointer-events-none select-none"
         style={{
-          right: "-40px", bottom: "-80px",
+          right: "-40px",
+          bottom: "-80px",
           fontFamily: "'Cormorant Garamond', serif",
-          fontStyle: "italic", fontWeight: 300,
+          fontStyle: "italic",
+          fontWeight: 300,
           fontSize: "clamp(220px, 32vw, 380px)",
           letterSpacing: "-12px",
           color: "transparent",
@@ -102,8 +112,12 @@ function ConfigurarAcessoPage() {
 
       <div className="w-full max-w-[440px] relative z-10">
         <div className="flex flex-col items-center mb-8">
-          <span style={{ color: "var(--green)" }}><LogoMark size={32} /></span>
-          <div className="aurora-serif text-[28px] mt-3" style={{ fontWeight: 500 }}>Aurora</div>
+          <span style={{ color: "var(--green)" }}>
+            <LogoMark size={32} />
+          </span>
+          <div className="aurora-serif text-[28px] mt-3" style={{ fontWeight: 500 }}>
+            Aurora
+          </div>
           <div className="aurora-cap mt-1">Gestão financeira</div>
         </div>
 
@@ -114,11 +128,16 @@ function ConfigurarAcessoPage() {
             borderRadius: 28,
             boxShadow: "0 24px 48px -28px rgba(28,45,69,0.22)",
           }}
-        >          {done ? (
+        >
+          {" "}
+          {done ? (
             <div className="text-center py-4">
               <div className="text-[32px] mb-4">✓</div>
               <div className="aurora-serif text-[22px] mb-2">
-                Acesso <em className="italic" style={{ color: "var(--green)" }}>configurado!</em>
+                Acesso{" "}
+                <em className="italic" style={{ color: "var(--green)" }}>
+                  configurado!
+                </em>
               </div>
               <div className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
                 Redirecionando para o portal…
@@ -130,10 +149,21 @@ function ConfigurarAcessoPage() {
                 {type === "invite" ? "Primeiro acesso" : "Redefinir senha"}
               </div>
               <h1 className="aurora-serif text-[26px] mb-1">
-                {type === "invite"
-                  ? <>Crie sua <em className="italic" style={{ color: "var(--green)" }}>senha</em></>
-                  : <>Nova <em className="italic" style={{ color: "var(--green)" }}>senha</em></>
-                }
+                {type === "invite" ? (
+                  <>
+                    Crie sua{" "}
+                    <em className="italic" style={{ color: "var(--green)" }}>
+                      senha
+                    </em>
+                  </>
+                ) : (
+                  <>
+                    Nova{" "}
+                    <em className="italic" style={{ color: "var(--green)" }}>
+                      senha
+                    </em>
+                  </>
+                )}
               </h1>
               <p className="text-[12px] mb-7" style={{ color: "var(--muted-foreground)" }}>
                 {type === "invite"
@@ -173,7 +203,14 @@ function ConfigurarAcessoPage() {
                 </label>
 
                 {error && (
-                  <div className="text-[12px] px-3 py-2" style={{ background: "rgba(109,146,166,0.12)", color: "var(--tan)", border: "1px solid var(--tan)" }}>
+                  <div
+                    className="text-[12px] px-3 py-2"
+                    style={{
+                      background: "rgba(109,146,166,0.12)",
+                      color: "var(--tan)",
+                      border: "1px solid var(--tan)",
+                    }}
+                  >
                     {error}
                   </div>
                 )}
@@ -182,7 +219,13 @@ function ConfigurarAcessoPage() {
                   type="submit"
                   disabled={loading || !ready}
                   className="mt-2 w-full text-[10px] uppercase py-3.5 transition-colors disabled:opacity-60"
-                  style={{ background: "var(--green)", color: "#fff", letterSpacing: "2.5px", fontWeight: 500 , borderRadius: 999 }}
+                  style={{
+                    background: "var(--green)",
+                    color: "#fff",
+                    letterSpacing: "2.5px",
+                    fontWeight: 500,
+                    borderRadius: 999,
+                  }}
                 >
                   {loading ? "Salvando…" : "Definir senha →"}
                 </button>
@@ -191,7 +234,10 @@ function ConfigurarAcessoPage() {
           )}
         </div>
 
-        <div className="mt-6 text-center text-[9px] uppercase" style={{ letterSpacing: "2px", color: "var(--muted-foreground)" }}>
+        <div
+          className="mt-6 text-center text-[9px] uppercase"
+          style={{ letterSpacing: "2px", color: "var(--muted-foreground)" }}
+        >
           © Aurora Gestão Financeira 2026
         </div>
       </div>

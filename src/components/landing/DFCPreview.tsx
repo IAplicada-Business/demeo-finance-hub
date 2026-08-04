@@ -71,7 +71,10 @@ export function DFCPreview() {
               <div className="aurora-cap" style={{ color: "var(--sage)", fontSize: 8 }}>
                 {m.label}
               </div>
-              <div className="aurora-serif mt-1" style={{ fontSize: 18, color: m.color, lineHeight: 1, letterSpacing: "-0.5px" }}>
+              <div
+                className="aurora-serif mt-1"
+                style={{ fontSize: 18, color: m.color, lineHeight: 1, letterSpacing: "-0.5px" }}
+              >
                 {m.val}
               </div>
             </div>
@@ -120,16 +123,28 @@ export function DFCPreview() {
           <table className="w-full">
             <thead>
               <tr style={{ background: "var(--linen)" }}>
-                <th className="text-left px-3 py-2 aurora-cap" style={{ fontSize: 8, fontWeight: 500 }}>
+                <th
+                  className="text-left px-3 py-2 aurora-cap"
+                  style={{ fontSize: 8, fontWeight: 500 }}
+                >
                   Categoria
                 </th>
-                <th className="text-left px-3 py-2 aurora-cap" style={{ fontSize: 8, fontWeight: 500 }}>
+                <th
+                  className="text-left px-3 py-2 aurora-cap"
+                  style={{ fontSize: 8, fontWeight: 500 }}
+                >
                   Total
                 </th>
-                <th className="text-left px-3 py-2 aurora-cap" style={{ fontSize: 8, fontWeight: 500 }}>
+                <th
+                  className="text-left px-3 py-2 aurora-cap"
+                  style={{ fontSize: 8, fontWeight: 500 }}
+                >
                   %
                 </th>
-                <th className="text-left px-3 py-2 aurora-cap" style={{ fontSize: 8, fontWeight: 500 }}>
+                <th
+                  className="text-left px-3 py-2 aurora-cap"
+                  style={{ fontSize: 8, fontWeight: 500 }}
+                >
                   vs ant
                 </th>
               </tr>
@@ -170,7 +185,13 @@ export function DFCPreview() {
                   </td>
                   <td
                     className="px-3 py-2 text-[10px]"
-                    style={{ color: row.up ? "var(--green)" : row.var === 0 ? "var(--muted-foreground)" : "var(--tan)" }}
+                    style={{
+                      color: row.up
+                        ? "var(--green)"
+                        : row.var === 0
+                          ? "var(--muted-foreground)"
+                          : "var(--tan)",
+                    }}
                   >
                     {row.var === 0 ? "—" : `${row.up ? "↑" : "↓"} ${row.var}%`}
                   </td>

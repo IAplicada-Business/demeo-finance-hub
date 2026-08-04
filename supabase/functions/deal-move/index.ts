@@ -42,11 +42,7 @@ Deno.serve(async (req) => {
   if (!stage) return jsonResponse({ error: "Stage destino inexistente" }, 422, origin);
 
   if (stage.is_lost && !body.lost_reason) {
-    return jsonResponse(
-      { error: "lost_reason obrigatório ao mover para 'Perdido'" },
-      422,
-      origin,
-    );
+    return jsonResponse({ error: "lost_reason obrigatório ao mover para 'Perdido'" }, 422, origin);
   }
 
   // Update deals — trigger cuida de stage_changed_at, closed_at e histórico.

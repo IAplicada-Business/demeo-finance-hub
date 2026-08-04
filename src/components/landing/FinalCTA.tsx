@@ -48,14 +48,11 @@ export function FinalCTA() {
               color: "rgba(255,255,255,0.75)",
             }}
           >
-            A Claudia te responde em até 1 dia útil. Sem cobrança no primeiro papo — a
-            gente decide junto se faz sentido seguir.
+            A Claudia te responde em até 1 dia útil. Sem cobrança no primeiro papo — a gente decide
+            junto se faz sentido seguir.
           </p>
 
-          <ul
-            className="mt-9 flex flex-col gap-3"
-            style={{ color: "rgba(255,255,255,0.9)" }}
-          >
+          <ul className="mt-9 flex flex-col gap-3" style={{ color: "rgba(255,255,255,0.9)" }}>
             {[
               "Diagnóstico financeiro gratuito",
               "Sem compromisso, sem pressão",

@@ -127,7 +127,13 @@ export function HealthAlertCard({
             transition: "transform 0.2s",
           }}
         >
-          <path d="M2 4.5L7 9.5L12 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M2 4.5L7 9.5L12 4.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
 
@@ -146,30 +152,40 @@ export function HealthAlertCard({
             <p className="text-[12px]" style={{ color: "var(--foreground)", lineHeight: 1.6 }}>
               {config.message}
             </p>
-            <p className="mt-2 text-[10px] uppercase" style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)" }}>
-              Período: {period} · Ref. {segLabel}: saudável ≥ {bench.healthy}% · atenção ≥ {bench.caution}%
+            <p
+              className="mt-2 text-[10px] uppercase"
+              style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)" }}
+            >
+              Período: {period} · Ref. {segLabel}: saudável ≥ {bench.healthy}% · atenção ≥{" "}
+              {bench.caution}%
             </p>
           </div>
 
           {showClosing && (
-            <div
-              className="pt-3"
-              style={{ borderTop: "1px solid rgba(28,45,69,0.08)" }}
-            >
+            <div className="pt-3" style={{ borderTop: "1px solid rgba(28,45,69,0.08)" }}>
               <div
                 className="text-[10px] uppercase mb-1"
-                style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)", fontWeight: 600 }}
+                style={{
+                  letterSpacing: "1.5px",
+                  color: "var(--muted-foreground)",
+                  fontWeight: 600,
+                }}
               >
                 Ajustes · fechamento mensal
               </div>
               {closingConfigured ? (
                 <p className="text-[12px]" style={{ color: "var(--foreground)", lineHeight: 1.6 }}>
                   Fechamento configurado para o dia{" "}
-                  <span style={{ fontWeight: 600, color: "var(--green)" }}>{closingDay}</span> de cada mês.
+                  <span style={{ fontWeight: 600, color: "var(--green)" }}>{closingDay}</span> de
+                  cada mês.
                 </p>
               ) : (
-                <p className="text-[12px]" style={{ color: "var(--muted-foreground)", lineHeight: 1.6 }}>
-                  Fechamento mensal não configurado. Defina o dia de fechamento no cadastro do cliente para acompanhar prazos e alertas.
+                <p
+                  className="text-[12px]"
+                  style={{ color: "var(--muted-foreground)", lineHeight: 1.6 }}
+                >
+                  Fechamento mensal não configurado. Defina o dia de fechamento no cadastro do
+                  cliente para acompanhar prazos e alertas.
                 </p>
               )}
             </div>

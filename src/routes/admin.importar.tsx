@@ -3,7 +3,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { AdminLayout, PageHeader } from "@/components/AdminLayout";
 import { brl } from "@/lib/utils";
-import { uploadPeriodFromIsoMonth, defaultUploadIsoMonth, inferUploadPeriodFromFilename, dominantIsoMonthFromDates } from "@/lib/dateUtils";
+import {
+  uploadPeriodFromIsoMonth,
+  defaultUploadIsoMonth,
+  inferUploadPeriodFromFilename,
+  dominantIsoMonthFromDates,
+} from "@/lib/dateUtils";
 import { supabase } from "@/lib/supabase";
 import { useCategories } from "@/hooks/useCategories";
 import { DateInput } from "@/components/DateInput";
@@ -40,8 +45,21 @@ interface Transaction {
 // Opções de banco para edição inline (inclui "Outro" para extratos não identificados).
 // Mantém sincronia com KEY_TO_DISPLAY do parse-extract (bancos que a IA consegue detectar).
 const BANK_OPTIONS = [
-  "Itaú", "Santander", "Bradesco", "Banco do Brasil", "Inter", "Nubank",
-  "Caixa", "Cora", "C6 Bank", "Sicoob", "Sicredi", "PagBank", "Mercado Pago", "BTG", "Safra",
+  "Itaú",
+  "Santander",
+  "Bradesco",
+  "Banco do Brasil",
+  "Inter",
+  "Nubank",
+  "Caixa",
+  "Cora",
+  "C6 Bank",
+  "Sicoob",
+  "Sicredi",
+  "PagBank",
+  "Mercado Pago",
+  "BTG",
+  "Safra",
   "Outro",
 ];
 
@@ -55,7 +73,6 @@ interface ClientOption {
   id: string;
   name: string;
 }
-
 
 function toBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -132,7 +149,9 @@ function ImportarPage() {
         setClients(data);
         // clientId permanece "" — usuário escolhe manualmente
       } else if (clientsError) {
-        setError(`Erro ao carregar clientes: ${clientsError.message}. Verifique se você está autenticado.`);
+        setError(
+          `Erro ao carregar clientes: ${clientsError.message}. Verifique se você está autenticado.`,
+        );
       } else {
         setError("Nenhum cliente cadastrado. Cadastre um cliente antes de importar extratos.");
       }
@@ -140,7 +159,6 @@ function ImportarPage() {
     }
     loadClients();
   }, []);
-
 
   function applySelectedFiles(fileList: File[]) {
     setFiles(fileList);
@@ -169,7 +187,9 @@ function ImportarPage() {
     const MAX_FILE_MB = 15;
     const oversized = fileList.filter((f) => f.size > MAX_FILE_MB * 1024 * 1024);
     if (oversized.length > 0) {
-      setError(oversized.map((f) => `"${f.name}" excede o limite de ${MAX_FILE_MB} MB.`).join("\n"));
+      setError(
+        oversized.map((f) => `"${f.name}" excede o limite de ${MAX_FILE_MB} MB.`).join("\n"),
+      );
       return;
     }
 
@@ -239,7 +259,7 @@ function ImportarPage() {
     const dominant = dominantIsoMonthFromDates(allTransactions.map((t) => t.date).filter(Boolean));
     if (dominant && dominant !== uploadPeriod) {
       setPeriodMismatch(
-        `Os lançamentos são majoritariamente de ${uploadPeriodFromIsoMonth(dominant)}, mas o período selecionado é ${uploadPeriodFromIsoMonth(uploadPeriod)}. Ajuste o mês acima para o histórico ficar correto.`
+        `Os lançamentos são majoritariamente de ${uploadPeriodFromIsoMonth(dominant)}, mas o período selecionado é ${uploadPeriodFromIsoMonth(uploadPeriod)}. Ajuste o mês acima para o histórico ficar correto.`,
       );
     } else {
       setPeriodMismatch(null);
@@ -294,10 +314,16 @@ function ImportarPage() {
           if (inst?.enabled && inst.total >= 2 && inst.number >= 1 && inst.number <= inst.total) {
             base.installment_number = inst.number;
             base.installment_total = inst.total;
-            base.installment_group_id = await installmentGroupId(clientId, t.description, inst.total, t.date, t.id);
+            base.installment_group_id = await installmentGroupId(
+              clientId,
+              t.description,
+              inst.total,
+              t.date,
+              t.id,
+            );
           }
           return base;
-        })
+        }),
       );
 
       const result = await approveTransactionsBatch(payloads, { clientId });
@@ -315,7 +341,7 @@ function ImportarPage() {
         .select("id, status")
         .in("id", payloadIds);
       const approvedIds = new Set(
-        (verifiedRows ?? []).filter((r) => r.status === "approved").map((r) => r.id)
+        (verifiedRows ?? []).filter((r) => r.status === "approved").map((r) => r.id),
       );
 
       if (approvedIds.size < payloads.length) {
@@ -329,9 +355,11 @@ function ImportarPage() {
           return {
             ...t,
             status: "approved",
-            ...(inst?.enabled ? { installment_number: inst.number, installment_total: inst.total } : {}),
+            ...(inst?.enabled
+              ? { installment_number: inst.number, installment_total: inst.total }
+              : {}),
           };
-        })
+        }),
       );
       setSelected(new Set());
       await syncUploadStatusAfterApproval([...approvedIds]);
@@ -356,7 +384,9 @@ function ImportarPage() {
   // viram "approved" e entram no histórico/relatórios do cliente. Os "pending"
   // (sem categoria) NÃO são tocados e seguem para a tela Pendentes.
   function approveClassificados() {
-    const ids = transactions.filter((t) => !!t.category && t.status !== "approved").map((t) => t.id);
+    const ids = transactions
+      .filter((t) => !!t.category && t.status !== "approved")
+      .map((t) => t.id);
     approveTransactions(ids);
   }
 
@@ -391,10 +421,22 @@ function ImportarPage() {
     setManualError(null);
     setManualSuccess(false);
 
-    if (!clientId) { setManualError("Selecione um cliente."); return; }
-    if (!manualDesc.trim()) { setManualError("Informe a descrição."); return; }
-    if (!manualAmount || isNaN(parseFloat(manualAmount.replace(/\./g, "").replace(",", ".")))) { setManualError("Informe um valor válido."); return; }
-    if (!manualCategory) { setManualError("Selecione uma categoria."); return; }
+    if (!clientId) {
+      setManualError("Selecione um cliente.");
+      return;
+    }
+    if (!manualDesc.trim()) {
+      setManualError("Informe a descrição.");
+      return;
+    }
+    if (!manualAmount || isNaN(parseFloat(manualAmount.replace(/\./g, "").replace(",", ".")))) {
+      setManualError("Informe um valor válido.");
+      return;
+    }
+    if (!manualCategory) {
+      setManualError("Selecione uma categoria.");
+      return;
+    }
 
     const rawAmount = parseFloat(manualAmount.replace(/\./g, "").replace(",", "."));
     const signedAmount = manualType === "despesa" ? -Math.abs(rawAmount) : Math.abs(rawAmount);
@@ -426,7 +468,9 @@ function ImportarPage() {
   }
 
   // Contagens do resultado da importação (para o cabeçalho, botão e avisos)
-  const classifiedCount = transactions.filter((t) => !!t.category && t.status !== "approved").length;
+  const classifiedCount = transactions.filter(
+    (t) => !!t.category && t.status !== "approved",
+  ).length;
   const pendingCount = transactions.filter((t) => !t.category && t.status !== "approved").length;
   const unapprovedCount = classifiedCount + pendingCount;
   const approvedCount = transactions.filter((t) => t.status === "approved").length;
@@ -445,12 +489,18 @@ function ImportarPage() {
         {clientId && activeCategoryCount === 0 && (
           <div
             className="flex items-start gap-3 px-5 py-4 rounded-xl text-[12px]"
-            style={{ background: "rgba(192,57,43,0.08)", border: "1px solid rgba(192,57,43,0.25)", color: "var(--foreground)" }}
+            style={{
+              background: "rgba(192,57,43,0.08)",
+              border: "1px solid rgba(192,57,43,0.25)",
+              color: "var(--foreground)",
+            }}
           >
             <span style={{ fontSize: 16, lineHeight: 1 }}>!</span>
             <div>
               Este cliente ainda não tem <strong>plano de contas</strong> ativo. Envie o plano em{" "}
-              <Link to="/admin/plano-contas" className="aurora-link">Plano de Contas</Link>{" "}
+              <Link to="/admin/plano-contas" className="aurora-link">
+                Plano de Contas
+              </Link>{" "}
               antes de importar — a IA precisa das categorias do cliente para classificar.
             </div>
           </div>
@@ -491,7 +541,10 @@ function ImportarPage() {
               className="w-full bg-white px-3 py-2.5 text-[13px]"
               style={{ border: "1px solid var(--line)" }}
             />
-            <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)", lineHeight: 1.5 }}>
+            <p
+              className="text-[11px] mt-2"
+              style={{ color: "var(--muted-foreground)", lineHeight: 1.5 }}
+            >
               Mês de referência do extrato ({uploadPeriodLabel}). Padrão: mês anterior.
               {periodInferredFromFile && (
                 <> Detectado automaticamente pelo nome do arquivo — confira antes de enviar.</>
@@ -508,7 +561,9 @@ function ImportarPage() {
           }}
           onDragLeave={() => setDragOver(false)}
           onDrop={clientsLoading ? undefined : onDrop}
-          onClick={() => { if (!clientsLoading) inputRef.current?.click(); }}
+          onClick={() => {
+            if (!clientsLoading) inputRef.current?.click();
+          }}
           className={`transition-colors text-center py-16 ${clientsLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
           style={{
             border: `1.5px dashed ${dragOver ? "var(--green)" : "var(--line)"}`,
@@ -527,7 +582,10 @@ function ImportarPage() {
               applySelectedFiles(fileList);
             }}
           />
-          <div className="aurora-serif text-[32px]" style={{ color: "var(--green)", letterSpacing: "-1px" }}>
+          <div
+            className="aurora-serif text-[32px]"
+            style={{ color: "var(--green)", letterSpacing: "-1px" }}
+          >
             ↓
           </div>
           <div className="aurora-serif text-[24px] mt-2">Arraste o extrato aqui</div>
@@ -546,9 +604,13 @@ function ImportarPage() {
                 return (
                   <li key={f.name} className="text-[12px] flex items-center gap-2">
                     <span style={{ color: "var(--green)" }}>▸</span>
-                    <span className="flex-1 truncate" title={f.name}>{f.name}</span>
+                    <span className="flex-1 truncate" title={f.name}>
+                      {f.name}
+                    </span>
                     {fb && (
-                      <span className="text-[11px] shrink-0" style={{ color: "var(--sage)" }}>→ {fb.bank}</span>
+                      <span className="text-[11px] shrink-0" style={{ color: "var(--sage)" }}>
+                        → {fb.bank}
+                      </span>
                     )}
                   </li>
                 );
@@ -593,25 +655,41 @@ function ImportarPage() {
         )}
 
         {/* Resumo dos bancos identificados automaticamente pela IA */}
-        {stage === "done" && fileBanks.length > 0 && (() => {
-          const counts = new Map<string, number>();
-          for (const fb of fileBanks) counts.set(fb.bank, (counts.get(fb.bank) ?? 0) + 1);
-          const resumo = Array.from(counts.entries()).map(([b, n]) => `${b} (${n})`).join(" · ");
-          return (
-            <div className="flex items-start gap-3 px-5 py-4 rounded-xl text-[12px]"
-              style={{ background: "rgba(74,103,65,0.08)", border: "1px solid rgba(74,103,65,0.25)", color: "var(--foreground)" }}>
-              <span style={{ fontSize: 16, lineHeight: 1 }}>🏦</span>
-              <div>
-                <strong style={{ fontWeight: 600 }}>Banco identificado pela IA:</strong> {resumo}.
-                Confira a coluna <em>Banco</em> na tabela e ajuste se necessário.
+        {stage === "done" &&
+          fileBanks.length > 0 &&
+          (() => {
+            const counts = new Map<string, number>();
+            for (const fb of fileBanks) counts.set(fb.bank, (counts.get(fb.bank) ?? 0) + 1);
+            const resumo = Array.from(counts.entries())
+              .map(([b, n]) => `${b} (${n})`)
+              .join(" · ");
+            return (
+              <div
+                className="flex items-start gap-3 px-5 py-4 rounded-xl text-[12px]"
+                style={{
+                  background: "rgba(74,103,65,0.08)",
+                  border: "1px solid rgba(74,103,65,0.25)",
+                  color: "var(--foreground)",
+                }}
+              >
+                <span style={{ fontSize: 16, lineHeight: 1 }}>🏦</span>
+                <div>
+                  <strong style={{ fontWeight: 600 }}>Banco identificado pela IA:</strong> {resumo}.
+                  Confira a coluna <em>Banco</em> na tabela e ajuste se necessário.
+                </div>
               </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
         {stage === "done" && periodMismatch && (
-          <div className="flex items-start gap-3 px-5 py-4 rounded-xl text-[12px]"
-            style={{ background: "rgba(192,57,43,0.08)", border: "1px solid rgba(192,57,43,0.25)", color: "var(--foreground)" }}>
+          <div
+            className="flex items-start gap-3 px-5 py-4 rounded-xl text-[12px]"
+            style={{
+              background: "rgba(192,57,43,0.08)",
+              border: "1px solid rgba(192,57,43,0.25)",
+              color: "var(--foreground)",
+            }}
+          >
             <span style={{ fontSize: 16, lineHeight: 1 }}>!</span>
             <div>{periodMismatch}</div>
           </div>
@@ -619,12 +697,20 @@ function ImportarPage() {
 
         {/* Aviso de timeout na classificação automática */}
         {stage === "done" && classifyTimedOut && (
-          <div className="flex items-start gap-3 px-5 py-4 rounded-xl text-[12px]"
-            style={{ background: "rgba(109,146,166,0.12)", border: "1px solid rgba(109,146,166,0.35)", color: "var(--tan)" }}>
+          <div
+            className="flex items-start gap-3 px-5 py-4 rounded-xl text-[12px]"
+            style={{
+              background: "rgba(109,146,166,0.12)",
+              border: "1px solid rgba(109,146,166,0.35)",
+              color: "var(--tan)",
+            }}
+          >
             <span style={{ fontSize: 16, lineHeight: 1 }}>⚠</span>
             <div>
-              <strong style={{ fontWeight: 600 }}>Classificação automática expirou</strong> — os lançamentos foram importados, mas a IA não conseguiu classificá-los a tempo.
-              Revise os itens com status <em>Pendente</em> e classifique manualmente ou aguarde a próxima execução automática.
+              <strong style={{ fontWeight: 600 }}>Classificação automática expirou</strong> — os
+              lançamentos foram importados, mas a IA não conseguiu classificá-los a tempo. Revise os
+              itens com status <em>Pendente</em> e classifique manualmente ou aguarde a próxima
+              execução automática.
             </div>
           </div>
         )}
@@ -641,13 +727,31 @@ function ImportarPage() {
                 <div className="aurora-serif text-[20px]">
                   {transactions.length} lançamentos
                   {classifiedCount > 0 && (
-                    <> · <em className="italic" style={{ color: "var(--navy)" }}>{classifiedCount} classificados</em></>
+                    <>
+                      {" "}
+                      ·{" "}
+                      <em className="italic" style={{ color: "var(--navy)" }}>
+                        {classifiedCount} classificados
+                      </em>
+                    </>
                   )}
                   {approvedCount > 0 && (
-                    <> · <em className="italic" style={{ color: "var(--green)" }}>{approvedCount} aprovados</em></>
+                    <>
+                      {" "}
+                      ·{" "}
+                      <em className="italic" style={{ color: "var(--green)" }}>
+                        {approvedCount} aprovados
+                      </em>
+                    </>
                   )}
                   {pendingCount > 0 && (
-                    <> · <em className="italic" style={{ color: "var(--tan)" }}>{pendingCount} pendentes</em></>
+                    <>
+                      {" "}
+                      ·{" "}
+                      <em className="italic" style={{ color: "var(--tan)" }}>
+                        {pendingCount} pendentes
+                      </em>
+                    </>
                   )}
                 </div>
               </div>
@@ -656,7 +760,12 @@ function ImportarPage() {
                   onClick={() => setCancelUploadOpen(true)}
                   disabled={approving}
                   className="text-[10px] uppercase px-4 py-2 transition-opacity disabled:opacity-40"
-                  style={{ border: "1px solid var(--tan)", color: "var(--tan)", letterSpacing: "2px" , borderRadius: 12 }}
+                  style={{
+                    border: "1px solid var(--tan)",
+                    color: "var(--tan)",
+                    letterSpacing: "2px",
+                    borderRadius: 12,
+                  }}
                 >
                   Cancelar envio
                 </button>
@@ -664,7 +773,12 @@ function ImportarPage() {
                   onClick={approveSelected}
                   disabled={approving || selected.size === 0}
                   className="text-[10px] uppercase px-4 py-2 transition-opacity disabled:opacity-40"
-                  style={{ border: "1px solid var(--line)", letterSpacing: "2px", color: "var(--muted-foreground)" , borderRadius: 12 }}
+                  style={{
+                    border: "1px solid var(--line)",
+                    letterSpacing: "2px",
+                    color: "var(--muted-foreground)",
+                    borderRadius: 12,
+                  }}
                 >
                   Aprovar selecionados {selected.size > 0 ? `(${selected.size})` : ""}
                 </button>
@@ -672,10 +786,18 @@ function ImportarPage() {
                   onClick={approveClassificados}
                   disabled={approving || classifiedCount === 0}
                   className="text-[10px] uppercase px-4 py-2 transition-opacity disabled:opacity-40"
-                  style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+                  style={{
+                    background: "var(--green)",
+                    color: "#fff",
+                    letterSpacing: "2px",
+                    fontWeight: 500,
+                    borderRadius: 999,
+                  }}
                   title="Aprova os lançamentos classificados pela IA; os sem categoria seguem para Pendentes"
                 >
-                  {approving ? "Aprovando..." : `✓ Aprovar classificados${classifiedCount > 0 ? ` (${classifiedCount})` : ""}`}
+                  {approving
+                    ? "Aprovando..."
+                    : `✓ Aprovar classificados${classifiedCount > 0 ? ` (${classifiedCount})` : ""}`}
                 </button>
               </div>
             </div>
@@ -683,10 +805,27 @@ function ImportarPage() {
               <thead>
                 <tr style={{ background: "var(--offwhite)" }}>
                   <th className="px-4 py-3">
-                    <input type="checkbox" checked={selected.size === transactions.length && transactions.length > 0} onChange={toggleAll} />
+                    <input
+                      type="checkbox"
+                      checked={selected.size === transactions.length && transactions.length > 0}
+                      onChange={toggleAll}
+                    />
                   </th>
-                  {["Data", "Descrição", "Valor", "Banco", "Categoria sugerida", "Parcelamento", "Status", "Ação"].map((h) => (
-                    <th key={h} className="text-left px-5 py-3 aurora-cap" style={{ fontWeight: 500 }}>
+                  {[
+                    "Data",
+                    "Descrição",
+                    "Valor",
+                    "Banco",
+                    "Categoria sugerida",
+                    "Parcelamento",
+                    "Status",
+                    "Ação",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="text-left px-5 py-3 aurora-cap"
+                      style={{ fontWeight: 500 }}
+                    >
                       {h}
                     </th>
                   ))}
@@ -696,12 +835,16 @@ function ImportarPage() {
                 {transactions.map((tx, i) => {
                   const isApproved = tx.status === "approved";
                   const isClassified = !isApproved && !!tx.category; // categorizado, aguardando aprovação
-                  const isPending = !isApproved && !tx.category;      // sem categoria → tela Pendentes
+                  const isPending = !isApproved && !tx.category; // sem categoria → tela Pendentes
                   return (
                     <tr
                       key={tx.id}
                       style={{
-                        background: isPending ? "rgba(109,146,166,0.07)" : i % 2 === 0 ? "#fff" : "#FAFBFA",
+                        background: isPending
+                          ? "rgba(109,146,166,0.07)"
+                          : i % 2 === 0
+                            ? "#fff"
+                            : "#FAFBFA",
                         borderTop: "1px solid var(--line)",
                       }}
                     >
@@ -720,14 +863,21 @@ function ImportarPage() {
                       <td className="px-5 py-3 text-[12px]">
                         {tx.description}
                         {tx.is_recurring && (
-                          <span title="Recorrente" className="ml-2" style={{ color: "var(--sage)" }}>
+                          <span
+                            title="Recorrente"
+                            className="ml-2"
+                            style={{ color: "var(--sage)" }}
+                          >
                             ↻
                           </span>
                         )}
                       </td>
                       <td
                         className="px-5 py-3 aurora-value"
-                        style={{ fontSize: 14, color: tx.amount >= 0 ? "var(--green)" : "var(--navy)" }}
+                        style={{
+                          fontSize: 14,
+                          color: tx.amount >= 0 ? "var(--green)" : "var(--navy)",
+                        }}
                       >
                         {tx.amount >= 0 ? "+" : ""}
                         {brl(tx.amount)}
@@ -736,17 +886,24 @@ function ImportarPage() {
                         {(() => {
                           // Se a IA detectou um banco fora da lista fixa, inclui como opção
                           // (evita colapsar um banco válido em "Outro").
-                          const custom = tx.bank && tx.bank !== "Outro" && !BANK_OPTIONS.includes(tx.bank);
+                          const custom =
+                            tx.bank && tx.bank !== "Outro" && !BANK_OPTIONS.includes(tx.bank);
                           const opts = custom ? [tx.bank as string, ...BANK_OPTIONS] : BANK_OPTIONS;
                           return (
                             <select
                               value={opts.includes(tx.bank ?? "") ? (tx.bank as string) : "Outro"}
                               onChange={(e) => changeBank(tx.id, e.target.value)}
                               className="text-[11px] px-1.5 py-1 bg-white outline-none"
-                              style={{ border: "1px solid var(--line)", borderRadius: 12, cursor: "pointer" }}
+                              style={{
+                                border: "1px solid var(--line)",
+                                borderRadius: 12,
+                                cursor: "pointer",
+                              }}
                               title="Banco detectado — ajuste se necessário"
                             >
-                              {opts.map((b) => <option key={b}>{b}</option>)}
+                              {opts.map((b) => (
+                                <option key={b}>{b}</option>
+                              ))}
                             </select>
                           );
                         })()}
@@ -759,27 +916,53 @@ function ImportarPage() {
                       </td>
                       <td className="px-5 py-3">
                         {(() => {
-                          const inst = installments[tx.id] ?? { enabled: false, number: 1, total: 2 };
+                          const inst = installments[tx.id] ?? {
+                            enabled: false,
+                            number: 1,
+                            total: 2,
+                          };
                           return (
                             <div className="flex flex-col gap-1.5">
-                              <label className="inline-flex items-center gap-2 cursor-pointer text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                              <label
+                                className="inline-flex items-center gap-2 cursor-pointer text-[11px]"
+                                style={{ color: "var(--muted-foreground)" }}
+                              >
                                 <input
                                   type="checkbox"
                                   checked={inst.enabled}
-                                  onChange={(e) => setInstallments((prev) => ({ ...prev, [tx.id]: { ...inst, enabled: e.target.checked } }))}
+                                  onChange={(e) =>
+                                    setInstallments((prev) => ({
+                                      ...prev,
+                                      [tx.id]: { ...inst, enabled: e.target.checked },
+                                    }))
+                                  }
                                   style={{ accentColor: "var(--navy)" }}
                                 />
                                 Parcelamento
                               </label>
                               {inst.enabled && (
-                                <div className="flex items-center gap-1 text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                                <div
+                                  className="flex items-center gap-1 text-[11px]"
+                                  style={{ color: "var(--muted-foreground)" }}
+                                >
                                   <span>Parcela</span>
                                   <input
                                     type="number"
                                     min={1}
                                     max={inst.total}
                                     value={inst.number}
-                                    onChange={(e) => setInstallments((prev) => ({ ...prev, [tx.id]: { ...inst, number: Math.min(inst.total, Math.max(1, Number(e.target.value))) } }))}
+                                    onChange={(e) =>
+                                      setInstallments((prev) => ({
+                                        ...prev,
+                                        [tx.id]: {
+                                          ...inst,
+                                          number: Math.min(
+                                            inst.total,
+                                            Math.max(1, Number(e.target.value)),
+                                          ),
+                                        },
+                                      }))
+                                    }
                                     className="w-10 text-center text-[11px] px-1 py-0.5"
                                     style={{ border: "1px solid var(--line)" }}
                                   />
@@ -790,7 +973,14 @@ function ImportarPage() {
                                     value={inst.total}
                                     onChange={(e) => {
                                       const newTotal = Math.max(2, Number(e.target.value));
-                                      setInstallments((prev) => ({ ...prev, [tx.id]: { ...inst, total: newTotal, number: Math.min(inst.number, newTotal) } }));
+                                      setInstallments((prev) => ({
+                                        ...prev,
+                                        [tx.id]: {
+                                          ...inst,
+                                          total: newTotal,
+                                          number: Math.min(inst.number, newTotal),
+                                        },
+                                      }));
                                     }}
                                     className="w-10 text-center text-[11px] px-1 py-0.5"
                                     style={{ border: "1px solid var(--line)" }}
@@ -805,8 +995,16 @@ function ImportarPage() {
                         <span
                           className="aurora-cap px-2 py-0.5 rounded text-[10px]"
                           style={{
-                            background: isApproved ? "rgba(74,103,65,0.12)" : isClassified ? "rgba(27,57,77,0.10)" : "rgba(109,146,166,0.15)",
-                            color: isApproved ? "var(--green)" : isClassified ? "var(--navy)" : "var(--tan)",
+                            background: isApproved
+                              ? "rgba(74,103,65,0.12)"
+                              : isClassified
+                                ? "rgba(27,57,77,0.10)"
+                                : "rgba(109,146,166,0.15)",
+                            color: isApproved
+                              ? "var(--green)"
+                              : isClassified
+                                ? "var(--navy)"
+                                : "var(--tan)",
                           }}
                         >
                           {isApproved ? "Aprovado" : isClassified ? "Classificado" : "Pendente"}
@@ -822,10 +1020,14 @@ function ImportarPage() {
                             Aprovar
                           </button>
                         )}
-                        <button className="aurora-link mr-3" onClick={() => setEditTx(tx)}>Editar</button>
+                        <button className="aurora-link mr-3" onClick={() => setEditTx(tx)}>
+                          Editar
+                        </button>
                         {cancelingId === tx.id ? (
                           <span className="inline-flex items-center gap-2">
-                            <span className="text-[10px]" style={{ color: "var(--tan)" }}>Confirmar?</span>
+                            <span className="text-[10px]" style={{ color: "var(--tan)" }}>
+                              Confirmar?
+                            </span>
                             <button
                               onClick={() => handleCancelTx(tx.id)}
                               disabled={canceling}
@@ -878,17 +1080,32 @@ function ImportarPage() {
         )}
 
         {/* Manual entry */}
-        <div className="aurora-card p-0 overflow-hidden" style={{ borderLeft: "3px solid var(--green)" }}>
+        <div
+          className="aurora-card p-0 overflow-hidden"
+          style={{ borderLeft: "3px solid var(--green)" }}
+        >
           <button
             type="button"
-            onClick={() => { setManualOpen((v) => !v); setManualSuccess(false); setManualError(null); }}
+            onClick={() => {
+              setManualOpen((v) => !v);
+              setManualSuccess(false);
+              setManualError(null);
+            }}
             className="w-full flex items-center justify-between px-7 py-6 text-left"
-            style={{ background: "#fff", borderBottom: manualOpen ? "1px solid var(--line)" : "none" }}
+            style={{
+              background: "#fff",
+              borderBottom: manualOpen ? "1px solid var(--line)" : "none",
+            }}
           >
             <div>
-              <div className="aurora-cap mb-1" style={{ color: "var(--green)" }}>Lançamento manual</div>
+              <div className="aurora-cap mb-1" style={{ color: "var(--green)" }}>
+                Lançamento manual
+              </div>
               <div className="aurora-serif text-[20px]" style={{ color: "var(--navy)" }}>
-                Registrar pagamento em <em className="italic" style={{ color: "var(--green)" }}>espécie</em>
+                Registrar pagamento em{" "}
+                <em className="italic" style={{ color: "var(--green)" }}>
+                  espécie
+                </em>
               </div>
               <div className="text-[12px] mt-1.5" style={{ color: "var(--muted-foreground)" }}>
                 Caixa / Livro Diário — sem extrato bancário
@@ -922,7 +1139,11 @@ function ImportarPage() {
                     style={{ border: "1px solid var(--line)" }}
                   >
                     <option value="">Escolher cliente</option>
-                    {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
                   </select>
                 </label>
 
@@ -957,7 +1178,14 @@ function ImportarPage() {
                 {/* Tipo + Valor */}
                 <label className="block lg:col-span-1">
                   <div className="aurora-cap mb-2">Tipo</div>
-                  <div className="grid grid-cols-2" style={{ border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden" }}>
+                  <div
+                    className="grid grid-cols-2"
+                    style={{
+                      border: "1px solid var(--line)",
+                      borderRadius: 12,
+                      overflow: "hidden",
+                    }}
+                  >
                     {(["despesa", "receita"] as const).map((t) => (
                       <button
                         key={t}
@@ -966,7 +1194,12 @@ function ImportarPage() {
                         className="text-[10px] uppercase py-2.5 transition-colors"
                         style={{
                           letterSpacing: "1.5px",
-                          background: manualType === t ? (t === "despesa" ? "var(--navy)" : "var(--green)") : "transparent",
+                          background:
+                            manualType === t
+                              ? t === "despesa"
+                                ? "var(--navy)"
+                                : "var(--green)"
+                              : "transparent",
                           color: manualType === t ? "#fff" : "var(--muted-foreground)",
                           fontWeight: 500,
                         }}
@@ -1018,14 +1251,20 @@ function ImportarPage() {
                   style={{ border: "1px solid var(--line)" }}
                 >
                   <option value="">Selecione...</option>
-                  {(CATEGORIAS ?? []).map((c) => <option key={c}>{c}</option>)}
+                  {(CATEGORIAS ?? []).map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
                 </select>
               </label>
 
               {manualError && (
                 <div
                   className="flex items-center gap-3 px-4 py-3 text-[12px]"
-                  style={{ background: "rgba(109,146,166,0.1)", borderLeft: "3px solid var(--tan)", color: "var(--tan)" }}
+                  style={{
+                    background: "rgba(109,146,166,0.1)",
+                    borderLeft: "3px solid var(--tan)",
+                    color: "var(--tan)",
+                  }}
                 >
                   <span style={{ fontSize: 16 }}>!</span> {manualError}
                 </div>
@@ -1034,7 +1273,11 @@ function ImportarPage() {
               {manualSuccess && (
                 <div
                   className="flex items-center gap-3 px-4 py-3 text-[12px]"
-                  style={{ background: "rgba(74,103,65,0.08)", borderLeft: "3px solid var(--green)", color: "var(--green)" }}
+                  style={{
+                    background: "rgba(74,103,65,0.08)",
+                    borderLeft: "3px solid var(--green)",
+                    color: "var(--green)",
+                  }}
                 >
                   <span style={{ fontSize: 16 }}>✓</span> Lançamento registrado com sucesso.
                 </div>
@@ -1045,7 +1288,13 @@ function ImportarPage() {
                   type="submit"
                   disabled={manualSaving || clientsLoading}
                   className="text-[10px] uppercase px-6 py-3 transition-opacity disabled:opacity-50"
-                  style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+                  style={{
+                    background: "var(--green)",
+                    color: "#fff",
+                    letterSpacing: "2px",
+                    fontWeight: 500,
+                    borderRadius: 999,
+                  }}
                 >
                   {manualSaving ? "Salvando..." : "Registrar lançamento"}
                 </button>
@@ -1079,7 +1328,9 @@ function ImportarPage() {
                 .from("transactions")
                 .select("upload_id")
                 .in("id", ids);
-              const uploadIds = [...new Set((txRows ?? []).map((r) => r.upload_id).filter(Boolean))];
+              const uploadIds = [
+                ...new Set((txRows ?? []).map((r) => r.upload_id).filter(Boolean)),
+              ];
 
               await supabase().from("transactions").delete().in("id", ids);
 
@@ -1119,17 +1370,26 @@ function ImportarPage() {
           clientName={clients.find((c) => c.id === clientId)?.name ?? ""}
           uploadPeriodLabel={uploadPeriodLabel}
           files={files}
-          onConfirm={() => { setAwaitingConfirm(false); handleUpload(files); }}
-          onCancel={() => { setAwaitingConfirm(false); setFiles([]); setError(null); if (inputRef.current) inputRef.current.value = ""; }}
+          onConfirm={() => {
+            setAwaitingConfirm(false);
+            handleUpload(files);
+          }}
+          onCancel={() => {
+            setAwaitingConfirm(false);
+            setFiles([]);
+            setError(null);
+            if (inputRef.current) inputRef.current.value = "";
+          }}
         />
       )}
-
     </AdminLayout>
   );
 }
 
 function CancelUploadModal({
-  count, onConfirm, onCancel,
+  count,
+  onConfirm,
+  onCancel,
 }: {
   count: number;
   onConfirm: () => Promise<void>;
@@ -1147,19 +1407,34 @@ function CancelUploadModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.45)" }}
-      onClick={(e) => { if (e.target === e.currentTarget && !deleting) onCancel(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !deleting) onCancel();
+      }}
     >
-      <div className="aurora-modal w-full max-w-md bg-white overflow-hidden" style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
-        <div className="px-6 py-5 flex items-start justify-between" style={{ background: "var(--offwhite)", borderBottom: "1px solid var(--line)" }}>
+      <div
+        className="aurora-modal w-full max-w-md bg-white overflow-hidden"
+        style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}
+      >
+        <div
+          className="px-6 py-5 flex items-start justify-between"
+          style={{ background: "var(--offwhite)", borderBottom: "1px solid var(--line)" }}
+        >
           <div>
             <div className="aurora-cap mb-0.5">Cancelar envio</div>
             <div className="aurora-serif text-[20px]">Descartar lançamentos</div>
           </div>
-          <button onClick={onCancel} disabled={deleting} className="text-[18px] leading-none mt-1 opacity-50 hover:opacity-100">×</button>
+          <button
+            onClick={onCancel}
+            disabled={deleting}
+            className="text-[18px] leading-none mt-1 opacity-50 hover:opacity-100"
+          >
+            ×
+          </button>
         </div>
         <div className="px-6 py-5 flex flex-col gap-4">
           <p className="text-[13px]" style={{ color: "var(--muted-foreground)", lineHeight: 1.6 }}>
-            Todos os <strong>{count} lançamentos</strong> deste envio serão excluídos permanentemente. Esta ação não pode ser desfeita.
+            Todos os <strong>{count} lançamentos</strong> deste envio serão excluídos
+            permanentemente. Esta ação não pode ser desfeita.
           </p>
           <div className="flex justify-end gap-3 pt-1">
             <button
@@ -1167,7 +1442,12 @@ function CancelUploadModal({
               onClick={onCancel}
               disabled={deleting}
               className="text-[10px] uppercase px-5 py-3 transition-opacity disabled:opacity-50"
-              style={{ border: "1px solid var(--line)", letterSpacing: "2px", fontWeight: 500 , borderRadius: 12 }}
+              style={{
+                border: "1px solid var(--line)",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 12,
+              }}
             >
               Manter
             </button>
@@ -1176,7 +1456,12 @@ function CancelUploadModal({
               onClick={handleConfirm}
               disabled={deleting}
               className="text-[10px] uppercase px-6 py-3 transition-opacity disabled:opacity-50"
-              style={{ background: "var(--tan)", color: "#fff", letterSpacing: "2px", fontWeight: 500 }}
+              style={{
+                background: "var(--tan)",
+                color: "#fff",
+                letterSpacing: "2px",
+                fontWeight: 500,
+              }}
             >
               {deleting ? "Excluindo..." : "Excluir tudo"}
             </button>
@@ -1188,7 +1473,11 @@ function CancelUploadModal({
 }
 
 function ConfirmUploadModal({
-  clientName, uploadPeriodLabel, files, onConfirm, onCancel,
+  clientName,
+  uploadPeriodLabel,
+  files,
+  onConfirm,
+  onCancel,
 }: {
   clientName: string;
   uploadPeriodLabel: string;
@@ -1202,15 +1491,30 @@ function ConfirmUploadModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.45)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
     >
-      <div className="aurora-modal w-full bg-white overflow-hidden" style={{ maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
-        <div className="px-6 py-5 flex items-start justify-between" style={{ background: "var(--offwhite)", borderBottom: "1px solid var(--line)" }}>
+      <div
+        className="aurora-modal w-full bg-white overflow-hidden"
+        style={{ maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}
+      >
+        <div
+          className="px-6 py-5 flex items-start justify-between"
+          style={{ background: "var(--offwhite)", borderBottom: "1px solid var(--line)" }}
+        >
           <div>
             <div className="aurora-cap mb-0.5">Confirmar</div>
-            <div className="aurora-serif text-[20px]">{multi ? "Importar extratos" : "Importar extrato"}</div>
+            <div className="aurora-serif text-[20px]">
+              {multi ? "Importar extratos" : "Importar extrato"}
+            </div>
           </div>
-          <button onClick={onCancel} className="text-[18px] leading-none mt-1 opacity-50 hover:opacity-100">×</button>
+          <button
+            onClick={onCancel}
+            className="text-[18px] leading-none mt-1 opacity-50 hover:opacity-100"
+          >
+            ×
+          </button>
         </div>
         <div className="px-6 py-5 flex flex-col gap-4">
           <div className="flex justify-between items-center text-[13px]">
@@ -1232,7 +1536,11 @@ function ConfirmUploadModal({
                   key={i}
                   className="text-[12px] truncate px-3 py-2"
                   title={f.name}
-                  style={{ background: "#FAFBFA", border: "1px solid var(--line)", borderRadius: 12 }}
+                  style={{
+                    background: "#FAFBFA",
+                    border: "1px solid var(--line)",
+                    borderRadius: 12,
+                  }}
                 >
                   {f.name}
                 </div>
@@ -1243,17 +1551,27 @@ function ConfirmUploadModal({
           {/* Banco detectado automaticamente pela IA */}
           <div
             className="flex items-start gap-3 px-4 py-3"
-            style={{ background: "rgba(74,103,65,0.08)", border: "1px solid rgba(74,103,65,0.25)", borderRadius: 12 }}
+            style={{
+              background: "rgba(74,103,65,0.08)",
+              border: "1px solid rgba(74,103,65,0.25)",
+              borderRadius: 12,
+            }}
           >
             <span style={{ fontSize: 16, lineHeight: 1.2 }}>🏦</span>
             <div className="text-[12px]" style={{ color: "var(--foreground)", lineHeight: 1.6 }}>
-              O banco {multi ? "de cada extrato" : "do extrato"} será <strong>identificado automaticamente</strong> pela IA a partir do conteúdo do arquivo. Se necessário, você pode corrigir depois em <strong>Histórico de Extratos</strong>.
+              O banco {multi ? "de cada extrato" : "do extrato"} será{" "}
+              <strong>identificado automaticamente</strong> pela IA a partir do conteúdo do arquivo.
+              Se necessário, você pode corrigir depois em <strong>Histórico de Extratos</strong>.
             </div>
           </div>
 
           <div
             className="text-[12px] px-4 py-3"
-            style={{ background: "rgba(27,57,77,0.06)", color: "var(--foreground)", lineHeight: 1.6 }}
+            style={{
+              background: "rgba(27,57,77,0.06)",
+              color: "var(--foreground)",
+              lineHeight: 1.6,
+            }}
           >
             Os lançamentos serão vinculados a <strong>{clientName}</strong>.
           </div>
@@ -1263,7 +1581,12 @@ function ConfirmUploadModal({
               type="button"
               onClick={onCancel}
               className="text-[10px] uppercase px-5 py-3 transition-opacity"
-              style={{ border: "1px solid var(--line)", letterSpacing: "2px", fontWeight: 500 , borderRadius: 12 }}
+              style={{
+                border: "1px solid var(--line)",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 12,
+              }}
             >
               Cancelar
             </button>
@@ -1271,7 +1594,13 @@ function ConfirmUploadModal({
               type="button"
               onClick={onConfirm}
               className="text-[10px] uppercase px-6 py-3 transition-opacity"
-              style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+              style={{
+                background: "var(--green)",
+                color: "#fff",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 999,
+              }}
             >
               Confirmar importação
             </button>

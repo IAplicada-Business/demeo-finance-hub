@@ -1,6 +1,9 @@
 // Funções puras para DRE — compartilhadas entre admin.dfc e admin.relatorios
 
-export interface CatInfo { group_name: string; type: string }
+export interface CatInfo {
+  group_name: string;
+  type: string;
+}
 
 export interface DREGroup {
   name: string;
@@ -34,7 +37,10 @@ function isReceitaGroup(groupName: string): boolean {
 
 // ── DFC Gerencial ────────────────────────────────────────────────────────────
 
-export interface DFCLine { cat: string; total: number; }
+export interface DFCLine {
+  cat: string;
+  total: number;
+}
 
 export interface DFCGerencialData {
   receitaBruta: number;
@@ -68,11 +74,15 @@ function dfcGroupOf(groupName: string, amount: number): DFCGroup {
 
 export function computeDFCGerencial(
   txs: { amount: number; category: string | null }[],
-  catMap: Map<string, CatInfo>
+  catMap: Map<string, CatInfo>,
 ): DFCGerencialData {
   const acc: Record<DFCGroup, Map<string, number>> = {
-    receita: new Map(), cv: new Map(), df: new Map(),
-    inv: new Map(), nopIn: new Map(), nopOut: new Map(),
+    receita: new Map(),
+    cv: new Map(),
+    df: new Map(),
+    inv: new Map(),
+    nopIn: new Map(),
+    nopOut: new Map(),
   };
 
   for (const tx of txs) {
@@ -84,24 +94,34 @@ export function computeDFCGerencial(
 
   const sum = (m: Map<string, number>) => Array.from(m.values()).reduce((s, v) => s + v, 0);
   const toLines = (m: Map<string, number>): DFCLine[] =>
-    Array.from(m.entries()).map(([cat, total]) => ({ cat, total })).sort((a, b) => b.total - a.total);
+    Array.from(m.entries())
+      .map(([cat, total]) => ({ cat, total }))
+      .sort((a, b) => b.total - a.total);
 
-  const receitaBruta      = sum(acc.receita);
-  const custosVariaveis   = sum(acc.cv);
-  const despesasFixas     = sum(acc.df);
-  const investimentos     = sum(acc.inv);
-  const entradasNOP       = sum(acc.nopIn);
-  const saidasNOP         = sum(acc.nopOut);
+  const receitaBruta = sum(acc.receita);
+  const custosVariaveis = sum(acc.cv);
+  const despesasFixas = sum(acc.df);
+  const investimentos = sum(acc.inv);
+  const entradasNOP = sum(acc.nopIn);
+  const saidasNOP = sum(acc.nopOut);
   const margemContribuicao = receitaBruta - custosVariaveis;
-  const loai               = margemContribuicao - despesasFixas;
-  const lucroOperacional   = loai - investimentos;
-  const resultadoNOP       = entradasNOP - saidasNOP;
-  const lucroLiquido       = lucroOperacional + resultadoNOP;
+  const loai = margemContribuicao - despesasFixas;
+  const lucroOperacional = loai - investimentos;
+  const resultadoNOP = entradasNOP - saidasNOP;
+  const lucroLiquido = lucroOperacional + resultadoNOP;
 
   return {
-    receitaBruta, custosVariaveis, margemContribuicao, despesasFixas,
-    loai, investimentos, lucroOperacional, entradasNOP, saidasNOP,
-    resultadoNOP, lucroLiquido,
+    receitaBruta,
+    custosVariaveis,
+    margemContribuicao,
+    despesasFixas,
+    loai,
+    investimentos,
+    lucroOperacional,
+    entradasNOP,
+    saidasNOP,
+    resultadoNOP,
+    lucroLiquido,
     cvLines: toLines(acc.cv),
     dfLines: toLines(acc.df),
     invLines: toLines(acc.inv),
@@ -114,7 +134,7 @@ export const DRE_EBITDA_PIVOT = "Despesa Variável";
 
 export function computeDRE(
   txs: { amount: number; category: string | null }[],
-  catMap: Map<string, CatInfo>
+  catMap: Map<string, CatInfo>,
 ): DREData {
   const groupMap = new Map<string, Map<string, number>>();
   for (const tx of txs) {
@@ -139,12 +159,12 @@ export function computeDRE(
     groups.push({ name: groupName, lines, subtotal, isExpense });
   }
 
-  const receitaBruta   = groups.find((g) => g.name === "Receita")?.subtotal ?? 0;
-  const despFixas      = groups.find((g) => g.name === "Despesa Fixa")?.subtotal ?? 0;
-  const despVar        = groups.find((g) => g.name === "Despesa Variável")?.subtotal ?? 0;
-  const investimentos  = groups.find((g) => g.name === "Investimento")?.subtotal ?? 0;
-  const receitaNaoOp   = groups.find((g) => g.name === "Receita não Operacional")?.subtotal ?? 0;
-  const ebitda         = receitaBruta - despFixas - despVar;
+  const receitaBruta = groups.find((g) => g.name === "Receita")?.subtotal ?? 0;
+  const despFixas = groups.find((g) => g.name === "Despesa Fixa")?.subtotal ?? 0;
+  const despVar = groups.find((g) => g.name === "Despesa Variável")?.subtotal ?? 0;
+  const investimentos = groups.find((g) => g.name === "Investimento")?.subtotal ?? 0;
+  const receitaNaoOp = groups.find((g) => g.name === "Receita não Operacional")?.subtotal ?? 0;
+  const ebitda = receitaBruta - despFixas - despVar;
   const resultadoLiquido = ebitda - investimentos + receitaNaoOp;
 
   return { groups, receitaBruta, despFixas, despVar, ebitda, investimentos, resultadoLiquido };

@@ -61,7 +61,7 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
           is_active: true,
           last_used: new Date().toISOString(),
         },
-        { onConflict: "client_id,pattern" }
+        { onConflict: "client_id,pattern" },
       );
       if (upsertError) throw upsertError;
     },
@@ -77,19 +77,21 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
 
   const rejectMutation = useMutation({
     mutationFn: async ({ pattern, category }: { pattern: string; category: string }) => {
-      const { error: upsertError } = await supabase().from("classification_rules").upsert(
-        {
-          client_id: clientId,
-          pattern,
-          category: category || "—",
-          is_recurring: false,
-          hits: 0,
-          source: "rejected",
-          is_active: false,
-          last_used: new Date().toISOString(),
-        },
-        { onConflict: "client_id,pattern" }
-      );
+      const { error: upsertError } = await supabase()
+        .from("classification_rules")
+        .upsert(
+          {
+            client_id: clientId,
+            pattern,
+            category: category || "—",
+            is_recurring: false,
+            hits: 0,
+            source: "rejected",
+            is_active: false,
+            last_used: new Date().toISOString(),
+          },
+          { onConflict: "client_id,pattern" },
+        );
       if (upsertError) throw upsertError;
     },
     onSuccess: () => {
@@ -137,7 +139,12 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
             type="button"
             onClick={() => refetch()}
             className="self-start text-[10px] uppercase px-4 py-2"
-            style={{ background: "var(--green)", color: "#fff", letterSpacing: "1.5px", borderRadius: 999 }}
+            style={{
+              background: "var(--green)",
+              color: "#fff",
+              letterSpacing: "1.5px",
+              borderRadius: 999,
+            }}
           >
             Tentar de novo
           </button>
@@ -146,10 +153,13 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
 
       {!isLoading && !isError && recorrencias.length === 0 && (
         <div className="aurora-card text-center py-14">
-          <div className="aurora-serif text-[24px]" style={{ color: "var(--green)" }}>✓</div>
+          <div className="aurora-serif text-[24px]" style={{ color: "var(--green)" }}>
+            ✓
+          </div>
           <div className="aurora-serif text-[20px] mt-2">Nenhuma recorrência pendente</div>
           <div className="text-[12px] mt-2" style={{ color: "var(--muted-foreground)" }}>
-            Padrões com ≥2 lançamentos aprovados nos últimos 90 dias aparecem aqui para confirmar como recorrentes.
+            Padrões com ≥2 lançamentos aprovados nos últimos 90 dias aparecem aqui para confirmar
+            como recorrentes.
           </div>
         </div>
       )}
@@ -174,12 +184,27 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
 
           <table className="w-full">
             <thead>
-              <tr style={{ background: "rgba(255,255,255,0.72)", borderBottom: "1px solid var(--line)" }}>
-                {["Padrão detectado", "Categoria sugerida", "Ocorrências", "Última vez", "Ação"].map((h) => (
+              <tr
+                style={{
+                  background: "rgba(255,255,255,0.72)",
+                  borderBottom: "1px solid var(--line)",
+                }}
+              >
+                {[
+                  "Padrão detectado",
+                  "Categoria sugerida",
+                  "Ocorrências",
+                  "Última vez",
+                  "Ação",
+                ].map((h) => (
                   <th
                     key={h}
                     className="text-left px-7 py-3 text-[11px] uppercase"
-                    style={{ letterSpacing: "2px", color: "var(--muted-foreground)", fontWeight: 600 }}
+                    style={{
+                      letterSpacing: "2px",
+                      color: "var(--muted-foreground)",
+                      fontWeight: 600,
+                    }}
                   >
                     {h}
                   </th>
@@ -195,7 +220,11 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
                     <td className="px-7 py-4">
                       <code
                         className="text-[12px] px-2 py-1"
-                        style={{ background: "rgba(27,57,77,0.06)", color: "var(--navy)", fontFamily: "monospace" }}
+                        style={{
+                          background: "rgba(27,57,77,0.06)",
+                          color: "var(--navy)",
+                          fontFamily: "monospace",
+                        }}
                       >
                         {row.pattern}
                       </code>
@@ -205,7 +234,10 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
                         <select
                           value={editCat}
                           onChange={(e) =>
-                            setEditingCategory({ ...editingCategory, [row.pattern]: e.target.value })
+                            setEditingCategory({
+                              ...editingCategory,
+                              [row.pattern]: e.target.value,
+                            })
                           }
                           className="text-[12px] px-2 py-1"
                           style={{ border: "1px solid var(--line)", minWidth: 180 }}
@@ -224,10 +256,16 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
                         </span>
                       )}
                     </td>
-                    <td className="px-7 py-4 text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+                    <td
+                      className="px-7 py-4 text-[13px]"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
                       {row.occurrences}×
                     </td>
-                    <td className="px-7 py-4 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                    <td
+                      className="px-7 py-4 text-[12px]"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
                       {formatDatePtBR(row.last_seen)}
                     </td>
                     <td className="px-7 py-4">
@@ -238,7 +276,13 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
                               onClick={() => handleConfirm(row)}
                               disabled={busy || !editCat}
                               className="text-[10px] uppercase px-3 py-1.5 disabled:opacity-40"
-                              style={{ background: "var(--green)", color: "#fff", letterSpacing: "1.5px", fontWeight: 500 , borderRadius: 999 }}
+                              style={{
+                                background: "var(--green)",
+                                color: "#fff",
+                                letterSpacing: "1.5px",
+                                fontWeight: 500,
+                                borderRadius: 999,
+                              }}
                             >
                               Salvar
                             </button>
@@ -249,7 +293,11 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
                                 setEditingCategory(next);
                               }}
                               className="text-[10px] uppercase px-3 py-1.5"
-                              style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", letterSpacing: "1.5px" }}
+                              style={{
+                                border: "1px solid var(--line)",
+                                color: "var(--muted-foreground)",
+                                letterSpacing: "1.5px",
+                              }}
                             >
                               Cancelar
                             </button>
@@ -260,17 +308,30 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
                               onClick={() => handleConfirm(row)}
                               disabled={busy}
                               className="text-[10px] uppercase px-3 py-1.5 disabled:opacity-40"
-                              style={{ background: "var(--green)", color: "#fff", letterSpacing: "1.5px", fontWeight: 500 , borderRadius: 999 }}
+                              style={{
+                                background: "var(--green)",
+                                color: "#fff",
+                                letterSpacing: "1.5px",
+                                fontWeight: 500,
+                                borderRadius: 999,
+                              }}
                             >
                               Confirmar
                             </button>
                             <button
                               onClick={() =>
-                                setEditingCategory({ ...editingCategory, [row.pattern]: row.modal_category })
+                                setEditingCategory({
+                                  ...editingCategory,
+                                  [row.pattern]: row.modal_category,
+                                })
                               }
                               disabled={busy}
                               className="text-[10px] uppercase px-3 py-1.5 disabled:opacity-40"
-                              style={{ border: "1px solid var(--navy)", color: "var(--navy)", letterSpacing: "1.5px" }}
+                              style={{
+                                border: "1px solid var(--navy)",
+                                color: "var(--navy)",
+                                letterSpacing: "1.5px",
+                              }}
                             >
                               Alterar
                             </button>
@@ -283,7 +344,11 @@ export function RecorrenciasPanel({ clientId }: { clientId: string }) {
                               }
                               disabled={busy}
                               className="text-[10px] uppercase px-3 py-1.5 disabled:opacity-40"
-                              style={{ border: "1px solid var(--tan)", color: "var(--tan)", letterSpacing: "1.5px" }}
+                              style={{
+                                border: "1px solid var(--tan)",
+                                color: "var(--tan)",
+                                letterSpacing: "1.5px",
+                              }}
                             >
                               Rejeitar
                             </button>

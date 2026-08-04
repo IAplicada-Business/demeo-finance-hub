@@ -47,22 +47,23 @@ montando relatórios gerenciais por cliente.
 
 **Atores**
 
-| Ator | Papel |
-|------|-------|
-| **Gestora / Admin** | Importa e revisa lançamentos, gerencia clientes, plano de contas, DFC/DRE, propostas e contratos. |
-| **Cliente (owner)** | Acesso total ao portal da própria empresa. |
-| **Cliente (financeiro)** | Acesso ao portal com escopo reduzido. |
+| Ator                     | Papel                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------- |
+| **Gestora / Admin**      | Importa e revisa lançamentos, gerencia clientes, plano de contas, DFC/DRE, propostas e contratos. |
+| **Cliente (owner)**      | Acesso total ao portal da própria empresa.                                                        |
+| **Cliente (financeiro)** | Acesso ao portal com escopo reduzido.                                                             |
 
 ---
 
 ## Funcionalidades
 
 ### Financeiro
+
 - **Importação de extratos** — CSV, XLSX, PDF e imagem; detecção automática do banco
   pelo conteúdo do arquivo; deduplicação de lançamentos reimportados.
 - **Classificação automática em 3 camadas** — regras ativas → padrões de recorrência
   → Claude Haiku (com contexto do setor e do plano de contas do cliente).
-- **Revisão obrigatória** — a IA marca os lançamentos como *classificados*; só entram
+- **Revisão obrigatória** — a IA marca os lançamentos como _classificados_; só entram
   em relatórios/portal após **aprovação manual** da gestora.
 - **Plano de Contas por cliente** — upload do plano contábil (XLSX/CSV) que vira as
   categorias usadas pela IA e replica automaticamente todos os meses.
@@ -72,11 +73,13 @@ montando relatórios gerenciais por cliente.
 - **Contas a pagar** e **lançamentos parcelados**.
 
 ### Portal do cliente
+
 - Dashboard financeiro, DFC/DRE e relatórios da própria empresa.
 - Funcionalidades liberadas por plano (`portal_features`) e sub-perfis (owner/financeiro).
 - Geração de relatório executivo em PDF.
 
 ### Comercial (CRM)
+
 - **Pipeline** de negócios (funil com arrastar-e-soltar entre etapas).
 - **Propostas** e **contratos** com numeração automática, envio por e-mail (n8n) e
   aceite/assinatura via link com token; expiração automática de propostas.
@@ -84,6 +87,7 @@ montando relatórios gerenciais por cliente.
 - **Landing page** com captação de leads.
 
 ### Plataforma
+
 - Autenticação e autorização com RLS por papel.
 - Notificações web push.
 - Observabilidade: logs, contadores e limitação de taxa (rate limit).
@@ -98,7 +102,7 @@ montando relatórios gerenciais por cliente.
 `Clientes → Novo cliente`. Informe nome, CNPJ e dados básicos. Ao criar, o cliente
 já nasce com um conjunto padrão de categorias.
 
-**2. Definir o plano de contas** *(opcional, recomendado)*
+**2. Definir o plano de contas** _(opcional, recomendado)_
 `Configuração → Plano de Contas → selecione o cliente → envie o arquivo` (XLSX/CSV).
 Confira a **prévia** das contas e clique em **Adicionar contas ao plano**. As contas
 passam a ser usadas pela IA na classificação e se repetem todos os meses.
@@ -110,6 +114,7 @@ classifica automaticamente em segundos. Vários arquivos podem ser enviados de u
 
 **4. Revisar e aprovar**
 Na tela de revisão, cada lançamento aparece como:
+
 - **Classificado** — categorizado pela IA, aguardando sua conferência;
 - **Pendente** — sem categoria (defina-a antes de aprovar).
 
@@ -141,6 +146,7 @@ exporte **PDF** (relatório executivo) ou **Excel** (DFC / DFC Gerencial) por pe
 3. Pode baixar o **relatório executivo** em PDF.
 
 ### Meu perfil
+
 No menu do usuário (topo direito) → **Meu perfil**: edite o nome, **troque a foto**
 (com ajuste de posição e zoom) ou **remova a foto**.
 
@@ -199,17 +205,17 @@ por **Row Level Security**) e usa **Edge Functions** para operações que exigem
 
 ## Stack
 
-| Camada | Tecnologia | Por quê |
-|--------|-----------|---------|
-| **Frontend** | React 19 + TanStack Router/Start | Roteamento por arquivos, type-safe, SSR-ready. |
-| **Build** | Vite 7 (`@lovable.dev/vite-tanstack-config`) | Configuração unificada da Lovable. |
-| **UI** | Tailwind CSS v4, Radix UI, Framer Motion, Recharts | Design system consistente, acessível e animado. |
-| **Estado/Dados** | TanStack Query, react-hook-form, Zod | Cache de dados e validação de formulários. |
-| **Backend** | Supabase (PostgreSQL, Auth, Storage, Edge Functions/Deno) | BaaS integrado ao Lovable Cloud. |
-| **IA** | Claude `claude-haiku-4-5` (Anthropic) | Extração de PDF/imagem (visão) e classificação de lançamentos. |
-| **Automações** | n8n | Envio de propostas/contratos e notificações. |
-| **Planilhas** | `xlsx` (SheetJS) | Parse de XLSX/CSV e exportação Excel. |
-| **Deploy** | Lovable Cloud | Hospedagem do front + banco + funções. |
+| Camada           | Tecnologia                                                | Por quê                                                        |
+| ---------------- | --------------------------------------------------------- | -------------------------------------------------------------- |
+| **Frontend**     | React 19 + TanStack Router/Start                          | Roteamento por arquivos, type-safe, SSR-ready.                 |
+| **Build**        | Vite 7 (`@lovable.dev/vite-tanstack-config`)              | Configuração unificada da Lovable.                             |
+| **UI**           | Tailwind CSS v4, Radix UI, Framer Motion, Recharts        | Design system consistente, acessível e animado.                |
+| **Estado/Dados** | TanStack Query, react-hook-form, Zod                      | Cache de dados e validação de formulários.                     |
+| **Backend**      | Supabase (PostgreSQL, Auth, Storage, Edge Functions/Deno) | BaaS integrado ao Lovable Cloud.                               |
+| **IA**           | Claude `claude-haiku-4-5` (Anthropic)                     | Extração de PDF/imagem (visão) e classificação de lançamentos. |
+| **Automações**   | n8n                                                       | Envio de propostas/contratos e notificações.                   |
+| **Planilhas**    | `xlsx` (SheetJS)                                          | Parse de XLSX/CSV e exportação Excel.                          |
+| **Deploy**       | Lovable Cloud                                             | Hospedagem do front + banco + funções.                         |
 
 ---
 
@@ -279,6 +285,7 @@ sequenceDiagram
 Principais entidades (PostgreSQL, todas com RLS):
 
 **Financeiro**
+
 - `clients`, `client_banks` — clientes e seus bancos.
 - `uploads` — arquivos de extrato importados (status, período, contadores).
 - `transactions` — lançamentos (`status`, `category`, `is_recurring`, parcelas).
@@ -290,6 +297,7 @@ Principais entidades (PostgreSQL, todas com RLS):
 - `payables` — contas a pagar.
 
 **Comercial**
+
 - `leads`, `lead_sources` — captação.
 - `deals`, `deal_stages`, `deal_stage_history`, `deal_activities` — pipeline.
 - `proposals`, `proposal_items`, `contracts` — documentos.
@@ -297,6 +305,7 @@ Principais entidades (PostgreSQL, todas com RLS):
 - `document_counters` — numeração sequencial de documentos.
 
 **Plataforma**
+
 - `profiles`, `user_roles`, `user_client_mapping` — identidade e autorização.
 - `push_subscriptions` — notificações web push.
 - `rate_limit_hits` — limitação de taxa.
@@ -305,22 +314,22 @@ Principais entidades (PostgreSQL, todas com RLS):
 
 ## Edge Functions
 
-| Função | Responsabilidade |
-|--------|------------------|
-| `create-upload` | Orquestra o upload: Storage → `parse-extract` → `classify-batch`. |
-| `parse-extract` | Extrai lançamentos (CSV/XLSX por colunas, PDF/imagem via Claude), detecta o banco. |
-| `classify-batch` | Classifica em 3 camadas (regras → recorrência → Claude). |
-| `parse-chart-of-accounts` | Lê o plano de contas (XLSX/CSV) e alimenta as categorias do cliente. |
-| `client-report-generate` | Gera o relatório executivo do cliente. |
-| `pending-count` / `pipeline-kpis` | Contadores e KPIs. |
-| `proposal-generate/send/view/accept` · `expire-proposals` | Ciclo de vida das propostas. |
-| `contract-generate/send` | Geração e envio de contratos. |
-| `deal-move` | Movimentação no funil. |
-| `lead-intake` | Captação de leads (landing). |
-| `analyze-client` | Análise financeira assistida por IA. |
-| `create-admin-user` / `create-client-user` | Provisionamento de usuários. |
-| `subscribe-push` / `send-push` | Notificações web push. |
-| `expire-stale-rules` · `status` | Manutenção e healthcheck. |
+| Função                                                    | Responsabilidade                                                                   |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `create-upload`                                           | Orquestra o upload: Storage → `parse-extract` → `classify-batch`.                  |
+| `parse-extract`                                           | Extrai lançamentos (CSV/XLSX por colunas, PDF/imagem via Claude), detecta o banco. |
+| `classify-batch`                                          | Classifica em 3 camadas (regras → recorrência → Claude).                           |
+| `parse-chart-of-accounts`                                 | Lê o plano de contas (XLSX/CSV) e alimenta as categorias do cliente.               |
+| `client-report-generate`                                  | Gera o relatório executivo do cliente.                                             |
+| `pending-count` / `pipeline-kpis`                         | Contadores e KPIs.                                                                 |
+| `proposal-generate/send/view/accept` · `expire-proposals` | Ciclo de vida das propostas.                                                       |
+| `contract-generate/send`                                  | Geração e envio de contratos.                                                      |
+| `deal-move`                                               | Movimentação no funil.                                                             |
+| `lead-intake`                                             | Captação de leads (landing).                                                       |
+| `analyze-client`                                          | Análise financeira assistida por IA.                                               |
+| `create-admin-user` / `create-client-user`                | Provisionamento de usuários.                                                       |
+| `subscribe-push` / `send-push`                            | Notificações web push.                                                             |
+| `expire-stale-rules` · `status`                           | Manutenção e healthcheck.                                                          |
 
 O CORS de todas as funções é centralizado em `supabase/functions/_shared/cors.ts`.
 
@@ -329,6 +338,7 @@ O CORS de todas as funções é centralizado em `supabase/functions/_shared/cors
 ## Começando
 
 ### Pré-requisitos
+
 - **Node.js ≥ 22.12** (exigência do Vite 7)
 - **npm** (ou **bun**)
 - Projeto Supabase / Lovable Cloud com as variáveis de ambiente configuradas
@@ -355,23 +365,23 @@ npm run format     # Prettier
 
 **Frontend (`.env`, prefixo `VITE_`)**
 
-| Variável | Descrição |
-|----------|-----------|
-| `VITE_SUPABASE_URL` | URL do projeto Supabase. |
-| `VITE_SUPABASE_ANON_KEY` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Chave pública (anon). |
-| `VITE_AURORA_APP_URL` | URL pública da aplicação. |
+| Variável                                                   | Descrição                 |
+| ---------------------------------------------------------- | ------------------------- |
+| `VITE_SUPABASE_URL`                                        | URL do projeto Supabase.  |
+| `VITE_SUPABASE_ANON_KEY` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Chave pública (anon).     |
+| `VITE_AURORA_APP_URL`                                      | URL pública da aplicação. |
 
 **Edge Functions (secrets no Supabase/Lovable)**
 
-| Variável | Uso |
-|----------|-----|
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Acesso privilegiado ao banco. |
-| `ANTHROPIC_API_KEY` | Claude (parse-extract, classify-batch, analyze-client). |
-| `N8N_WEBHOOK_URL` | Webhook de automações. |
-| `RESEND_API_KEY`, `AURORA_NOTIFY_FROM`, `AURORA_NOTIFY_TO` | Envio de e-mails/alertas. |
-| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web push. |
-| `TURNSTILE_SECRET` | Anti-bot no formulário de leads. |
-| `AURORA_APP_URL`, `STATUS_TOKEN`, `ALERT_WEBHOOK_URL` | Links, healthcheck e alertas. |
+| Variável                                                   | Uso                                                     |
+| ---------------------------------------------------------- | ------------------------------------------------------- |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`                | Acesso privilegiado ao banco.                           |
+| `ANTHROPIC_API_KEY`                                        | Claude (parse-extract, classify-batch, analyze-client). |
+| `N8N_WEBHOOK_URL`                                          | Webhook de automações.                                  |
+| `RESEND_API_KEY`, `AURORA_NOTIFY_FROM`, `AURORA_NOTIFY_TO` | Envio de e-mails/alertas.                               |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`   | Web push.                                               |
+| `TURNSTILE_SECRET`                                         | Anti-bot no formulário de leads.                        |
+| `AURORA_APP_URL`, `STATUS_TOKEN`, `ALERT_WEBHOOK_URL`      | Links, healthcheck e alertas.                           |
 
 > Qualquer domínio novo que sirva o front precisa ser adicionado à lista de origens em
 > `supabase/functions/_shared/cors.ts` — e **todas as Edge Functions redeployadas**,

@@ -59,7 +59,8 @@ export function ValueProp() {
               fontWeight: 400,
             }}
           >
-            E mais <strong style={{ color: INK, fontWeight: 600 }}>114 empresas</strong> que decidem com clareza todo mês.
+            E mais <strong style={{ color: INK, fontWeight: 600 }}>114 empresas</strong> que decidem
+            com clareza todo mês.
           </span>
         </div>
       </div>

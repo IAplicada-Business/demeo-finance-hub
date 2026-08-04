@@ -13,7 +13,7 @@ type SelectOpts = { count: "exact"; head: true };
 export function pendingTransactionsFilter(
   select: string,
   selectOpts?: SelectOpts,
-  filterOpts?: PendingQueryOpts
+  filterOpts?: PendingQueryOpts,
 ) {
   let query = supabase()
     .from("transactions")
@@ -33,24 +33,28 @@ export function pendingTransactionsFilter(
 
 /** Total de extratos aguardando revisão (classified + pending, upload_id obrigatório). */
 export async function fetchExtratoPendingCount(clientId?: string): Promise<number> {
-  const { count } = await pendingTransactionsFilter("*", { count: "exact", head: true }, { clientId });
+  const { count } = await pendingTransactionsFilter(
+    "*",
+    { count: "exact", head: true },
+    { clientId },
+  );
   return count ?? 0;
 }
 
 /** Contagem separada classified / pending (extratos only). */
 export async function fetchExtratoPendingBreakdown(
-  clientId?: string
+  clientId?: string,
 ): Promise<{ classified: number; pending: number }> {
   const filterOpts = clientId ? { clientId } : undefined;
 
   const [{ count: classified }, { count: pending }] = await Promise.all([
     pendingTransactionsFilter("*", { count: "exact", head: true }, filterOpts).eq(
       "status",
-      "classified"
+      "classified",
     ),
     pendingTransactionsFilter("*", { count: "exact", head: true }, filterOpts).eq(
       "status",
-      "pending"
+      "pending",
     ),
   ]);
 

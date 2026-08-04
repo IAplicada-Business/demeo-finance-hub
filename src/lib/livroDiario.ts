@@ -52,7 +52,7 @@ export function buildLivroDiarioRows(
   transactions: ApprovedTxInput[],
   payables: UnpaidPayableInput[],
   today = todayISO(),
-  linkedPayableDueById: Record<string, string> = {}
+  linkedPayableDueById: Record<string, string> = {},
 ): LivroDiarioRow[] {
   const rows: LivroDiarioRow[] = [];
 
@@ -90,18 +90,18 @@ export function buildLivroDiarioRows(
     });
   }
 
-  return rows.sort((a, b) => a.sortDate.localeCompare(b.sortDate) || a.description.localeCompare(b.description));
+  return rows.sort(
+    (a, b) => a.sortDate.localeCompare(b.sortDate) || a.description.localeCompare(b.description),
+  );
 }
 
 export function filterLivroDiarioRows(
   rows: LivroDiarioRow[],
-  opts: { status: LivroDiarioFilter; search: string; startDate: string; endDate: string }
+  opts: { status: LivroDiarioFilter; search: string; startDate: string; endDate: string },
 ): LivroDiarioRow[] {
   const q = opts.search.trim().toLowerCase();
   return rows.filter((row) => {
-    const inRange =
-      row.sortDate >= opts.startDate &&
-      row.sortDate <= opts.endDate;
+    const inRange = row.sortDate >= opts.startDate && row.sortDate <= opts.endDate;
     if (!inRange) return false;
     if (opts.status !== "todos" && row.status !== opts.status) return false;
     if (!q) return true;

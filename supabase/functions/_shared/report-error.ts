@@ -23,7 +23,7 @@ export function reportError(err: unknown, ctx: ErrorContext): void {
       ...(stack ? { stack } : {}),
       ...ctx,
       ts: new Date().toISOString(),
-    })
+    }),
   );
 
   const alertUrl = Deno.env.get("ALERT_WEBHOOK_URL");

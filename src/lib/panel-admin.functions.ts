@@ -43,8 +43,9 @@ async function assertPanelAdmin(accessToken: string): Promise<string> {
   return callerId;
 }
 
-export const updatePanelAdminAuth = createServerFn({ method: "POST" }).inputValidator((d: unknown) => d).handler(
-  async ({ data }: { data: unknown }) => {
+export const updatePanelAdminAuth = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => d)
+  .handler(async ({ data }: { data: unknown }) => {
     const input = UpdateInput.parse(data);
     const callerId = await assertPanelAdmin(input.access_token);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -88,7 +89,7 @@ export const updatePanelAdminAuth = createServerFn({ method: "POST" }).inputVali
     if (Object.keys(authPatch).length > 0) {
       const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(
         input.user_id,
-        authPatch
+        authPatch,
       );
       if (authErr) throw new Error(`Erro ao atualizar Auth: ${authErr.message}`);
     }
@@ -111,11 +112,11 @@ export const updatePanelAdminAuth = createServerFn({ method: "POST" }).inputVali
     }
 
     return { ok: true as const, user_id: input.user_id, caller_id: callerId };
-  }
-);
+  });
 
-export const createPanelAdmin = createServerFn({ method: "POST" }).inputValidator((d: unknown) => d).handler(
-  async ({ data }: { data: unknown }) => {
+export const createPanelAdmin = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => d)
+  .handler(async ({ data }: { data: unknown }) => {
     const input = CreateInput.parse(data);
     await assertPanelAdmin(input.access_token);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -177,18 +178,14 @@ export const createPanelAdmin = createServerFn({ method: "POST" }).inputValidato
       if (error) throw new Error(error.message);
     }
 
-    await supabaseAdmin
-      .from("user_roles")
-      .delete()
-      .eq("user_id", userId)
-      .eq("role", "client");
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", userId).eq("role", "client");
 
     return { ok: true as const, user_id: userId, email: input.email };
-  }
-);
+  });
 
-export const deletePanelAdmin = createServerFn({ method: "POST" }).inputValidator((d: unknown) => d).handler(
-  async ({ data }: { data: unknown }) => {
+export const deletePanelAdmin = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => d)
+  .handler(async ({ data }: { data: unknown }) => {
     const input = DeleteInput.parse(data);
     const callerId = await assertPanelAdmin(input.access_token);
     if (input.user_id === callerId) {
@@ -213,5 +210,4 @@ export const deletePanelAdmin = createServerFn({ method: "POST" }).inputValidato
       .eq("role", "admin");
     if (error) throw new Error(error.message);
     return { ok: true as const, user_id: input.user_id };
-  }
-);
+  });

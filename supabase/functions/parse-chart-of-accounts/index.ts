@@ -65,7 +65,10 @@ function extractCodeName(cells: string[]): { code: string; name: string } | null
       // célula só com o código — o nome está na próxima célula não vazia
       for (let j = i + 1; j < cells.length; j++) {
         const nxt = (cells[j] ?? "").toString().trim();
-        if (nxt) { name = nxt; break; }
+        if (nxt) {
+          name = nxt;
+          break;
+        }
       }
     }
     // remove um código dotado repetido no início do nome ("5.4.99 Despesas…" -> "Despesas…")
@@ -77,11 +80,16 @@ function extractCodeName(cells: string[]): { code: string; name: string } | null
 
 function mapGroup(level1: string): { group_name: string; type: Account["type"] } {
   switch (level1) {
-    case "3": return { group_name: "Receita", type: "receita" };
-    case "4": return { group_name: "Despesa Variável", type: "despesa" };
-    case "5": return { group_name: "Despesa Fixa", type: "despesa" };
-    case "6": return { group_name: "Investimento", type: "despesa" };
-    default:  return { group_name: "Outros", type: "transferencia" }; // 7, 13 e demais (não-operacional)
+    case "3":
+      return { group_name: "Receita", type: "receita" };
+    case "4":
+      return { group_name: "Despesa Variável", type: "despesa" };
+    case "5":
+      return { group_name: "Despesa Fixa", type: "despesa" };
+    case "6":
+      return { group_name: "Investimento", type: "despesa" };
+    default:
+      return { group_name: "Outros", type: "transferencia" }; // 7, 13 e demais (não-operacional)
   }
 }
 
@@ -121,12 +129,12 @@ function parseAccounts(rows: string[][]): Account[] {
   const seen = new Set<string>();
   const accounts: Account[] = [];
   for (const { code, name } of raw) {
-    if (!code.includes(".")) continue;       // pula cabeçalhos de nível 1 ("3","4"…)
-    if (!isLeaf(code)) continue;             // pula subgrupos ("3.1","5.2"…)
+    if (!code.includes(".")) continue; // pula cabeçalhos de nível 1 ("3","4"…)
+    if (!isLeaf(code)) continue; // pula subgrupos ("3.1","5.2"…)
     const level1 = code.split(".")[0];
     const { group_name, type } = mapGroup(level1);
     const full_name = `${code} · ${name}`;
-    if (seen.has(full_name)) continue;       // dedupe por nome final
+    if (seen.has(full_name)) continue; // dedupe por nome final
     seen.add(full_name);
     accounts.push({ code, name, full_name, group_name, type, sort_order: sortOrderOf(code) });
   }
@@ -143,7 +151,11 @@ Deno.serve(async (req) => {
     const { client_id, filename, file_base64, mode, uploaded_by } = await req.json();
 
     if (!client_id || !filename || !file_base64) {
-      return jsonResponse({ error: "Campos obrigatórios: client_id, filename, file_base64" }, 400, origin);
+      return jsonResponse(
+        { error: "Campos obrigatórios: client_id, filename, file_base64" },
+        400,
+        origin,
+      );
     }
 
     const bytes = Uint8Array.from(atob(file_base64), (c) => c.charCodeAt(0));
@@ -152,8 +164,12 @@ Deno.serve(async (req) => {
 
     if (accounts.length === 0) {
       return jsonResponse(
-        { error: "Nenhuma conta reconhecida no arquivo. Verifique se é um plano de contas com código e nome (ex: 3.1.1 …)." },
-        422, origin,
+        {
+          error:
+            "Nenhuma conta reconhecida no arquivo. Verifique se é um plano de contas com código e nome (ex: 3.1.1 …).",
+        },
+        422,
+        origin,
       );
     }
 
@@ -163,7 +179,11 @@ Deno.serve(async (req) => {
 
     // ── PREVIEW: não grava nada ────────────────────────────────────────────────
     if (mode !== "commit") {
-      return jsonResponse({ preview: true, count: accounts.length, summary, accounts }, 200, origin);
+      return jsonResponse(
+        { preview: true, count: accounts.length, summary, accounts },
+        200,
+        origin,
+      );
     }
 
     // ── COMMIT: guarda arquivo + substitui categorias ──────────────────────────
@@ -173,15 +193,23 @@ Deno.serve(async (req) => {
     );
 
     // valida cliente
-    const { data: client } = await supabase.from("clients").select("id").eq("id", client_id).maybeSingle();
+    const { data: client } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("id", client_id)
+      .maybeSingle();
     if (!client) return jsonResponse({ error: "Cliente não encontrado" }, 404, origin);
 
     // 1. arquivo original no Storage (histórico)
     const ext = filename.toLowerCase().split(".").pop();
     const contentType =
-      ext === "csv" ? "text/csv" :
-      ext === "xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" :
-      ext === "xls" ? "application/vnd.ms-excel" : "application/octet-stream";
+      ext === "csv"
+        ? "text/csv"
+        : ext === "xlsx"
+          ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          : ext === "xls"
+            ? "application/vnd.ms-excel"
+            : "application/octet-stream";
     const storagePath = `${client_id}/${Date.now()}-${filename}`;
     const { error: storageError } = await supabase.storage
       .from("planos")
@@ -209,7 +237,8 @@ Deno.serve(async (req) => {
       })
       .select("id")
       .single();
-    if (coaErr) return jsonResponse({ error: `Erro ao registrar plano: ${coaErr.message}` }, 500, origin);
+    if (coaErr)
+      return jsonResponse({ error: `Erro ao registrar plano: ${coaErr.message}` }, 500, origin);
 
     // 3. ACRESCENTA as contas do plano às categorias do cliente (não substitui:
     //    as categorias existentes permanecem ativas). Contas com o mesmo nome são
@@ -227,7 +256,12 @@ Deno.serve(async (req) => {
     const { error: upsertErr } = await supabase
       .from("categories")
       .upsert(catRows, { onConflict: "client_id,name" });
-    if (upsertErr) return jsonResponse({ error: `Erro ao gravar categorias: ${upsertErr.message}` }, 500, origin);
+    if (upsertErr)
+      return jsonResponse(
+        { error: `Erro ao gravar categorias: ${upsertErr.message}` },
+        500,
+        origin,
+      );
 
     // 4. Desativa categorias padrão Aurora — plano do cliente passa a ser a referência
     const { error: deactErr } = await supabase
@@ -239,11 +273,22 @@ Deno.serve(async (req) => {
       console.warn("[parse-chart-of-accounts] deactivate defaults:", deactErr.message);
     }
 
-    console.log("[parse-chart-of-accounts] commit", { client_id, accounts: accounts.length, coa_id: coaRow?.id });
+    console.log("[parse-chart-of-accounts] commit", {
+      client_id,
+      accounts: accounts.length,
+      coa_id: coaRow?.id,
+    });
 
     return jsonResponse(
-      { success: true, committed: true, count: accounts.length, summary, storage_path: storagePath },
-      200, origin,
+      {
+        success: true,
+        committed: true,
+        count: accounts.length,
+        summary,
+        storage_path: storagePath,
+      },
+      200,
+      origin,
     );
   } catch (err) {
     console.error("parse-chart-of-accounts error:", err);

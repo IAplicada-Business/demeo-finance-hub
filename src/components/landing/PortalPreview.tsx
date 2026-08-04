@@ -61,7 +61,10 @@ export function PortalPreview() {
           >
             R$ 48.230
           </div>
-          <div className="mt-3 flex items-center gap-2 text-[9px]" style={{ color: "rgba(255,255,255,0.6)" }}>
+          <div
+            className="mt-3 flex items-center gap-2 text-[9px]"
+            style={{ color: "rgba(255,255,255,0.6)" }}
+          >
             <span
               className="inline-block w-1.5 h-1.5 rounded-full aurora-pulse"
               style={{ background: "var(--sage)" }}
@@ -85,7 +88,12 @@ export function PortalPreview() {
             </div>
             <div
               className="aurora-serif mt-1"
-              style={{ fontSize: 22, color: "var(--green)", lineHeight: 1, letterSpacing: "-0.5px" }}
+              style={{
+                fontSize: 22,
+                color: "var(--green)",
+                lineHeight: 1,
+                letterSpacing: "-0.5px",
+              }}
             >
               R$ 38.4k
             </div>

@@ -84,9 +84,7 @@ const GROUPS: SidebarGroup[] = [
         to: "/admin/plano-contas",
         label: "Plano de Contas",
         icon: "⬡",
-        children: [
-          { to: "/admin/regras", label: "Regras de Classificação", icon: "⟳" },
-        ],
+        children: [{ to: "/admin/regras", label: "Regras de Classificação", icon: "⟳" }],
       },
       { id: "usuarios", to: "/admin/usuarios", label: "Usuários", icon: "◉" },
     ],
@@ -141,7 +139,10 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   // admin ↔ portal enquanto o query de roles ainda carrega.
   useEffect(() => {
     if (sessionLoading || adminLoading) return;
-    if (!session) { navigate({ to: "/login" }); return; }
+    if (!session) {
+      navigate({ to: "/login" });
+      return;
+    }
     if (isAdmin === false) {
       navigate({ to: "/portal" });
     }
@@ -151,7 +152,12 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   const adminName = (session?.user?.user_metadata?.display_name ?? adminEmail) || "Admin";
   const adminRole = "Gestora";
   const adminAvatar = (session?.user?.user_metadata?.avatar_url as string | undefined) || "";
-  const adminInitials = adminName.split(" ").slice(0, 2).map((w: string) => w[0]).join("").toUpperCase();
+  const adminInitials = adminName
+    .split(" ")
+    .slice(0, 2)
+    .map((w: string) => w[0])
+    .join("")
+    .toUpperCase();
 
   const push = usePushNotifications();
 
@@ -171,7 +177,10 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   });
 
   const [getCollapsed, setCollapsed] = useLocalStorage<boolean>("aurora.admin.collapsed", false);
-  const [getExpanded, setExpanded] = useLocalStorage<Record<string, boolean>>("aurora.admin.groups", {});
+  const [getExpanded, setExpanded] = useLocalStorage<Record<string, boolean>>(
+    "aurora.admin.groups",
+    {},
+  );
 
   const [collapsed, setCollapsedState] = useState<boolean>(false);
   const [expanded, setExpandedState] = useState<Record<string, boolean>>({});
@@ -284,7 +293,10 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         >
           <div className="flex items-center gap-3">
             {/* Breadcrumb dinâmico */}
-            <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+            <div
+              className="flex items-center gap-2 text-[12px]"
+              style={{ color: "var(--muted-foreground)" }}
+            >
               <Link
                 to="/admin"
                 className="hidden sm:inline hover:opacity-70 transition-opacity"
@@ -292,7 +304,9 @@ export function AdminLayout({ children }: { children: ReactNode }) {
               >
                 Aurora
               </Link>
-              <span className="hidden sm:inline" style={{ color: "rgba(0,0,0,0.2)" }}>/</span>
+              <span className="hidden sm:inline" style={{ color: "rgba(0,0,0,0.2)" }}>
+                /
+              </span>
               <span style={{ color: "var(--foreground)", fontWeight: 500 }}>
                 {breadcrumbLabel(path)}
               </span>
@@ -314,12 +328,23 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                   height: 36,
                   borderRadius: 999,
                   border: "1px solid #EFEFEF",
-                  background: bellOpen || pendentesCount > 0 ? "rgba(40,76,43,0.07)" : "transparent",
+                  background:
+                    bellOpen || pendentesCount > 0 ? "rgba(40,76,43,0.07)" : "transparent",
                   color: pendentesCount > 0 ? "var(--green)" : "var(--muted-foreground)",
                   cursor: "pointer",
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                   <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                 </svg>
@@ -354,7 +379,14 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                   }}
                 >
                   <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--line)" }}>
-                    <div className="text-[10px] uppercase" style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)", fontWeight: 600 }}>
+                    <div
+                      className="text-[10px] uppercase"
+                      style={{
+                        letterSpacing: "1.5px",
+                        color: "var(--muted-foreground)",
+                        fontWeight: 600,
+                      }}
+                    >
                       Pendências
                     </div>
                     <div className="aurora-serif text-[16px] mt-1">
@@ -394,7 +426,9 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                           cursor: push.loading ? "wait" : "pointer",
                         }}
                       >
-                        {push.isSubscribed ? "Desativar notificações push" : "Ativar notificações push"}
+                        {push.isSubscribed
+                          ? "Desativar notificações push"
+                          : "Ativar notificações push"}
                       </button>
                     )}
                   </div>
@@ -414,7 +448,10 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                 }}
               >
                 <div className="hidden md:block text-right">
-                  <div className="text-[9px] uppercase" style={{ letterSpacing: "2px", color: "var(--muted-foreground)" }}>
+                  <div
+                    className="text-[9px] uppercase"
+                    style={{ letterSpacing: "2px", color: "var(--muted-foreground)" }}
+                  >
                     {adminRole}
                   </div>
                   <div className="aurora-serif text-[13px]" style={{ lineHeight: 1 }}>
@@ -456,7 +493,8 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                     background: "#fff",
                     border: "1px solid #EFEFEF",
                     borderRadius: 16,
-                    boxShadow: "0 1px 2px rgba(28,45,69,0.04), 0 24px 48px -16px rgba(40,76,43,0.22)",
+                    boxShadow:
+                      "0 1px 2px rgba(28,45,69,0.04), 0 24px 48px -16px rgba(40,76,43,0.22)",
                     animation: "aurora-pop 0.18s cubic-bezier(.22,.61,.36,1) both",
                   }}
                 >
@@ -471,7 +509,14 @@ export function AdminLayout({ children }: { children: ReactNode }) {
                     </div>
                   </div>
                   <div className="py-2">
-                    <DropdownItem icon="◷" label="Meu perfil" onClick={() => { setUserOpen(false); setProfileOpen(true); }} />
+                    <DropdownItem
+                      icon="◷"
+                      label="Meu perfil"
+                      onClick={() => {
+                        setUserOpen(false);
+                        setProfileOpen(true);
+                      }}
+                    />
                     <DropdownItem icon="?" label="Ajuda" onClick={() => setUserOpen(false)} />
                   </div>
                   <Link
@@ -489,10 +534,19 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto" style={{ background: "var(--offwhite)" }}>
+        <main
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto"
+          style={{ background: "var(--offwhite)" }}
+        >
           {sessionLoading || adminLoading || !session || isAdmin !== true ? (
-            <div className="px-8 py-16 flex items-center gap-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-              <div className="w-4 h-4 rounded-full border-2 animate-spin" style={{ borderColor: "var(--green)", borderTopColor: "transparent" }} />
+            <div
+              className="px-8 py-16 flex items-center gap-3 text-[12px]"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              <div
+                className="w-4 h-4 rounded-full border-2 animate-spin"
+                style={{ borderColor: "var(--green)", borderTopColor: "transparent" }}
+              />
               Verificando acesso…
             </div>
           ) : (
@@ -536,9 +590,9 @@ function ProfileModal({
   const CROP_BOX = 176; // px — área quadrada de recorte (exibida como círculo)
 
   const [displayName, setDisplayName] = useState(name);
-  const [file, setFile] = useState<File | null>(null);   // nova foto sendo ajustada
+  const [file, setFile] = useState<File | null>(null); // nova foto sendo ajustada
   const [rawUrl, setRawUrl] = useState<string | null>(null); // object URL da nova foto (fonte do crop)
-  const [removed, setRemoved] = useState(false);          // removeu a foto atual
+  const [removed, setRemoved] = useState(false); // removeu a foto atual
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [saving, setSaving] = useState(false);
@@ -547,7 +601,13 @@ function ProfileModal({
   const imgElRef = useRef<HTMLImageElement | null>(null);
   const dragRef = useRef<{ px: number; py: number; ox: number; oy: number } | null>(null);
 
-  const initials = displayName.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
+  const initials =
+    displayName
+      .split(" ")
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase() || "?";
   const currentAvatar = removed ? "" : avatarUrl;
   const cropping = !!rawUrl;
 
@@ -564,8 +624,14 @@ function ProfileModal({
   function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (!f.type.startsWith("image/")) { setErr("Selecione um arquivo de imagem."); return; }
-    if (f.size > 2 * 1024 * 1024) { setErr("A imagem deve ter no máximo 2 MB."); return; }
+    if (!f.type.startsWith("image/")) {
+      setErr("Selecione um arquivo de imagem.");
+      return;
+    }
+    if (f.size > 2 * 1024 * 1024) {
+      setErr("A imagem deve ter no máximo 2 MB.");
+      return;
+    }
     setErr(null);
     setRemoved(false);
     setZoom(1);
@@ -583,7 +649,10 @@ function ProfileModal({
 
   function onZoomChange(z: number) {
     const img = imgElRef.current;
-    if (!img) { setZoom(z); return; }
+    if (!img) {
+      setZoom(z);
+      return;
+    }
     const cur = metrics(img, zoom);
     const next = metrics(img, z);
     // mantém o ponto central da caixa fixo ao dar zoom
@@ -606,7 +675,9 @@ function ProfileModal({
     const m = metrics(img, zoom);
     setOffset(clamp(d.ox + (e.clientX - d.px), d.oy + (e.clientY - d.py), m.w, m.h));
   }
-  function onPointerUp() { dragRef.current = null; }
+  function onPointerUp() {
+    dragRef.current = null;
+  }
 
   async function croppedBlob(): Promise<Blob | null> {
     const img = imgElRef.current;
@@ -615,7 +686,8 @@ function ProfileModal({
     const OUT = 256;
     const s = OUT / CROP_BOX;
     const canvas = document.createElement("canvas");
-    canvas.width = OUT; canvas.height = OUT;
+    canvas.width = OUT;
+    canvas.height = OUT;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
     ctx.drawImage(img, offset.x * s, offset.y * s, m.w * s, m.h * s);
@@ -631,24 +703,39 @@ function ProfileModal({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!displayName.trim()) { setErr("Informe seu nome."); return; }
+    if (!displayName.trim()) {
+      setErr("Informe seu nome.");
+      return;
+    }
     setSaving(true);
     setErr(null);
 
     let nextAvatarUrl = avatarUrl;
     if (file) {
       const blob = await croppedBlob();
-      if (!blob) { setSaving(false); setErr("Falha ao processar a imagem."); return; }
+      if (!blob) {
+        setSaving(false);
+        setErr("Falha ao processar a imagem.");
+        return;
+      }
       const path = `${userId}/avatar-${Date.now()}.jpg`;
       const { error: upErr } = await supabase()
         .storage.from("avatars")
         .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
-      if (upErr) { setSaving(false); setErr(`Falha no upload da foto: ${upErr.message}`); return; }
+      if (upErr) {
+        setSaving(false);
+        setErr(`Falha no upload da foto: ${upErr.message}`);
+        return;
+      }
       // Bucket é privado — gera URL assinada de longa duração (1 ano).
       const { data: signed, error: sErr } = await supabase()
         .storage.from("avatars")
         .createSignedUrl(path, 60 * 60 * 24 * 365);
-      if (sErr || !signed?.signedUrl) { setSaving(false); setErr(`Falha ao gerar URL da foto: ${sErr?.message ?? "sem URL"}`); return; }
+      if (sErr || !signed?.signedUrl) {
+        setSaving(false);
+        setErr(`Falha ao gerar URL da foto: ${sErr?.message ?? "sem URL"}`);
+        return;
+      }
       nextAvatarUrl = signed.signedUrl;
     } else if (removed) {
       nextAvatarUrl = "";
@@ -658,7 +745,10 @@ function ProfileModal({
       data: { display_name: displayName.trim(), avatar_url: nextAvatarUrl },
     });
     setSaving(false);
-    if (error) { setErr(error.message); return; }
+    if (error) {
+      setErr(error.message);
+      return;
+    }
     onSaved();
     toast.success("Perfil atualizado.");
     onClose();
@@ -668,18 +758,37 @@ function ProfileModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.45)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <div className="aurora-modal w-full max-w-md bg-white overflow-hidden" style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
-        <div className="px-6 py-5 flex items-start justify-between" style={{ background: "var(--offwhite)", borderBottom: "1px solid var(--line)" }}>
+      <div
+        className="aurora-modal w-full max-w-md bg-white overflow-hidden"
+        style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}
+      >
+        <div
+          className="px-6 py-5 flex items-start justify-between"
+          style={{ background: "var(--offwhite)", borderBottom: "1px solid var(--line)" }}
+        >
           <div>
             <div className="aurora-cap mb-0.5">Conta</div>
             <div className="aurora-serif text-[20px]">Meu perfil</div>
           </div>
-          <button onClick={onClose} className="text-[18px] leading-none mt-1 opacity-50 hover:opacity-100">×</button>
+          <button
+            onClick={onClose}
+            className="text-[18px] leading-none mt-1 opacity-50 hover:opacity-100"
+          >
+            ×
+          </button>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-5 flex flex-col gap-5">
-          <input ref={fileRef} type="file" accept="image/*" onChange={pickFile} className="hidden" />
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            onChange={pickFile}
+            className="hidden"
+          />
           {cropping ? (
             /* Ajuste da nova foto: arrastar para posicionar + zoom */
             <div className="flex flex-col items-center gap-3">
@@ -689,7 +798,14 @@ function ProfileModal({
                 onPointerUp={onPointerUp}
                 onPointerCancel={onPointerUp}
                 className="relative rounded-full overflow-hidden shrink-0"
-                style={{ width: CROP_BOX, height: CROP_BOX, cursor: "grab", touchAction: "none", border: "1px solid var(--line)", background: "#FAFBFA" }}
+                style={{
+                  width: CROP_BOX,
+                  height: CROP_BOX,
+                  cursor: "grab",
+                  touchAction: "none",
+                  border: "1px solid var(--line)",
+                  background: "#FAFBFA",
+                }}
               >
                 <img
                   ref={imgElRef}
@@ -701,31 +817,55 @@ function ProfileModal({
                   style={{
                     left: offset.x,
                     top: offset.y,
-                    width: (imgElRef.current ? metrics(imgElRef.current, zoom).w : CROP_BOX),
+                    width: imgElRef.current ? metrics(imgElRef.current, zoom).w : CROP_BOX,
                     height: "auto",
                   }}
                 />
-                <div className="absolute inset-0 pointer-events-none rounded-full" style={{ boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.06)" }} />
+                <div
+                  className="absolute inset-0 pointer-events-none rounded-full"
+                  style={{ boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.06)" }}
+                />
               </div>
               <div className="flex items-center gap-2 w-full max-w-[240px]">
-                <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>−</span>
+                <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                  −
+                </span>
                 <input
-                  type="range" min={1} max={3} step={0.01} value={zoom}
+                  type="range"
+                  min={1}
+                  max={3}
+                  step={0.01}
+                  value={zoom}
                   onChange={(e) => onZoomChange(Number(e.target.value))}
                   className="flex-1"
                 />
-                <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>+</span>
+                <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                  +
+                </span>
               </div>
-              <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>Arraste para posicionar · use o controle para ampliar</div>
+              <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                Arraste para posicionar · use o controle para ampliar
+              </div>
               <div className="flex gap-2">
-                <button type="button" onClick={() => fileRef.current?.click()}
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
                   className="text-[10px] uppercase px-4 py-2 transition-opacity"
-                  style={{ border: "1px solid var(--line)", letterSpacing: "2px", fontWeight: 500 }}>
+                  style={{ border: "1px solid var(--line)", letterSpacing: "2px", fontWeight: 500 }}
+                >
                   Trocar
                 </button>
-                <button type="button" onClick={removePhoto}
+                <button
+                  type="button"
+                  onClick={removePhoto}
                   className="text-[10px] uppercase px-4 py-2 transition-opacity"
-                  style={{ border: "1px solid rgba(109,146,166,0.4)", color: "var(--tan)", letterSpacing: "2px", fontWeight: 500 }}>
+                  style={{
+                    border: "1px solid rgba(109,146,166,0.4)",
+                    color: "var(--tan)",
+                    letterSpacing: "2px",
+                    fontWeight: 500,
+                  }}
+                >
                   Remover foto
                 </button>
               </div>
@@ -734,9 +874,21 @@ function ProfileModal({
             <div className="flex items-center gap-4">
               <div
                 className="w-16 h-16 rounded-full flex items-center justify-center text-[16px] font-medium overflow-hidden shrink-0"
-                style={{ background: "linear-gradient(135deg, var(--green), var(--green2))", color: "#fff", letterSpacing: "1px" }}
+                style={{
+                  background: "linear-gradient(135deg, var(--green), var(--green2))",
+                  color: "#fff",
+                  letterSpacing: "1px",
+                }}
               >
-                {currentAvatar ? <img src={currentAvatar} alt={displayName} className="w-full h-full object-cover" /> : initials}
+                {currentAvatar ? (
+                  <img
+                    src={currentAvatar}
+                    alt={displayName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  initials
+                )}
               </div>
               <div className="flex flex-col gap-1.5">
                 <div className="flex gap-2">
@@ -744,7 +896,11 @@ function ProfileModal({
                     type="button"
                     onClick={() => fileRef.current?.click()}
                     className="text-[10px] uppercase px-4 py-2.5 transition-opacity self-start"
-                    style={{ border: "1px solid var(--line)", letterSpacing: "2px", fontWeight: 500 }}
+                    style={{
+                      border: "1px solid var(--line)",
+                      letterSpacing: "2px",
+                      fontWeight: 500,
+                    }}
                   >
                     {currentAvatar ? "Trocar foto" : "Adicionar foto"}
                   </button>
@@ -753,7 +909,12 @@ function ProfileModal({
                       type="button"
                       onClick={removePhoto}
                       className="text-[10px] uppercase px-4 py-2.5 transition-opacity self-start"
-                      style={{ border: "1px solid rgba(109,146,166,0.4)", color: "var(--tan)", letterSpacing: "2px", fontWeight: 500 }}
+                      style={{
+                        border: "1px solid rgba(109,146,166,0.4)",
+                        color: "var(--tan)",
+                        letterSpacing: "2px",
+                        fontWeight: 500,
+                      }}
                     >
                       Remover foto
                     </button>
@@ -781,28 +942,57 @@ function ProfileModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <div className="aurora-cap mb-2">E-mail</div>
-              <div className="text-[13px] px-3 py-2.5" style={{ background: "#FAFBFA", color: "var(--muted-foreground)" }}>{email || "—"}</div>
+              <div
+                className="text-[13px] px-3 py-2.5"
+                style={{ background: "#FAFBFA", color: "var(--muted-foreground)" }}
+              >
+                {email || "—"}
+              </div>
             </div>
             <div>
               <div className="aurora-cap mb-2">Cargo</div>
-              <div className="text-[13px] px-3 py-2.5" style={{ background: "#FAFBFA", color: "var(--muted-foreground)" }}>{role}</div>
+              <div
+                className="text-[13px] px-3 py-2.5"
+                style={{ background: "#FAFBFA", color: "var(--muted-foreground)" }}
+              >
+                {role}
+              </div>
             </div>
           </div>
 
           {err && (
-            <div className="text-[12px] px-4 py-3" style={{ background: "rgba(109,146,166,0.1)", borderLeft: "3px solid var(--tan)", color: "var(--tan)" }}>
+            <div
+              className="text-[12px] px-4 py-3"
+              style={{
+                background: "rgba(109,146,166,0.1)",
+                borderLeft: "3px solid var(--tan)",
+                color: "var(--tan)",
+              }}
+            >
               {err}
             </div>
           )}
           <div className="flex justify-end gap-3 pt-1">
-            <button type="button" onClick={onClose}
+            <button
+              type="button"
+              onClick={onClose}
               className="text-[10px] uppercase px-5 py-3 transition-opacity"
-              style={{ border: "1px solid var(--line)", letterSpacing: "2px", fontWeight: 500 }}>
+              style={{ border: "1px solid var(--line)", letterSpacing: "2px", fontWeight: 500 }}
+            >
               Cancelar
             </button>
-            <button type="submit" disabled={saving}
+            <button
+              type="submit"
+              disabled={saving}
               className="text-[10px] uppercase px-6 py-3 transition-opacity disabled:opacity-50"
-              style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}>
+              style={{
+                background: "var(--green)",
+                color: "#fff",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 999,
+              }}
+            >
               {saving ? "Salvando..." : "Salvar"}
             </button>
           </div>
@@ -931,7 +1121,11 @@ function SidebarContent({
         className="px-4 pt-6 pb-5 flex items-center justify-between"
         style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
       >
-        <Link to="/admin" className="flex items-center" style={{ color: "#fff", textDecoration: "none" }}>
+        <Link
+          to="/admin"
+          className="flex items-center"
+          style={{ color: "#fff", textDecoration: "none" }}
+        >
           <LogoMark size={collapsed && !mobile ? 22 : 26} />
         </Link>
         {!mobile && !collapsed && (
@@ -1013,7 +1207,9 @@ function SidebarContent({
                 <button
                   onClick={() => onToggleGroup(group.id)}
                   className={`flex items-center justify-between w-full px-3 py-2.5 text-[11px] uppercase transition-all rounded-[12px] mb-1 ${
-                    hasActive ? "bg-[rgba(153,169,137,0.16)]" : "bg-white/[0.06] hover:bg-white/[0.10]"
+                    hasActive
+                      ? "bg-[rgba(153,169,137,0.16)]"
+                      : "bg-white/[0.06] hover:bg-white/[0.10]"
                   }`}
                   style={{
                     letterSpacing: "2px",
@@ -1034,7 +1230,10 @@ function SidebarContent({
                 </button>
               )}
               {collapsed && (
-                <div className="mx-3 my-2" style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+                <div
+                  className="mx-3 my-2"
+                  style={{ height: 1, background: "rgba(255,255,255,0.06)" }}
+                />
               )}
               <div
                 style={{
@@ -1050,7 +1249,8 @@ function SidebarContent({
                     ? isActive(path, item.to) && !item.children?.some((c) => isActive(path, c.to))
                     : false;
                   const childActive = item.children?.some((c) => isActive(path, c.to)) ?? false;
-                  const rowActive = parentActive || (!hasChildren && item.to ? isActive(path, item.to) : false);
+                  const rowActive =
+                    parentActive || (!hasChildren && item.to ? isActive(path, item.to) : false);
                   const badge = item.to === "/admin/pendentes" ? pendentesCount : 0;
 
                   if (collapsed) {
@@ -1065,7 +1265,11 @@ function SidebarContent({
                         whileHover={!active ? { backgroundColor: "rgba(255,255,255,0.08)" } : {}}
                         whileTap={{ scale: 0.985 }}
                       >
-                        <Link to={target as string} title={item.label} style={navRowStyle(active, true)}>
+                        <Link
+                          to={target as string}
+                          title={item.label}
+                          style={navRowStyle(active, true)}
+                        >
                           {active && <NavActiveBar />}
                           <NavIcon icon={item.icon} active={active} />
                           {badge > 0 && (
@@ -1093,7 +1297,11 @@ function SidebarContent({
                       <motion.div
                         className="mx-1.5 my-0.5"
                         style={{ borderRadius: 12, overflow: "hidden" }}
-                        whileHover={!rowActive && !childActive ? { backgroundColor: "rgba(255,255,255,0.08)" } : {}}
+                        whileHover={
+                          !rowActive && !childActive
+                            ? { backgroundColor: "rgba(255,255,255,0.08)" }
+                            : {}
+                        }
                         whileTap={{ scale: 0.985 }}
                       >
                         {hasChildren && !item.to ? (
@@ -1118,7 +1326,10 @@ function SidebarContent({
                             </span>
                           </button>
                         ) : hasChildren && item.to ? (
-                          <div className="flex items-stretch" style={navRowStyle(rowActive || childActive, false)}>
+                          <div
+                            className="flex items-stretch"
+                            style={navRowStyle(rowActive || childActive, false)}
+                          >
                             {(rowActive || childActive) && <NavActiveBar />}
                             <Link
                               to={item.to as string}
@@ -1161,7 +1372,10 @@ function SidebarContent({
                             </button>
                           </div>
                         ) : (
-                          <Link to={(item.to ?? "/") as string} style={navRowStyle(rowActive, false)}>
+                          <Link
+                            to={(item.to ?? "/") as string}
+                            style={navRowStyle(rowActive, false)}
+                          >
                             {rowActive && <NavActiveBar />}
                             <NavIcon icon={item.icon} active={rowActive} />
                             <span className="flex-1 whitespace-nowrap">{item.label}</span>
@@ -1194,10 +1408,15 @@ function SidebarContent({
                                 key={child.to}
                                 className="mx-1.5 my-0.5"
                                 style={{ borderRadius: 12, overflow: "hidden" }}
-                                whileHover={!active ? { backgroundColor: "rgba(255,255,255,0.08)" } : {}}
+                                whileHover={
+                                  !active ? { backgroundColor: "rgba(255,255,255,0.08)" } : {}
+                                }
                                 whileTap={{ scale: 0.985 }}
                               >
-                                <Link to={child.to as string} style={navRowStyle(active, false, true)}>
+                                <Link
+                                  to={child.to as string}
+                                  style={navRowStyle(active, false, true)}
+                                >
                                   {active && <NavActiveBar />}
                                   <NavIcon icon={child.icon} active={active} />
                                   <span className="flex-1 whitespace-nowrap">{child.label}</span>
@@ -1216,10 +1435,7 @@ function SidebarContent({
         })}
       </nav>
 
-      <div
-        className="px-3 py-3"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
-      >
+      <div className="px-3 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <button
           type="button"
           onClick={handleSignOut}
@@ -1247,7 +1463,11 @@ function SidebarContent({
 
 function AnimatedMenuToggle({ toggle, isOpen }: { toggle: () => void; isOpen: boolean }) {
   return (
-    <button onClick={toggle} aria-label="Toggle menu" className="focus:outline-none flex items-center justify-center">
+    <button
+      onClick={toggle}
+      aria-label="Toggle menu"
+      className="focus:outline-none flex items-center justify-center"
+    >
       <motion.svg
         width="18"
         height="18"
@@ -1292,14 +1512,24 @@ function AnimatedMenuToggle({ toggle, isOpen }: { toggle: () => void; isOpen: bo
   );
 }
 
-function DropdownItem({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
+function DropdownItem({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button
       onClick={onClick}
       className="w-full flex items-center gap-3 px-4 py-2.5 text-[12px] transition-colors hover:bg-[#F9F9F7]"
       style={{ color: "var(--foreground)" }}
     >
-      <span style={{ color: "var(--sage)", fontSize: 13, width: 16, textAlign: "center" }}>{icon}</span>
+      <span style={{ color: "var(--sage)", fontSize: 13, width: 16, textAlign: "center" }}>
+        {icon}
+      </span>
       {label}
     </button>
   );
@@ -1315,21 +1545,96 @@ type ModuleIdentity = {
 
 const MODULE_MAP: Record<string, ModuleIdentity> = {
   "/admin": { icon: "▦", accent: "var(--navy)", accentSoft: "rgba(28,45,69,0.10)", group: "Visão" },
-  "/admin/clientes": { icon: "◷", accent: "var(--sage)", accentSoft: "rgba(153,169,137,0.12)", group: "Visão" },
-  "/admin/clientes/": { icon: "◷", accent: "var(--sage)", accentSoft: "rgba(153,169,137,0.12)", group: "Visão" },
-  "/admin/dfc": { icon: "◈", accent: "var(--navy)", accentSoft: "rgba(28,45,69,0.10)", group: "Visão" },
-  "/admin/relatorios": { icon: "≡", accent: "var(--navy)", accentSoft: "rgba(28,45,69,0.10)", group: "Visão" },
-  "/admin/importar": { icon: "↓", accent: "var(--tan)", accentSoft: "rgba(109,146,166,0.14)", group: "Operação" },
-  "/admin/pendentes": { icon: "⊙", accent: "var(--tan)", accentSoft: "rgba(109,146,166,0.14)", group: "Operação" },
-  "/admin/pipeline": { icon: "⋯", accent: "var(--green)", accentSoft: "rgba(40,76,43,0.12)", group: "Comercial" },
-  "/admin/propostas": { icon: "✎", accent: "var(--green)", accentSoft: "rgba(40,76,43,0.12)", group: "Comercial" },
-  "/admin/contratos": { icon: "❍", accent: "var(--green)", accentSoft: "rgba(40,76,43,0.12)", group: "Comercial" },
-  "/admin/servicos": { icon: "◇", accent: "var(--tan)", accentSoft: "rgba(109,146,166,0.14)", group: "Comercial" },
-  "/admin/insights/precificacao": { icon: "↗", accent: "var(--tan)", accentSoft: "rgba(109,146,166,0.14)", group: "Comercial" },
-  "/admin/categorias": { icon: "◎", accent: "var(--sage)", accentSoft: "rgba(153,169,137,0.12)", group: "Configuração" },
-  "/admin/plano-contas": { icon: "⬡", accent: "var(--sage)", accentSoft: "rgba(153,169,137,0.12)", group: "Configuração" },
-  "/admin/regras": { icon: "⟳", accent: "var(--sage)", accentSoft: "rgba(153,169,137,0.12)", group: "Configuração" },
-  "/admin/usuarios": { icon: "◉", accent: "var(--sage)", accentSoft: "rgba(153,169,137,0.12)", group: "Configuração" },
+  "/admin/clientes": {
+    icon: "◷",
+    accent: "var(--sage)",
+    accentSoft: "rgba(153,169,137,0.12)",
+    group: "Visão",
+  },
+  "/admin/clientes/": {
+    icon: "◷",
+    accent: "var(--sage)",
+    accentSoft: "rgba(153,169,137,0.12)",
+    group: "Visão",
+  },
+  "/admin/dfc": {
+    icon: "◈",
+    accent: "var(--navy)",
+    accentSoft: "rgba(28,45,69,0.10)",
+    group: "Visão",
+  },
+  "/admin/relatorios": {
+    icon: "≡",
+    accent: "var(--navy)",
+    accentSoft: "rgba(28,45,69,0.10)",
+    group: "Visão",
+  },
+  "/admin/importar": {
+    icon: "↓",
+    accent: "var(--tan)",
+    accentSoft: "rgba(109,146,166,0.14)",
+    group: "Operação",
+  },
+  "/admin/pendentes": {
+    icon: "⊙",
+    accent: "var(--tan)",
+    accentSoft: "rgba(109,146,166,0.14)",
+    group: "Operação",
+  },
+  "/admin/pipeline": {
+    icon: "⋯",
+    accent: "var(--green)",
+    accentSoft: "rgba(40,76,43,0.12)",
+    group: "Comercial",
+  },
+  "/admin/propostas": {
+    icon: "✎",
+    accent: "var(--green)",
+    accentSoft: "rgba(40,76,43,0.12)",
+    group: "Comercial",
+  },
+  "/admin/contratos": {
+    icon: "❍",
+    accent: "var(--green)",
+    accentSoft: "rgba(40,76,43,0.12)",
+    group: "Comercial",
+  },
+  "/admin/servicos": {
+    icon: "◇",
+    accent: "var(--tan)",
+    accentSoft: "rgba(109,146,166,0.14)",
+    group: "Comercial",
+  },
+  "/admin/insights/precificacao": {
+    icon: "↗",
+    accent: "var(--tan)",
+    accentSoft: "rgba(109,146,166,0.14)",
+    group: "Comercial",
+  },
+  "/admin/categorias": {
+    icon: "◎",
+    accent: "var(--sage)",
+    accentSoft: "rgba(153,169,137,0.12)",
+    group: "Configuração",
+  },
+  "/admin/plano-contas": {
+    icon: "⬡",
+    accent: "var(--sage)",
+    accentSoft: "rgba(153,169,137,0.12)",
+    group: "Configuração",
+  },
+  "/admin/regras": {
+    icon: "⟳",
+    accent: "var(--sage)",
+    accentSoft: "rgba(153,169,137,0.12)",
+    group: "Configuração",
+  },
+  "/admin/usuarios": {
+    icon: "◉",
+    accent: "var(--sage)",
+    accentSoft: "rgba(153,169,137,0.12)",
+    group: "Configuração",
+  },
 };
 
 function resolveModule(pathname: string): ModuleIdentity {

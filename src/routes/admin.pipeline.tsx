@@ -24,7 +24,15 @@ export const Route = createFileRoute("/admin/pipeline")({
   head: () => ({ meta: [{ title: "Pipeline · Aurora" }] }),
 });
 
-type Stage = { id: string; slug: string; label: string; color: string; is_won: boolean; is_lost: boolean; position: number };
+type Stage = {
+  id: string;
+  slug: string;
+  label: string;
+  color: string;
+  is_won: boolean;
+  is_lost: boolean;
+  position: number;
+};
 type Deal = {
   id: string;
   contact_name: string;
@@ -36,7 +44,11 @@ type Deal = {
 };
 
 function brl(n: number) {
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
+  return n.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 0,
+  });
 }
 
 function daysSince(dateStr: string): number {
@@ -48,17 +60,16 @@ function PipelinePage() {
   const qc = useQueryClient();
   const [drawerDealId, setDrawerDealId] = useState<string | null>(null);
   const [dragDealId, setDragDealId] = useState<string | null>(null);
-  const [lossModal, setLossModal] = useState<{ deal_id: string; to_stage_slug: string } | null>(null);
+  const [lossModal, setLossModal] = useState<{ deal_id: string; to_stage_slug: string } | null>(
+    null,
+  );
   const [newDealModal, setNewDealModal] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   const { data: stages = [] } = useQuery({
     queryKey: ["deal_stages"],
     queryFn: async (): Promise<Stage[]> => {
-      const { data } = await supabase()
-        .from("deal_stages")
-        .select("*")
-        .order("position");
+      const { data } = await supabase().from("deal_stages").select("*").order("position");
       return (data ?? []) as Stage[];
     },
     staleTime: 5 * 60_000,
@@ -69,7 +80,9 @@ function PipelinePage() {
     queryFn: async (): Promise<Deal[]> => {
       const { data } = await supabase()
         .from("deals")
-        .select("id, contact_name, company, service_type, expected_value, stage_id, stage_changed_at")
+        .select(
+          "id, contact_name, company, service_type, expected_value, stage_id, stage_changed_at",
+        )
         .order("stage_changed_at", { ascending: false });
       return (data ?? []) as Deal[];
     },
@@ -119,7 +132,11 @@ function PipelinePage() {
 
     // Otimismo
     qc.setQueryData<Deal[]>(["deals"], (prev) =>
-      (prev ?? []).map((d) => (d.id === deal_id ? { ...d, stage_id: to_stage_id, stage_changed_at: new Date().toISOString() } : d)),
+      (prev ?? []).map((d) =>
+        d.id === deal_id
+          ? { ...d, stage_id: to_stage_id, stage_changed_at: new Date().toISOString() }
+          : d,
+      ),
     );
 
     try {
@@ -134,10 +151,7 @@ function PipelinePage() {
 
   return (
     <AdminLayout>
-      <div
-        className="flex min-h-0 flex-1 flex-col"
-        style={{ minHeight: "calc(100dvh - 57px)" }}
-      >
+      <div className="flex min-h-0 flex-1 flex-col" style={{ minHeight: "calc(100dvh - 57px)" }}>
         <div className="shrink-0">
           <PageHeader
             cap="CRM comercial"
@@ -148,7 +162,13 @@ function PipelinePage() {
               <button
                 onClick={() => setNewDealModal(true)}
                 className="inline-flex items-center gap-2 px-5 py-3 text-[10px] uppercase"
-                style={{ background: "var(--green)", color: "#fff", letterSpacing: "2.5px", fontWeight: 500 , borderRadius: 999 }}
+                style={{
+                  background: "var(--green)",
+                  color: "#fff",
+                  letterSpacing: "2.5px",
+                  fontWeight: 500,
+                  borderRadius: 999,
+                }}
               >
                 + Nova deal
               </button>
@@ -178,7 +198,10 @@ function PipelinePage() {
             </div>
             <DragOverlay>
               {dragDealId && (
-                <div className="aurora-panel bg-white p-4 shadow-lg" style={{ border: "1px solid var(--green)" }}>
+                <div
+                  className="aurora-panel bg-white p-4 shadow-lg"
+                  style={{ border: "1px solid var(--green)" }}
+                >
                   <div className="text-[12px]" style={{ fontWeight: 500 }}>
                     {deals.find((d) => d.id === dragDealId)?.contact_name}
                   </div>
@@ -209,7 +232,11 @@ function PipelinePage() {
           onConfirm={async (reason) => {
             const stage = stages.find((s) => s.slug === lossModal.to_stage_slug)!;
             qc.setQueryData<Deal[]>(["deals"], (prev) =>
-              (prev ?? []).map((d) => (d.id === lossModal.deal_id ? { ...d, stage_id: stage.id, stage_changed_at: new Date().toISOString() } : d)),
+              (prev ?? []).map((d) =>
+                d.id === lossModal.deal_id
+                  ? { ...d, stage_id: stage.id, stage_changed_at: new Date().toISOString() }
+                  : d,
+              ),
             );
             try {
               await moveDeal(lossModal.deal_id, lossModal.to_stage_slug, reason);
@@ -253,7 +280,10 @@ function KanbanColumn({
         opacity: isActiveDrag && !isOver ? 0.85 : 1,
       }}
     >
-      <div className="flex shrink-0 items-center justify-between px-2" style={{ borderBottom: "1px solid rgba(153,169,137,0.35)", paddingBottom: 6 }}>
+      <div
+        className="flex shrink-0 items-center justify-between px-2"
+        style={{ borderBottom: "1px solid rgba(153,169,137,0.35)", paddingBottom: 6 }}
+      >
         <div className="aurora-cap" style={{ color: stage.color }}>
           ● {stage.label}
         </div>
@@ -274,7 +304,9 @@ function KanbanColumn({
 }
 
 function DealCard({ deal, onClick }: { deal: Deal; onClick: () => void }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: deal.id });
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: deal.id,
+  });
   const style: React.CSSProperties = {
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     opacity: isDragging ? 0.5 : 1,
@@ -336,8 +368,20 @@ function LossReasonModal({
 }) {
   const [reason, setReason] = useState("");
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onCancel}>
-      <div className="aurora-modal bg-white p-8 max-w-[480px] w-full" style={{ borderRadius: 24, overflow: "hidden", border: "1px solid var(--line)", boxShadow: "0 24px 64px -16px rgba(28,45,69,0.22)" }} onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onCancel}
+    >
+      <div
+        className="aurora-modal bg-white p-8 max-w-[480px] w-full"
+        style={{
+          borderRadius: 24,
+          overflow: "hidden",
+          border: "1px solid var(--line)",
+          boxShadow: "0 24px 64px -16px rgba(28,45,69,0.22)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="aurora-cap mb-2">Motivo da perda</div>
         <h3 className="aurora-serif text-[24px] mb-4">Por que esse deal foi perdido?</h3>
         <textarea
@@ -356,7 +400,13 @@ function LossReasonModal({
             disabled={!reason.trim()}
             onClick={() => onConfirm(reason.trim())}
             className="text-[10px] uppercase px-4 py-2 disabled:opacity-50"
-            style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+            style={{
+              background: "var(--green)",
+              color: "#fff",
+              letterSpacing: "2px",
+              fontWeight: 500,
+              borderRadius: 999,
+            }}
           >
             Marcar como perdido →
           </button>
@@ -416,49 +466,105 @@ function NewDealModal({
   const f = (k: keyof typeof form, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="aurora-modal bg-white p-8 max-w-[520px] w-full" style={{ borderRadius: 24, overflow: "hidden", border: "1px solid var(--line)", boxShadow: "0 24px 64px -16px rgba(28,45,69,0.22)" }} onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="aurora-modal bg-white p-8 max-w-[520px] w-full"
+        style={{
+          borderRadius: 24,
+          overflow: "hidden",
+          border: "1px solid var(--line)",
+          boxShadow: "0 24px 64px -16px rgba(28,45,69,0.22)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="aurora-cap mb-2">Novo contato</div>
         <h3 className="aurora-serif text-[24px] mb-6">Adicionar deal manualmente</h3>
         <div className="flex flex-col gap-4">
           <Field label="Nome *">
-            <input autoFocus value={form.contact_name} onChange={(e) => f("contact_name", e.target.value)} className="aurora-input" placeholder="Nome do contato" />
+            <input
+              autoFocus
+              value={form.contact_name}
+              onChange={(e) => f("contact_name", e.target.value)}
+              className="aurora-input"
+              placeholder="Nome do contato"
+            />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Empresa">
-              <input value={form.company} onChange={(e) => f("company", e.target.value)} className="aurora-input" />
+              <input
+                value={form.company}
+                onChange={(e) => f("company", e.target.value)}
+                className="aurora-input"
+              />
             </Field>
             <Field label="Telefone">
-              <input value={form.contact_phone} onChange={(e) => f("contact_phone", e.target.value)} className="aurora-input" placeholder="(11) 91234-5678" />
+              <input
+                value={form.contact_phone}
+                onChange={(e) => f("contact_phone", e.target.value)}
+                className="aurora-input"
+                placeholder="(11) 91234-5678"
+              />
             </Field>
           </div>
           <Field label="E-mail">
-            <input type="email" value={form.contact_email} onChange={(e) => f("contact_email", e.target.value)} className="aurora-input" />
+            <input
+              type="email"
+              value={form.contact_email}
+              onChange={(e) => f("contact_email", e.target.value)}
+              className="aurora-input"
+            />
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Serviço de interesse">
-              <input value={form.service_type} onChange={(e) => f("service_type", e.target.value)} className="aurora-input" placeholder="Ex: Fechamento mensal" />
+              <input
+                value={form.service_type}
+                onChange={(e) => f("service_type", e.target.value)}
+                className="aurora-input"
+                placeholder="Ex: Fechamento mensal"
+              />
             </Field>
             <Field label="Valor previsto (R$)">
-              <input type="number" value={form.expected_value} onChange={(e) => f("expected_value", e.target.value)} className="aurora-input" />
+              <input
+                type="number"
+                value={form.expected_value}
+                onChange={(e) => f("expected_value", e.target.value)}
+                className="aurora-input"
+              />
             </Field>
           </div>
           <Field label="Fonte do lead">
-            <select value={form.source} onChange={(e) => f("source", e.target.value)} className="aurora-input bg-white">
+            <select
+              value={form.source}
+              onChange={(e) => f("source", e.target.value)}
+              className="aurora-input bg-white"
+            >
               <option value="">Selecione…</option>
               {["WhatsApp", "Instagram", "Indicação", "LinkedIn", "Outro"].map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s} value={s}>
+                  {s}
+                </option>
               ))}
             </select>
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="aurora-link">Cancelar</button>
+          <button onClick={onClose} className="aurora-link">
+            Cancelar
+          </button>
           <button
             disabled={!form.contact_name.trim() || saving}
             onClick={save}
             className="text-[10px] uppercase px-5 py-2.5 disabled:opacity-50"
-            style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+            style={{
+              background: "var(--green)",
+              color: "#fff",
+              letterSpacing: "2px",
+              fontWeight: 500,
+              borderRadius: 999,
+            }}
           >
             {saving ? "Salvando…" : "Criar deal →"}
           </button>

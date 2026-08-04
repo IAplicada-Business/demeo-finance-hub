@@ -62,7 +62,9 @@ export function ReceitasBrutasEditor({
     setLoading(true);
     supabase()
       .from("monthly_revenue_entries")
-      .select("id, client_id, period, entry_date, invoice_ref, sales_channel, gross_amount, taxes_withheld")
+      .select(
+        "id, client_id, period, entry_date, invoice_ref, sales_channel, gross_amount, taxes_withheld",
+      )
       .eq("client_id", clientId)
       .gte("entry_date", startDate)
       .lte("entry_date", endDate)
@@ -153,7 +155,7 @@ export function ReceitasBrutasEditor({
           prev
             .map((e) => (e.id === editingEntry.id ? (data as RevenueEntry) : e))
             .filter((e) => e.entry_date >= startDate && e.entry_date <= endDate)
-            .sort((a, b) => a.entry_date.localeCompare(b.entry_date))
+            .sort((a, b) => a.entry_date.localeCompare(b.entry_date)),
         );
         toast.success("Lançamento atualizado");
         setShowModal(false);
@@ -168,7 +170,9 @@ export function ReceitasBrutasEditor({
       else {
         const row = data as RevenueEntry;
         if (row.entry_date >= startDate && row.entry_date <= endDate) {
-          setEntries((prev) => [...prev, row].sort((a, b) => a.entry_date.localeCompare(b.entry_date)));
+          setEntries((prev) =>
+            [...prev, row].sort((a, b) => a.entry_date.localeCompare(b.entry_date)),
+          );
         }
         toast.success("Lançamento adicionado");
         setShowModal(false);
@@ -180,18 +184,30 @@ export function ReceitasBrutasEditor({
   return (
     <>
       <div id="detalhamento-receitas" className="aurora-card p-0 overflow-hidden scroll-mt-24">
-        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid var(--line)" }}>
+        <div
+          className="px-6 py-4 flex items-center justify-between"
+          style={{ borderBottom: "1px solid var(--line)" }}
+        >
           <div>
             <div className="aurora-cap mb-1">Regime de Competência</div>
             <div className="aurora-serif text-[20px]">
-              Receitas <em className="italic" style={{ color: "var(--green)" }}>Brutas</em>
+              Receitas{" "}
+              <em className="italic" style={{ color: "var(--green)" }}>
+                Brutas
+              </em>
             </div>
           </div>
           <button
             type="button"
             onClick={openAddModal}
             className="inline-flex items-center gap-2 px-5 py-3 text-[10px] uppercase transition-opacity hover:opacity-80"
-            style={{ background: "var(--green)", color: "#fff", letterSpacing: "2.5px", fontWeight: 500, borderRadius: 999 }}
+            style={{
+              background: "var(--green)",
+              color: "#fff",
+              letterSpacing: "2.5px",
+              fontWeight: 500,
+              borderRadius: 999,
+            }}
           >
             + Adicionar
           </button>
@@ -199,16 +215,33 @@ export function ReceitasBrutasEditor({
 
         {loading ? (
           <div className="flex items-center gap-3 px-6 py-8">
-            <div className="w-4 h-4 rounded-full border-2 animate-spin" style={{ borderColor: "var(--green)", borderTopColor: "transparent" }} />
-            <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>Carregando...</span>
+            <div
+              className="w-4 h-4 rounded-full border-2 animate-spin"
+              style={{ borderColor: "var(--green)", borderTopColor: "transparent" }}
+            />
+            <span className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+              Carregando...
+            </span>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[700px]">
               <thead>
                 <tr style={{ background: "var(--offwhite)" }}>
-                  {["Data", "Cliente / Nota Fiscal", "Canal de Venda", "Valor Bruto", "Impostos Retidos", "Valor Líquido", ""].map((h) => (
-                    <th key={h} className="text-left px-5 py-3 aurora-cap" style={{ fontWeight: 500, whiteSpace: "nowrap" }}>
+                  {[
+                    "Data",
+                    "Cliente / Nota Fiscal",
+                    "Canal de Venda",
+                    "Valor Bruto",
+                    "Impostos Retidos",
+                    "Valor Líquido",
+                    "",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="text-left px-5 py-3 aurora-cap"
+                      style={{ fontWeight: 500, whiteSpace: "nowrap" }}
+                    >
                       {h}
                     </th>
                   ))}
@@ -217,23 +250,49 @@ export function ReceitasBrutasEditor({
               <tbody>
                 {entries.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                      Nenhum lançamento neste período. Clique em "+ Adicionar" para registrar NFs e impostos.
+                    <td
+                      colSpan={7}
+                      className="px-5 py-10 text-center text-[12px]"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
+                      Nenhum lançamento neste período. Clique em "+ Adicionar" para registrar NFs e
+                      impostos.
                     </td>
                   </tr>
                 ) : (
                   entries.map((e) => {
                     const net = Number(e.gross_amount) - Number(e.taxes_withheld);
                     return (
-                      <tr key={e.id} style={{ borderTop: "1px solid var(--line)", background: "#fff" }}>
-                        <td className="px-5 py-3 text-[12px]" style={{ whiteSpace: "nowrap" }}>{formatDatePtBR(e.entry_date)}</td>
+                      <tr
+                        key={e.id}
+                        style={{ borderTop: "1px solid var(--line)", background: "#fff" }}
+                      >
+                        <td className="px-5 py-3 text-[12px]" style={{ whiteSpace: "nowrap" }}>
+                          {formatDatePtBR(e.entry_date)}
+                        </td>
                         <td className="px-5 py-3 text-[12px]">{e.invoice_ref || "—"}</td>
                         <td className="px-5 py-3 text-[12px]">{e.sales_channel || "—"}</td>
-                        <td className="px-5 py-3 aurora-value text-right text-[13px]" style={{ color: "var(--green)" }}>{brl(Number(e.gross_amount))}</td>
-                        <td className="px-5 py-3 aurora-value text-right text-[13px]" style={{ color: "var(--expense)" }}>
-                          {Number(e.taxes_withheld) > 0 ? `(${brl(Number(e.taxes_withheld))})` : "—"}
+                        <td
+                          className="px-5 py-3 aurora-value text-right text-[13px]"
+                          style={{ color: "var(--green)" }}
+                        >
+                          {brl(Number(e.gross_amount))}
                         </td>
-                        <td className="px-5 py-3 aurora-value text-right text-[13px]" style={{ fontWeight: 700, color: net >= 0 ? "var(--navy)" : "var(--expense)" }}>
+                        <td
+                          className="px-5 py-3 aurora-value text-right text-[13px]"
+                          style={{ color: "var(--expense)" }}
+                        >
+                          {Number(e.taxes_withheld) > 0
+                            ? `(${brl(Number(e.taxes_withheld))})`
+                            : "—"}
+                        </td>
+                        <td
+                          className="px-5 py-3 aurora-value text-right text-[13px]"
+                          style={{
+                            fontWeight: 700,
+                            color: net >= 0 ? "var(--navy)" : "var(--expense)",
+                          }}
+                        >
                           {brl(net)}
                         </td>
                         <td className="px-5 py-3">
@@ -242,7 +301,11 @@ export function ReceitasBrutasEditor({
                               type="button"
                               onClick={() => openEditModal(e)}
                               className="text-[10px] uppercase px-2 py-1 transition-opacity hover:opacity-70"
-                              style={{ color: "var(--muted-foreground)", border: "1px solid var(--line)", letterSpacing: "1px" }}
+                              style={{
+                                color: "var(--muted-foreground)",
+                                border: "1px solid var(--line)",
+                                letterSpacing: "1px",
+                              }}
                             >
                               Editar
                             </button>
@@ -250,7 +313,11 @@ export function ReceitasBrutasEditor({
                               type="button"
                               onClick={() => void deleteEntry(e.id)}
                               className="text-[10px] uppercase px-2 py-1 transition-opacity hover:opacity-70"
-                              style={{ color: "#C0392B", border: "1px solid rgba(192,57,43,0.3)", letterSpacing: "1px" }}
+                              style={{
+                                color: "#C0392B",
+                                border: "1px solid rgba(192,57,43,0.3)",
+                                letterSpacing: "1px",
+                              }}
                             >
                               Excluir
                             </button>
@@ -264,14 +331,29 @@ export function ReceitasBrutasEditor({
               {entries.length > 0 && (
                 <tfoot>
                   <tr style={{ background: "var(--navy)", borderTop: "2px solid var(--navy)" }}>
-                    <td colSpan={3} className="px-5 py-3 text-[11px] uppercase" style={{ letterSpacing: "2px", fontWeight: 700, color: "#fff" }}>
+                    <td
+                      colSpan={3}
+                      className="px-5 py-3 text-[11px] uppercase"
+                      style={{ letterSpacing: "2px", fontWeight: 700, color: "#fff" }}
+                    >
                       Totais
                     </td>
-                    <td className="px-5 py-3 aurora-value text-right text-[14px]" style={{ fontWeight: 700, color: "#A8D5A2" }}>{brl(totalBruto)}</td>
-                    <td className="px-5 py-3 aurora-value text-right text-[14px]" style={{ fontWeight: 700, color: "#F4A57E" }}>
+                    <td
+                      className="px-5 py-3 aurora-value text-right text-[14px]"
+                      style={{ fontWeight: 700, color: "#A8D5A2" }}
+                    >
+                      {brl(totalBruto)}
+                    </td>
+                    <td
+                      className="px-5 py-3 aurora-value text-right text-[14px]"
+                      style={{ fontWeight: 700, color: "#F4A57E" }}
+                    >
                       {totalImpostos > 0 ? `(${brl(totalImpostos)})` : "—"}
                     </td>
-                    <td className="px-5 py-3 aurora-value text-right text-[14px]" style={{ fontWeight: 700, color: totalLiquido >= 0 ? "#A8D5A2" : "#F4A57E" }}>
+                    <td
+                      className="px-5 py-3 aurora-value text-right text-[14px]"
+                      style={{ fontWeight: 700, color: totalLiquido >= 0 ? "#A8D5A2" : "#F4A57E" }}
+                    >
                       {brl(totalLiquido)}
                     </td>
                     <td />
@@ -293,9 +375,17 @@ export function ReceitasBrutasEditor({
         >
           <div
             className="w-full max-w-[480px] mx-4 overflow-hidden"
-            style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-card)" }}
+            style={{
+              background: "#fff",
+              border: "1px solid var(--line)",
+              borderRadius: "var(--radius-lg)",
+              boxShadow: "var(--shadow-card)",
+            }}
           >
-            <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: "1px solid var(--line)" }}>
+            <div
+              className="flex items-center justify-between px-6 py-5"
+              style={{ borderBottom: "1px solid var(--line)" }}
+            >
               <div>
                 <div className="aurora-cap mb-0.5">Receita Bruta</div>
                 <div className="text-[16px]" style={{ fontWeight: 600 }}>
@@ -314,7 +404,14 @@ export function ReceitasBrutasEditor({
 
             <div className="px-6 py-5 flex flex-col gap-4">
               {formError && (
-                <div className="px-4 py-3 text-[12px]" style={{ background: "rgba(192,57,43,0.08)", color: "#C0392B", border: "1px solid rgba(192,57,43,0.2)" }}>
+                <div
+                  className="px-4 py-3 text-[12px]"
+                  style={{
+                    background: "rgba(192,57,43,0.08)",
+                    color: "#C0392B",
+                    border: "1px solid rgba(192,57,43,0.2)",
+                  }}
+                >
                   {formError}
                 </div>
               )}
@@ -384,18 +481,32 @@ export function ReceitasBrutasEditor({
                 style={{ background: "var(--offwhite)", border: "1px solid var(--line)" }}
               >
                 <span className="aurora-cap">Valor Líquido</span>
-                <span className="aurora-value text-[18px]" style={{ fontWeight: 700, color: netPreview >= 0 ? "var(--navy)" : "var(--expense)" }}>
+                <span
+                  className="aurora-value text-[18px]"
+                  style={{
+                    fontWeight: 700,
+                    color: netPreview >= 0 ? "var(--navy)" : "var(--expense)",
+                  }}
+                >
                   {brl(Math.max(netPreview, 0))}
                 </span>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 px-6 py-4" style={{ borderTop: "1px solid var(--line)" }}>
+            <div
+              className="flex justify-end gap-3 px-6 py-4"
+              style={{ borderTop: "1px solid var(--line)" }}
+            >
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
                 className="px-5 py-2.5 text-[11px] uppercase transition-opacity hover:opacity-70"
-                style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", letterSpacing: "2px", fontWeight: 500 }}
+                style={{
+                  border: "1px solid var(--line)",
+                  color: "var(--muted-foreground)",
+                  letterSpacing: "2px",
+                  fontWeight: 500,
+                }}
               >
                 Cancelar
               </button>
@@ -404,7 +515,13 @@ export function ReceitasBrutasEditor({
                 onClick={() => void saveEntry()}
                 disabled={saving}
                 className="px-5 py-2.5 text-[11px] uppercase transition-opacity hover:opacity-80 disabled:opacity-50"
-                style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500, borderRadius: 999 }}
+                style={{
+                  background: "var(--green)",
+                  color: "#fff",
+                  letterSpacing: "2px",
+                  fontWeight: 500,
+                  borderRadius: 999,
+                }}
               >
                 {saving ? "Salvando..." : editingEntry ? "Salvar" : "Adicionar"}
               </button>

@@ -36,7 +36,10 @@ export function DealDrawer({ dealId, onClose }: { dealId: string | null; onClose
   const { data: stages = [] } = useQuery<Stage[]>({
     queryKey: ["deal_stages"],
     queryFn: async () => {
-      const { data } = await supabase().from("deal_stages").select("id, slug, label, is_lost, position").order("position");
+      const { data } = await supabase()
+        .from("deal_stages")
+        .select("id, slug, label, is_lost, position")
+        .order("position");
       return (data ?? []) as Stage[];
     },
   });
@@ -82,7 +85,12 @@ export function DealDrawer({ dealId, onClose }: { dealId: string | null; onClose
       <aside
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-[520px] h-full overflow-y-auto p-8"
-        style={{ background: "var(--linen2)", borderLeft: "1px solid var(--line)", borderTopLeftRadius: 22, borderBottomLeftRadius: 22 }}
+        style={{
+          background: "var(--linen2)",
+          borderLeft: "1px solid var(--line)",
+          borderTopLeftRadius: 22,
+          borderBottomLeftRadius: 22,
+        }}
       >
         <button onClick={onClose} className="aurora-link mb-6">
           ← Fechar
@@ -115,7 +123,11 @@ export function DealDrawer({ dealId, onClose }: { dealId: string | null; onClose
             <Section title="Histórico de etapas">
               {data.history.length === 0 && <Empty />}
               {data.history.map((h: any) => (
-                <div key={h.id} className="text-[12px] py-2" style={{ borderBottom: "1px solid var(--line)" }}>
+                <div
+                  key={h.id}
+                  className="text-[12px] py-2"
+                  style={{ borderBottom: "1px solid var(--line)" }}
+                >
                   <div>
                     <span style={{ color: "var(--muted-foreground)" }}>
                       {h.from_stage?.label ?? "—"} →
@@ -132,7 +144,11 @@ export function DealDrawer({ dealId, onClose }: { dealId: string | null; onClose
             <Section title="Atividades">
               {data.activities.length === 0 && <Empty />}
               {data.activities.map((a: any) => (
-                <div key={a.id} className="text-[12px] py-2" style={{ borderBottom: "1px solid var(--line)" }}>
+                <div
+                  key={a.id}
+                  className="text-[12px] py-2"
+                  style={{ borderBottom: "1px solid var(--line)" }}
+                >
                   <div className="aurora-cap">{a.kind}</div>
                   <div>{a.body}</div>
                   <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
@@ -145,7 +161,11 @@ export function DealDrawer({ dealId, onClose }: { dealId: string | null; onClose
             <Section title="Propostas">
               {data.proposals.length === 0 && <Empty />}
               {data.proposals.map((p: any) => (
-                <div key={p.id} className="flex justify-between items-center text-[12px] py-2" style={{ borderBottom: "1px solid var(--line)" }}>
+                <div
+                  key={p.id}
+                  className="flex justify-between items-center text-[12px] py-2"
+                  style={{ borderBottom: "1px solid var(--line)" }}
+                >
                   <div>
                     <div style={{ fontWeight: 500 }}>{p.number}</div>
                     <div className="aurora-cap">{p.status}</div>
@@ -177,7 +197,9 @@ export function DealDrawer({ dealId, onClose }: { dealId: string | null; onClose
                   {stages
                     .filter((s) => s.slug !== "lead" && s.id !== data?.deal?.stage_id)
                     .map((s) => (
-                      <option key={s.id} value={s.slug}>{s.label}</option>
+                      <option key={s.id} value={s.slug}>
+                        {s.label}
+                      </option>
                     ))}
                 </select>
                 <textarea
@@ -194,7 +216,8 @@ export function DealDrawer({ dealId, onClose }: { dealId: string | null; onClose
                 <button
                   disabled={
                     !targetStageSlug ||
-                    (!!stages.find((s) => s.slug === targetStageSlug)?.is_lost && !actBody.trim()) ||
+                    (!!stages.find((s) => s.slug === targetStageSlug)?.is_lost &&
+                      !actBody.trim()) ||
                     savingAct
                   }
                   onClick={async () => {
@@ -202,7 +225,10 @@ export function DealDrawer({ dealId, onClose }: { dealId: string | null; onClose
                     setSavingAct(true);
                     try {
                       const isLost = stages.find((s) => s.slug === targetStageSlug)?.is_lost;
-                      const headers = { "Content-Type": "application/json", ...(await authHeaders()) };
+                      const headers = {
+                        "Content-Type": "application/json",
+                        ...(await authHeaders()),
+                      };
                       const res = await fetch(`${FUNCTIONS_URL}/deal-move`, {
                         method: "POST",
                         headers,
@@ -223,7 +249,8 @@ export function DealDrawer({ dealId, onClose }: { dealId: string | null; onClose
                       qc.invalidateQueries({ queryKey: ["deal", dealId] });
                       qc.invalidateQueries({ queryKey: ["deals"] });
                       qc.invalidateQueries({ queryKey: ["kpis", "pipeline"] });
-                      const stageLabel = stages.find((s) => s.slug === targetStageSlug)?.label ?? targetStageSlug;
+                      const stageLabel =
+                        stages.find((s) => s.slug === targetStageSlug)?.label ?? targetStageSlug;
                       toast.success(`Deal movido para ${stageLabel}`);
                     } catch (e) {
                       toast.error(e instanceof Error ? e.message : "Falha ao mover deal");
@@ -232,7 +259,13 @@ export function DealDrawer({ dealId, onClose }: { dealId: string | null; onClose
                     }
                   }}
                   className="self-start text-[10px] uppercase px-4 py-2 disabled:opacity-40"
-                  style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+                  style={{
+                    background: "var(--green)",
+                    color: "#fff",
+                    letterSpacing: "2px",
+                    fontWeight: 500,
+                    borderRadius: 999,
+                  }}
                 >
                   {savingAct ? "Movendo…" : "Avançar →"}
                 </button>

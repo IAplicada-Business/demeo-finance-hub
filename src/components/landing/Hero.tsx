@@ -57,8 +57,8 @@ export function Hero() {
               color: "var(--muted-foreground)",
             }}
           >
-            A Aurora caminha junto. Importa o extrato, classifica os lançamentos, gera DFC e DRE —
-            e te entrega a clareza para decidir o próximo passo da sua empresa.
+            A Aurora caminha junto. Importa o extrato, classifica os lançamentos, gera DFC e DRE — e
+            te entrega a clareza para decidir o próximo passo da sua empresa.
           </p>
 
           {/* CTAs */}
@@ -86,13 +86,26 @@ export function Hero() {
             style={{ color: "var(--muted-foreground)", lineHeight: 1.8 }}
           >
             {/* {{STAT_1}} */}
-            <span><strong style={{ color: "var(--foreground)", fontWeight: 500 }}>120+</strong> empresas atendidas</span>
-            <span aria-hidden style={{ color: "var(--tan)" }}>·</span>
+            <span>
+              <strong style={{ color: "var(--foreground)", fontWeight: 500 }}>120+</strong> empresas
+              atendidas
+            </span>
+            <span aria-hidden style={{ color: "var(--tan)" }}>
+              ·
+            </span>
             {/* {{STAT_2}} */}
-            <span><strong style={{ color: "var(--foreground)", fontWeight: 500 }}>R$ 2,3 mi</strong> em fluxo organizado/mês</span>
-            <span aria-hidden style={{ color: "var(--tan)" }}>·</span>
+            <span>
+              <strong style={{ color: "var(--foreground)", fontWeight: 500 }}>R$ 2,3 mi</strong> em
+              fluxo organizado/mês
+            </span>
+            <span aria-hidden style={{ color: "var(--tan)" }}>
+              ·
+            </span>
             {/* {{STAT_3}} */}
-            <span><strong style={{ color: "var(--foreground)", fontWeight: 500 }}>12 meses</strong> de média de relação</span>
+            <span>
+              <strong style={{ color: "var(--foreground)", fontWeight: 500 }}>12 meses</strong> de
+              média de relação
+            </span>
           </div>
         </div>
 

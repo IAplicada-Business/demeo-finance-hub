@@ -59,7 +59,9 @@ export function DetalhamentoPanel({ clientId, startDate, endDate }: Props) {
   );
 
   const totalEntradas = filteredTxs.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-  const totalSaidas = filteredTxs.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+  const totalSaidas = filteredTxs
+    .filter((t) => t.amount < 0)
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
   const resultado = totalEntradas - totalSaidas;
 
   return (
@@ -74,7 +76,9 @@ export function DetalhamentoPanel({ clientId, startDate, endDate }: Props) {
         >
           <option value="todos">Todos os bancos</option>
           {banks.map((b) => (
-            <option key={b} value={b}>{b}</option>
+            <option key={b} value={b}>
+              {b}
+            </option>
           ))}
         </select>
       </div>
@@ -112,7 +116,11 @@ export function DetalhamentoPanel({ clientId, startDate, endDate }: Props) {
               <thead>
                 <tr style={{ background: "var(--offwhite)" }}>
                   {["Data", "Banco", "Descrição", "Categoria", "Valor"].map((h) => (
-                    <th key={h} className="text-left px-5 py-3 aurora-cap" style={{ fontWeight: 500 }}>
+                    <th
+                      key={h}
+                      className="text-left px-5 py-3 aurora-cap"
+                      style={{ fontWeight: 500 }}
+                    >
                       {h}
                     </th>
                   ))}
@@ -122,16 +130,25 @@ export function DetalhamentoPanel({ clientId, startDate, endDate }: Props) {
                 {filteredTxs.map((t, i) => (
                   <tr
                     key={t.id}
-                    style={{ background: i % 2 === 0 ? "#fff" : "#FAFBFA", borderTop: "1px solid var(--line)" }}
+                    style={{
+                      background: i % 2 === 0 ? "#fff" : "#FAFBFA",
+                      borderTop: "1px solid var(--line)",
+                    }}
                   >
                     <td className="px-5 py-2.5 text-[12px]">
                       {new Date(t.date + "T12:00:00").toLocaleDateString("pt-BR")}
                     </td>
-                    <td className="px-5 py-2.5 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                    <td
+                      className="px-5 py-2.5 text-[12px]"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
                       {t.bank || "—"}
                     </td>
                     <td className="px-5 py-2.5 text-[12px]">{t.description}</td>
-                    <td className="px-5 py-2.5 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                    <td
+                      className="px-5 py-2.5 text-[12px]"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
                       {t.category || "—"}
                     </td>
                     <td

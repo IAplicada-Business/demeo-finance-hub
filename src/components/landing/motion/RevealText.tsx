@@ -70,9 +70,7 @@ export function RevealText({
                 delay + i * 60
               }ms, transform 0.6s cubic-bezier(.22,.61,.36,1) ${delay + i * 60}ms`,
               willChange: "opacity, transform",
-              ...(isHighlighted
-                ? { fontStyle: "italic", color: highlight!.color }
-                : null),
+              ...(isHighlighted ? { fontStyle: "italic", color: highlight!.color } : null),
               marginRight: "0.27em",
             }}
           >

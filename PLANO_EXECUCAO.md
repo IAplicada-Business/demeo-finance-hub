@@ -1,6 +1,5 @@
 # Aurora · Plano de Execução Técnico
 
-
 > Gerado em: junho 2026  
 > Base: `demeo_completo.html` + análise do codebase `demeo-finance-hub`  
 > Projeto: IAP-DEMEO-2026-04
@@ -14,6 +13,7 @@
 **Marca:** Aurora · Gestora Financeira
 
 **Problema que resolve:**
+
 - Processo 100% manual: coleta extrato → classifica no IAMPA → monta dashboard → envia para cliente
 - Nome estranho paralisa o fechamento
 - Impossível escalar além de 4–5 clientes sem comprometer qualidade
@@ -21,6 +21,7 @@
 **Meta:** Claudia importa o extrato → sistema classifica → gera DFC/DRE → entrega portal ao cliente
 
 **Atores:**
+
 - **Claudia (admin)** — importa extratos, revisa pendentes, gerencia carteira, acompanha pipeline
 - **Cliente PJ (portal)** — acessa próprio financeiro com login individual
 - **IA (Claude Haiku)** — classifica lançamentos automaticamente
@@ -103,20 +104,20 @@ graph TB
 
 ## 3. Stack Definida
 
-| Camada | Tecnologia | Papel |
-|--------|-----------|-------|
-| Frontend | Lovable + TanStack Start (React 19) | Telas do sistema, LP, portal cliente |
-| UI Components | shadcn/ui + 21st.dev | Design system, componentes visuais |
-| Styling | Tailwind v4 + tokens Aurora | Paleta linho/verde/navy definida no brandbook |
-| Banco de dados | Cloud Lovable (Supabase gerenciado pelo Lovable) | Multi-tenant com RLS por cliente |
-| Auth | Supabase Auth (via Lovable) | Login admin + portal cliente (roles) |
-| Storage | Supabase Storage (via Lovable) | Extratos enviados + PDFs gerados |
-| Backend logic | Supabase Edge Functions (Deno) | Parsing de extratos, geração de relatórios |
-| Automação | n8n (self-hosted ou Cloud) | Orquestração: upload → parse → IA → notificação |
-| IA Classificação | Claude claude-haiku-4-5 | Classificação de lançamentos (batch) |
-| Cobranças | Lia | Gestão de pagamentos dos clientes da Claudia |
-| Versionamento | GitHub | Código-fonte transferido ao final |
-| Referência visual | ascone-finance.webflow.io | Aprovado pela Claudia |
+| Camada            | Tecnologia                                       | Papel                                           |
+| ----------------- | ------------------------------------------------ | ----------------------------------------------- |
+| Frontend          | Lovable + TanStack Start (React 19)              | Telas do sistema, LP, portal cliente            |
+| UI Components     | shadcn/ui + 21st.dev                             | Design system, componentes visuais              |
+| Styling           | Tailwind v4 + tokens Aurora                      | Paleta linho/verde/navy definida no brandbook   |
+| Banco de dados    | Cloud Lovable (Supabase gerenciado pelo Lovable) | Multi-tenant com RLS por cliente                |
+| Auth              | Supabase Auth (via Lovable)                      | Login admin + portal cliente (roles)            |
+| Storage           | Supabase Storage (via Lovable)                   | Extratos enviados + PDFs gerados                |
+| Backend logic     | Supabase Edge Functions (Deno)                   | Parsing de extratos, geração de relatórios      |
+| Automação         | n8n (self-hosted ou Cloud)                       | Orquestração: upload → parse → IA → notificação |
+| IA Classificação  | Claude claude-haiku-4-5                          | Classificação de lançamentos (batch)            |
+| Cobranças         | Lia                                              | Gestão de pagamentos dos clientes da Claudia    |
+| Versionamento     | GitHub                                           | Código-fonte transferido ao final               |
+| Referência visual | ascone-finance.webflow.io                        | Aprovado pela Claudia                           |
 
 > **Nota sobre o codebase atual:** O repositório `demeo-finance-hub` é o protótipo construído no Lovable com dados mock. Está rodando em https://demeo-finance-hub.lovable.app/. Toda a estrutura de telas está pronta — o trabalho agora é conectar o backend real.
 >
@@ -157,8 +158,10 @@ sequenceDiagram
 ## 5. Os 6 Módulos — Escopo e Arquitetura
 
 ### Módulo 01 · Importação Inteligente (Sprint 1 — MVP)
+
 **Problema:** Fim do processo manual no IAMPA  
 **Features:**
+
 - Upload drag-and-drop: PDF, CSV, XLSX, imagem
 - Múltiplas contas por cliente (ex: Nubank + BB do mesmo cliente)
 - IA estrutura: data, valor, descrição, tipo de cada lançamento
@@ -166,6 +169,7 @@ sequenceDiagram
 - Histórico mantido — sistema aprende padrões entre meses
 
 **Arquitetura:**
+
 ```
 Upload → Supabase Storage → n8n trigger → Edge Function:
   PDF: pdf-parse (extrai texto) → regex por banco
@@ -177,14 +181,17 @@ Upload → Supabase Storage → n8n trigger → Edge Function:
 ```
 
 ### Módulo 02 · Motor de Classificação (Sprint 1 — MVP)
+
 **Problema:** Nome estranho não paralisa mais o fechamento  
 **Features:**
+
 - Plano de contas individual por cliente
 - Regras configuráveis: fornecedor X → categoria Y
 - Aprendizado contínuo — aprende nas próximas importações
 - Fila de pendentes — processo nunca trava
 
 **Arquitetura:**
+
 ```
 Lançamentos novos → lookup em classification_rules (client-specific)
   → regra encontrada: aplica categoria, status=approved
@@ -195,14 +202,17 @@ Claudia aprova → salva como regra para próximo mês
 ```
 
 ### Módulo 03 · DFC Automática + Dashboard (Sprint 2)
+
 **Problema:** Fim da montagem manual do dashboard  
 **Features:**
+
 - DFC gerada automaticamente dos lançamentos classificados
 - Projeção 30/60/90 dias com base em recorrências
 - Gestão de parcelamentos no cartão (cada parcela no mês correto)
 - Exportação PDF e Excel para a reunião de fechamento
 
 **Arquitetura:**
+
 ```
 SQL: GROUP BY category, period, client_id
 → receitas, despesas, resultado por categoria/semana/mês
@@ -213,14 +223,17 @@ SQL: GROUP BY category, period, client_id
 ```
 
 ### Módulo 04 · Painel Multi-cliente Admin (Sprint 2)
+
 **Problema:** Com 20–30 clientes é impossível controlar na cabeça  
 **Features:**
+
 - Status de fechamento de cada cliente: pendente / em andamento / fechado
 - Lista de pendências de todos os clientes em uma tela
 - Calendário de fechamentos mensais com alertas
 - Histórico completo por cliente
 
 **Arquitetura:**
+
 ```
 Dashboard Claudia: query clients com JOINs em transactions/uploads
 → status calculado: 0 pending = Fechado, >0 = em andamento
@@ -229,8 +242,10 @@ Dashboard Claudia: query clients com JOINs em transactions/uploads
 ```
 
 ### Módulo 05 · Portal do Cliente (Sprint 3)
+
 **Problema:** Diferencial competitivo + possível receita adicional  
 **Features:**
+
 - Login individual — cada empresário vê só o próprio financeiro
 - Sub-usuários por empresa (dono + financeiro)
 - DFC/DRE em tempo real sem depender de relatório enviado
@@ -238,6 +253,7 @@ Dashboard Claudia: query clients com JOINs em transactions/uploads
 - Download de PDF e Excel direto pelo cliente
 
 **Arquitetura:**
+
 ```
 Supabase Auth: role=client, vinculado a client_id via user_metadata
 RLS Policy: transactions.client_id = auth.jwt().client_id
@@ -246,8 +262,10 @@ Permissões: clients.portal_features JSONB { dfc: bool, projecao: bool, download
 ```
 
 ### Módulo 06 · Funil de Captação + CRM (Sprint 3–4)
+
 **Problema:** Sair da dependência de indicações  
 **Features:**
+
 - Landing page Aurora no ar (em paralelo com Sprint 1)
 - Formulário → lead cai automaticamente no CRM
 - Pipeline: lead → diagnóstico → proposta → fechado
@@ -255,6 +273,7 @@ Permissões: clients.portal_features JSONB { dfc: bool, projecao: bool, download
 - Análise de precificação por serviço
 
 **Arquitetura:**
+
 ```
 LP (Lovable): formulário → n8n → INSERT pipeline_cards
 CRM: kanban visual (já prototipado) → UPDATE stage
@@ -396,9 +415,9 @@ flowchart LR
   E --> F["Claude Haiku\n(batch 50 tx)"]
   F --> G["n8n: Supabase Node\nUPDATE transactions"]
   G --> H["n8n: Send Email\n(Claudia notificada)"]
-  
+
   I["Lead LP\n(formulário)"] --> J["n8n: Supabase Node\nINSERT pipeline_cards"]
-  
+
   K["Lia Webhook\n(pagamento confirmado)"] --> L["n8n: Supabase Node\nAtiva cliente"]
 ```
 
@@ -409,13 +428,16 @@ flowchart LR
 ## 8. Roadmap por Sprints
 
 ### Sprint 0 — ✅ Concluído (15/04/2026)
+
 - Protótipo Lovable construído com dados mock
 - Brandbook Aurora finalizado
 - Documento unificado do projeto entregue
 - Stack definida
 
 ### Sprint 1 — Próximo (MVP · 1,5–2 semanas)
+
 **Mariana constrói:**
+
 - [ ] Setup Supabase: schema SQL, RLS, auth
 - [ ] Conectar Lovable ao Supabase (substituir mockData.ts)
 - [ ] Tela de login Aurora funcional (Supabase Auth)
@@ -427,6 +449,7 @@ flowchart LR
 - [ ] Landing page Aurora no Lovable
 
 **Claudia fornece:**
+
 - [ ] Extratos reais do cliente piloto (3 meses)
 - [ ] Plano de contas atual
 - [ ] 3 documentos da call (DR Executivo, template, planilha)
@@ -434,11 +457,13 @@ flowchart LR
 - [ ] Escolha do descritor (Opções 01–04)
 
 **Validação conjunta (call MVP):**
+
 - [ ] Sistema funcionando com extratos reais
 - [ ] Classificações corretas vs. IAMPA
 - [ ] Layout da landing page aprovado
 
 ### Sprint 2 — DFC + Admin (1,5–2 semanas)
+
 - [ ] DFC calculada automaticamente do banco
 - [ ] Fluxo semanal por cliente
 - [ ] Projeção 30/60/90 dias
@@ -449,6 +474,7 @@ flowchart LR
 - [ ] Calendário de fechamentos + alertas
 
 ### Sprint 3 — Portal + Funil (1,5 semanas)
+
 - [ ] Portal cliente com auth Supabase (RLS por client_id)
 - [ ] Sub-usuários por empresa
 - [ ] Permissões por cliente (o que cada um pode ver)
@@ -457,6 +483,7 @@ flowchart LR
 - [ ] Integração Lia (webhook ativa cliente)
 
 ### Sprint 4 — Entrega Final (~1 semana)
+
 - [ ] Migração dos 4 clientes atuais para o sistema
 - [ ] Tutoriais gravados por módulo
 - [ ] Guia prático completo
@@ -469,12 +496,14 @@ flowchart LR
 ## 9. Fase 2 — Módulos Futuros
 
 ### Cérebro Cláudia — Agente IA (Ref. R$2.000)
+
 - Agente com contexto operacional completo da carteira
 - Alertas de oportunidade e anomalias por cliente
 - Assistente virtual integrado ao sistema
 - Indicação de cliente = implementação gratuita
 
 ### Insights Estratégicos com IA (Ref. R$2.000)
+
 - Relatórios de análise estratégica automáticos
 - Identificação de padrões e gargalos no fluxo financeiro
 - Sugestões de ação baseadas no histórico
@@ -484,6 +513,7 @@ flowchart LR
 ## 10. QA e Testes
 
 ### Pirâmide
+
 ```
         /\
        /E2E\        Playwright — upload → aprovação → DFC
@@ -495,6 +525,7 @@ flowchart LR
 ```
 
 **Casos críticos:**
+
 1. CSV do Itaú → lançamentos corretos extraídos
 2. PDF com nome desconhecido → vai para fila de pendentes
 3. Aprovação → salva como regra → próximo extrato classifica automaticamente
@@ -503,6 +534,7 @@ flowchart LR
 6. Portal cliente: não acessa menu admin
 
 **CI (GitHub Actions):**
+
 ```yaml
 on: [push, pull_request]
 jobs:
@@ -518,15 +550,15 @@ jobs:
 
 ## 11. Riscos
 
-| Risco | Nível | Mitigação |
-|-------|-------|-----------|
-| Parsing PDF: cada banco tem formato diferente | Alto | Começar com CSV/XLSX; PDFs por banco adicionados iterativamente |
-| Nomes de transações ambíguos (PIX 4521) | Alto | Fila de pendentes bem projetada — Claudia valida uma vez, regra salva para sempre |
-| Custo Claude API escalando | Médio | Batch de 50 tx por chamada + cache de regras = <R$1/cliente/mês |
-| Supabase free tier (500MB DB, 1GB storage) | Médio | Suficiente para MVP; plano Pro (~$25/mês) quando chegar a 10+ clientes |
-| Lançamentos em espécie sem padrão | Médio | Interface de entrada manual bem projetada; Claudia preenche via áudio → IA estrutura |
-| LGPD — dados financeiros de PMEs | Alto | Supabase (GDPR compliant) + RLS + não armazenar dados de cartão |
-| Clientes com múltiplos bancos e formatos misturados | Médio | Upload múltiplo por período, bank_name por arquivo |
+| Risco                                               | Nível | Mitigação                                                                            |
+| --------------------------------------------------- | ----- | ------------------------------------------------------------------------------------ |
+| Parsing PDF: cada banco tem formato diferente       | Alto  | Começar com CSV/XLSX; PDFs por banco adicionados iterativamente                      |
+| Nomes de transações ambíguos (PIX 4521)             | Alto  | Fila de pendentes bem projetada — Claudia valida uma vez, regra salva para sempre    |
+| Custo Claude API escalando                          | Médio | Batch de 50 tx por chamada + cache de regras = <R$1/cliente/mês                      |
+| Supabase free tier (500MB DB, 1GB storage)          | Médio | Suficiente para MVP; plano Pro (~$25/mês) quando chegar a 10+ clientes               |
+| Lançamentos em espécie sem padrão                   | Médio | Interface de entrada manual bem projetada; Claudia preenche via áudio → IA estrutura |
+| LGPD — dados financeiros de PMEs                    | Alto  | Supabase (GDPR compliant) + RLS + não armazenar dados de cartão                      |
+| Clientes com múltiplos bancos e formatos misturados | Médio | Upload múltiplo por período, bank_name por arquivo                                   |
 
 ---
 
@@ -573,43 +605,45 @@ demeo-finance-hub/
 
 ```typescript
 // src/lib/supabase.ts
-import { createClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/database.types'
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 
 export const supabase = createClient<Database>(
   import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-)
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+);
 ```
 
 ### Snippet — Edge Function · Classificação
 
 ```typescript
 // supabase/functions/classify-batch/index.ts
-import Anthropic from 'npm:@anthropic-ai/sdk'
+import Anthropic from "npm:@anthropic-ai/sdk";
 
 Deno.serve(async (req) => {
-  const { transactions } = await req.json()
-  const client = new Anthropic()
+  const { transactions } = await req.json();
+  const client = new Anthropic();
 
   const { content } = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 2048,
-    messages: [{
-      role: 'user',
-      content: `Classifique os lançamentos. Retorne JSON array: [{id, categoria, recorrente, confianca}].
+    messages: [
+      {
+        role: "user",
+        content: `Classifique os lançamentos. Retorne JSON array: [{id, categoria, recorrente, confianca}].
       
-Categorias: ${CATEGORIAS.join(', ')}
+Categorias: ${CATEGORIAS.join(", ")}
 
 Lançamentos: ${JSON.stringify(transactions)}
 
-SOMENTE o JSON array, sem texto extra.`
-    }]
-  })
+SOMENTE o JSON array, sem texto extra.`,
+      },
+    ],
+  });
 
-  const result = JSON.parse(content[0].type === 'text' ? content[0].text : '[]')
-  return Response.json({ classifications: result })
-})
+  const result = JSON.parse(content[0].type === "text" ? content[0].text : "[]");
+  return Response.json({ classifications: result });
+});
 ```
 
 ---
@@ -617,6 +651,7 @@ SOMENTE o JSON array, sem texto extra.`
 ## 13. Próximas Ações Imediatas
 
 **Esta semana:**
+
 - [ ] No Lovable: clicar em **"Connect to Supabase"** → provisiona o banco automaticamente
 - [ ] Aplicar `0001_initial.sql` via painel do Lovable (ou editor SQL do Supabase)
 - [ ] Gerar types TypeScript: `supabase gen types typescript --project-id <id>`
@@ -626,16 +661,18 @@ SOMENTE o JSON array, sem texto extra.`
 - [ ] n8n: configurar trigger de upload no Storage
 
 **Claudia envia (urgente para MVP):**
+
 - [ ] Extratos reais (3 meses, cliente piloto)
 - [ ] Plano de contas atual
 - [ ] 3 documentos da call
 - [ ] Escolha do descritor Aurora (01 a 04)
 
 **Semana que vem (call MVP):**
+
 - [ ] Sistema rodando com extratos reais
 - [ ] Classificações validadas vs IAMPA
 - [ ] LP aprovada antes de publicar
 
 ---
 
-*Aurora × IAplicada · 2026*
+_Aurora × IAplicada · 2026_

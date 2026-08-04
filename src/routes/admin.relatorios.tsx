@@ -4,11 +4,21 @@ import { AdminLayout, PageHeader } from "@/components/AdminLayout";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { DateInput } from "@/components/DateInput";
 import { brl, formatDatePtBR } from "@/lib/utils";
-import { todayISO, firstOfMonthISO, lastOfMonthISO, firstOfYearISO, isoMonthsInDateRange } from "@/lib/dateUtils";
+import {
+  todayISO,
+  firstOfMonthISO,
+  lastOfMonthISO,
+  firstOfYearISO,
+  isoMonthsInDateRange,
+} from "@/lib/dateUtils";
 import { FilterMenu, FilterMenuOption } from "@/components/FilterMenu";
 import { supabase } from "@/lib/supabase";
 import * as XLSX from "xlsx";
-import { computeForecastMonths, type ForecastMonth, type PayableProjection } from "@/hooks/useDFCForecast";
+import {
+  computeForecastMonths,
+  type ForecastMonth,
+  type PayableProjection,
+} from "@/hooks/useDFCForecast";
 import { computeDRE, DRE_EBITDA_PIVOT, type CatInfo } from "@/lib/dre";
 import { computeHealthLevel, healthMargemPct, SEGMENT_BENCHMARKS } from "@/lib/healthScore";
 export const Route = createFileRoute("/admin/relatorios")({
@@ -18,7 +28,11 @@ export const Route = createFileRoute("/admin/relatorios")({
 
 // ─── helpers de data ──────────────────────────────────────────────────────────
 function fmtLabel(iso: string) {
-  return new Date(iso + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+  return new Date(iso + "T12:00:00").toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 // Arredonda para "cima bonito" (eixo do gráfico): 1/2/2.5/5/10 × 10^n
@@ -32,11 +46,25 @@ function niceCeil(n: number): number {
 
 // Rótulo compacto para eixo (ex.: 48000 → "48k")
 function brlK(n: number): string {
-  if (Math.abs(n) >= 1000) return (n / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "k";
+  if (Math.abs(n) >= 1000)
+    return (n / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "k";
   return String(Math.round(n));
 }
 
-const MES_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const MES_ABBR = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
 
 const PERIOD_PRESETS = [
   { label: "Este mês", start: () => firstOfMonthISO(0), end: () => todayISO() },
@@ -54,10 +82,17 @@ interface ClientRow {
   segment: string | null;
 }
 
-interface ClientPeriod { start: string; end: string }
+interface ClientPeriod {
+  start: string;
+  end: string;
+}
 
 // Ponto da série mensal (gráfico entradas × saídas)
-interface MonthPoint { label: string; ent: number; sai: number }
+interface MonthPoint {
+  label: string;
+  ent: number;
+  sai: number;
+}
 
 interface Tx {
   date: string;
@@ -92,8 +127,12 @@ interface ReportData {
 function computeReport(txs: Tx[]): ReportData {
   const receitas = txs.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
   const despesas = txs.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-  const fixos = txs.filter((t) => t.amount < 0 && t.is_recurring).reduce((s, t) => s + Math.abs(t.amount), 0);
-  const variaveis = txs.filter((t) => t.amount < 0 && !t.is_recurring).reduce((s, t) => s + Math.abs(t.amount), 0);
+  const fixos = txs
+    .filter((t) => t.amount < 0 && t.is_recurring)
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
+  const variaveis = txs
+    .filter((t) => t.amount < 0 && !t.is_recurring)
+    .reduce((s, t) => s + Math.abs(t.amount), 0);
   const catMap = new Map<string, { total: number; isReceita: boolean }>();
   for (const tx of txs) {
     const cat = tx.category || "Sem categoria";
@@ -118,7 +157,11 @@ async function fetchCategories(clientId: string): Promise<Map<string, CatInfo>> 
 }
 
 // Série mensal dentro do intervalo exportado — entradas × saídas por mês
-async function fetchMonthlySeries(clientId: string, startISO: string, endISO: string): Promise<MonthPoint[]> {
+async function fetchMonthlySeries(
+  clientId: string,
+  startISO: string,
+  endISO: string,
+): Promise<MonthPoint[]> {
   const monthKeys = isoMonthsInDateRange(startISO, endISO);
   const { data } = await supabase()
     .from("transactions")
@@ -165,7 +208,8 @@ function openPrintReport(
   closed: boolean,
   format: ReportFormat = "DFC",
 ) {
-  const docTitle = format === "DFC Gerencial" ? "Relatório Executivo · Gerencial" : "Relatório Executivo";
+  const docTitle =
+    format === "DFC Gerencial" ? "Relatório Executivo · Gerencial" : "Relatório Executivo";
   const d = computeReport(txs);
   const today = new Date().toLocaleDateString("pt-BR");
 
@@ -187,7 +231,8 @@ function openPrintReport(
   const nM = monthly.length;
   const cur = nM ? monthly[nM - 1] : null;
   const prev = nM > 1 ? monthly[nM - 2] : null;
-  const pctDelta = (c: number, p: number): number | null => (!p ? null : ((c - p) / Math.abs(p)) * 100);
+  const pctDelta = (c: number, p: number): number | null =>
+    !p ? null : ((c - p) / Math.abs(p)) * 100;
   const dRec = cur && prev ? pctDelta(cur.ent, prev.ent) : null;
   const dDes = cur && prev ? pctDelta(cur.sai, prev.sai) : null;
   const dRes = cur && prev ? pctDelta(cur.ent - cur.sai, prev.ent - prev.sai) : null;
@@ -209,22 +254,33 @@ function openPrintReport(
   // ── gráfico: entradas × saídas + linha de resultado (eixo único) ──
   const barChart = (() => {
     if (!monthly.length) return `<div class="empty">Sem histórico suficiente para o gráfico.</div>`;
-    const W = 720, H = 230, padL = 6, padR = 6, padT = 22, padB = 26;
-    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const W = 720,
+      H = 230,
+      padL = 6,
+      padR = 6,
+      padT = 22,
+      padB = 26;
+    const plotW = W - padL - padR,
+      plotH = H - padT - padB;
     const yMax = niceCeil(Math.max(...monthly.flatMap((m) => [m.ent, m.sai]), 1));
     const y = (v: number) => padT + plotH - (v / yMax) * plotH;
     const gW = plotW / monthly.length;
-    const barW = Math.min(24, (gW - 12) / 2), gap = 4, base = y(0);
-    let grid = "", bars = "";
+    const barW = Math.min(24, (gW - 12) / 2),
+      gap = 4,
+      base = y(0);
+    let grid = "",
+      bars = "";
     for (let g = 0; g <= 4; g++) {
-      const gv = (yMax / 4) * g, gy = y(gv);
+      const gv = (yMax / 4) * g,
+        gy = y(gv);
       grid += `<line x1="${padL}" y1="${gy}" x2="${W - padR}" y2="${gy}" stroke="#E5E8E2" stroke-width="1"/>`;
       grid += `<text x="${padL}" y="${gy - 4}" font-size="8.5" fill="#B7B0A0">${brlK(gv)}</text>`;
     }
     const pts: [number, number, number][] = [];
     monthly.forEach((m, i) => {
       const cx = padL + gW * i + gW / 2;
-      const ye = y(m.ent), ys = y(m.sai);
+      const ye = y(m.ent),
+        ys = y(m.sai);
       bars += `<rect x="${cx - barW - gap / 2}" y="${ye}" width="${barW}" height="${Math.max(0, base - ye)}" rx="4" fill="#284C2B"/>`;
       bars += `<rect x="${cx + gap / 2}" y="${ys}" width="${barW}" height="${Math.max(0, base - ys)}" rx="4" fill="#6D92A6"/>`;
       bars += `<text x="${cx}" y="${H - padB + 15}" font-size="9.5" fill="#5C6B78" text-anchor="middle">${m.label}</text>`;
@@ -234,15 +290,21 @@ function openPrintReport(
     let dots = "";
     pts.forEach((p, i) => {
       dots += `<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="#fff" stroke="#1C2D45" stroke-width="2"/>`;
-      if (i === pts.length - 1) dots += `<text x="${p[0]}" y="${p[1] - 8}" font-size="10" font-weight="600" fill="#1C2D45" text-anchor="middle">${brl(p[2])}</text>`;
+      if (i === pts.length - 1)
+        dots += `<text x="${p[0]}" y="${p[1] - 8}" font-size="10" font-weight="600" fill="#1C2D45" text-anchor="middle">${brl(p[2])}</text>`;
     });
     return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Entradas, saídas e resultado nos últimos meses">${grid}${bars}${line}${dots}</svg>`;
   })();
 
   const donut = (() => {
     if (compTotal <= 0) return `<div class="empty">Sem despesas no período.</div>`;
-    const r = 50, cx = 66, cy = 66, sw = 19, circ = 2 * Math.PI * r;
-    const fLen = (d.fixos / compTotal) * circ, vLen = (d.variaveis / compTotal) * circ;
+    const r = 50,
+      cx = 66,
+      cy = 66,
+      sw = 19,
+      circ = 2 * Math.PI * r;
+    const fLen = (d.fixos / compTotal) * circ,
+      vLen = (d.variaveis / compTotal) * circ;
     return `<svg viewBox="0 0 132 132" width="132" height="132" role="img" aria-label="Composição das despesas">
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#E5E8E2" stroke-width="${sw}"/>
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#1C2D45" stroke-width="${sw}" stroke-dasharray="${fLen} ${circ - fLen}" transform="rotate(-90 ${cx} ${cy})"/>
@@ -252,14 +314,17 @@ function openPrintReport(
     </svg>`;
   })();
 
-  const projCards = forecast.slice(0, 3).map((p) => {
-    const r = p.rec - p.des;
-    return `<div class="proj">
+  const projCards = forecast
+    .slice(0, 3)
+    .map((p) => {
+      const r = p.rec - p.des;
+      return `<div class="proj">
       <div class="proj-m">${p.mes}</div>
       <div class="proj-r" style="color:${r >= 0 ? "#284C2B" : "#C0392B"}">${brl(r)}</div>
       <div class="proj-sub">+${brl(p.rec)} · −${brl(p.des)}</div>
     </div>`;
-  }).join("");
+    })
+    .join("");
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -497,7 +562,17 @@ function exportExcel(
             "Parcelas Restantes": (t.installment_total ?? 0) - (t.installment_number ?? 0),
             Grupo: t.installment_group_id ?? "",
           }))
-        : [{ Data: "", Descrição: "Nenhum parcelamento neste período", "Valor Parcela": "", "Parcela Nº": "", "Total Parcelas": "", "Parcelas Restantes": "", Grupo: "" }],
+        : [
+            {
+              Data: "",
+              Descrição: "Nenhum parcelamento neste período",
+              "Valor Parcela": "",
+              "Parcela Nº": "",
+              "Total Parcelas": "",
+              "Parcelas Restantes": "",
+              Grupo: "",
+            },
+          ],
     ),
     "Parcelamentos",
   );
@@ -524,14 +599,22 @@ function exportExcel(
     for (const l of g.lines) {
       dreXlsx.push({ Linha: "", Categoria: l.cat, Valor: g.isExpense ? -l.total : l.total });
     }
-    dreXlsx.push({ Linha: `Subtotal ${g.name}`, Categoria: "", Valor: g.isExpense ? -g.subtotal : g.subtotal });
+    dreXlsx.push({
+      Linha: `Subtotal ${g.name}`,
+      Categoria: "",
+      Valor: g.isExpense ? -g.subtotal : g.subtotal,
+    });
     dreXlsx.push({ Linha: "", Categoria: "", Valor: "" });
     if (g.name === DRE_EBITDA_PIVOT) {
       dreXlsx.push({ Linha: "= RESULTADO OPERACIONAL (EBITDA)", Categoria: "", Valor: dre.ebitda });
       dreXlsx.push({ Linha: "", Categoria: "", Valor: "" });
     }
   }
-  dreXlsx.push({ Linha: "= RESULTADO LÍQUIDO DO PERÍODO", Categoria: "", Valor: dre.resultadoLiquido });
+  dreXlsx.push({
+    Linha: "= RESULTADO LÍQUIDO DO PERÍODO",
+    Categoria: "",
+    Valor: dre.resultadoLiquido,
+  });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dreXlsx), "DRE");
 
   XLSX.writeFile(wb, `Relatorio_${clientName.replace(/\s+/g, "_")}_${startDate}_${endDate}.xlsx`);
@@ -555,7 +638,7 @@ interface ExportRecord {
 type RelTab = "exportar" | "historico";
 
 const REPORT_FORMATS = ["DFC", "DFC Gerencial"] as const;
-type ReportFormat = typeof REPORT_FORMATS[number];
+type ReportFormat = (typeof REPORT_FORMATS)[number];
 
 const REL_PRESETS = [
   { label: "Mês atual", start: () => firstOfMonthISO(0), end: () => todayISO() },
@@ -590,7 +673,8 @@ function RelatoriosPage() {
         const cls = (data ?? []) as ClientRow[];
         setClients(cls);
         const defaults: Record<string, ClientPeriod> = {};
-        for (const c of cls) defaults[c.id] = { start: firstOfMonthISO(-1), end: lastOfMonthISO(-1) };
+        for (const c of cls)
+          defaults[c.id] = { start: firstOfMonthISO(-1), end: lastOfMonthISO(-1) };
         setPeriods(defaults);
         setLoading(false);
       });
@@ -603,7 +687,9 @@ function RelatoriosPage() {
   }, [filterClientId, filterStart, filterEnd]);
 
   const filteredClients = filterClientId ? clients.filter((c) => c.id === filterClientId) : clients;
-  const filteredHistory = filterClientId ? history.filter((r) => r.client_id === filterClientId) : history;
+  const filteredHistory = filterClientId
+    ? history.filter((r) => r.client_id === filterClientId)
+    : history;
 
   function loadHistory() {
     setHistLoading(true);
@@ -617,19 +703,30 @@ function RelatoriosPage() {
       });
   }
 
-  useEffect(() => { loadHistory(); }, []);
+  useEffect(() => {
+    loadHistory();
+  }, []);
 
-  async function saveExportRecord(clientId: string, clientName: string, type: "pdf" | "xlsx", p: ClientPeriod, forecast: ForecastMonth[], format: ReportFormat) {
-    await supabase().from("report_exports").insert({
-      client_id: clientId,
-      client_name: clientName,
-      type,
-      period_label: `${fmtLabel(p.start)} – ${fmtLabel(p.end)}`,
-      start_date: p.start,
-      end_date: p.end,
-      forecast_json: forecast,
-      report_format: format,
-    });
+  async function saveExportRecord(
+    clientId: string,
+    clientName: string,
+    type: "pdf" | "xlsx",
+    p: ClientPeriod,
+    forecast: ForecastMonth[],
+    format: ReportFormat,
+  ) {
+    await supabase()
+      .from("report_exports")
+      .insert({
+        client_id: clientId,
+        client_name: clientName,
+        type,
+        period_label: `${fmtLabel(p.start)} – ${fmtLabel(p.end)}`,
+        start_date: p.start,
+        end_date: p.end,
+        forecast_json: forecast,
+        report_format: format,
+      });
     loadHistory();
   }
 
@@ -647,7 +744,9 @@ function RelatoriosPage() {
   async function fetchTxs(clientId: string, p: ClientPeriod): Promise<Tx[]> {
     const { data } = await supabase()
       .from("transactions")
-      .select("date, description, amount, category, is_recurring, installment_number, installment_total, installment_group_id")
+      .select(
+        "date, description, amount, category, is_recurring, installment_number, installment_total, installment_group_id",
+      )
       .eq("client_id", clientId)
       .eq("status", "approved")
       .gte("date", p.start)
@@ -695,14 +794,23 @@ function RelatoriosPage() {
         .is("paid_at", null),
     ]);
 
-    type InstRow = { amount: number; installment_number: number; installment_total: number; date: string; installment_group_id: string };
+    type InstRow = {
+      amount: number;
+      installment_number: number;
+      installment_total: number;
+      date: string;
+      installment_group_id: string;
+    };
     const rows = (instData ?? []) as InstRow[];
     const groupMap = new Map<string, InstRow>();
     for (const row of rows) {
       const cur = groupMap.get(row.installment_group_id);
-      if (!cur || row.installment_number > cur.installment_number) groupMap.set(row.installment_group_id, row);
+      if (!cur || row.installment_number > cur.installment_number)
+        groupMap.set(row.installment_group_id, row);
     }
-    const installments = Array.from(groupMap.values()).filter((r) => r.installment_number < r.installment_total);
+    const installments = Array.from(groupMap.values()).filter(
+      (r) => r.installment_number < r.installment_total,
+    );
 
     return computeForecastMonths(
       (histData ?? []) as { date: string; amount: number; is_recurring: boolean }[],
@@ -726,7 +834,16 @@ function RelatoriosPage() {
       fetchClosingStatus(clientId, p.end),
     ]);
     setExporting((e) => ({ ...e, [clientId]: null }));
-    openPrintReport(client.name, `${fmtLabel(p.start)} – ${fmtLabel(p.end)}`, txs, forecast, client.segment, monthly, closed, "DFC Gerencial");
+    openPrintReport(
+      client.name,
+      `${fmtLabel(p.start)} – ${fmtLabel(p.end)}`,
+      txs,
+      forecast,
+      client.segment,
+      monthly,
+      closed,
+      "DFC Gerencial",
+    );
     await saveExportRecord(clientId, client.name, "pdf", p, forecast, "DFC Gerencial");
   }
 
@@ -742,7 +859,17 @@ function RelatoriosPage() {
       fetchCategories(clientId),
       fetchRevenues(clientId, p),
     ]);
-    exportExcel(client.name, `${fmtLabel(p.start)} – ${fmtLabel(p.end)}`, p.start, p.end, txs, forecast, catMap, revenues, "DFC Gerencial");
+    exportExcel(
+      client.name,
+      `${fmtLabel(p.start)} – ${fmtLabel(p.end)}`,
+      p.start,
+      p.end,
+      txs,
+      forecast,
+      catMap,
+      revenues,
+      "DFC Gerencial",
+    );
     setExporting((e) => ({ ...e, [clientId]: null }));
     await saveExportRecord(clientId, client.name, "xlsx", p, forecast, "DFC Gerencial");
   }
@@ -758,16 +885,35 @@ function RelatoriosPage() {
       fetchCategories(r.client_id),
       fetchRevenues(r.client_id, p),
     ]);
-    const forecast = r.forecast_json ?? await fetchForecast(r.client_id, p);
+    const forecast = r.forecast_json ?? (await fetchForecast(r.client_id, p));
     if (r.type === "pdf") {
       const [monthly, closed] = await Promise.all([
         fetchMonthlySeries(r.client_id, r.start_date, r.end_date),
         fetchClosingStatus(r.client_id, r.end_date),
       ]);
       const segment = clients.find((c) => c.id === r.client_id)?.segment ?? null;
-      openPrintReport(r.client_name, r.period_label, txs, forecast, segment, monthly, closed, format);
+      openPrintReport(
+        r.client_name,
+        r.period_label,
+        txs,
+        forecast,
+        segment,
+        monthly,
+        closed,
+        format,
+      );
     } else {
-      exportExcel(r.client_name, r.period_label, r.start_date, r.end_date, txs, forecast, catMap, revenues, format);
+      exportExcel(
+        r.client_name,
+        r.period_label,
+        r.start_date,
+        r.end_date,
+        txs,
+        forecast,
+        catMap,
+        revenues,
+        format,
+      );
     }
     setReexporting(null);
   }
@@ -785,11 +931,18 @@ function RelatoriosPage() {
               value={filterClientId}
               onChange={(e) => setFilterClientId(e.target.value)}
               className="text-[12px] bg-white px-3 py-2 outline-none"
-              style={{ border: "1px solid var(--line)", borderRadius: "var(--radius-md)", color: "var(--foreground)", minWidth: 180 }}
+              style={{
+                border: "1px solid var(--line)",
+                borderRadius: "var(--radius-md)",
+                color: "var(--foreground)",
+                minWidth: 180,
+              }}
             >
               <option value="">Todos os clientes</option>
               {clients.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
               ))}
             </select>
             <FilterMenu label="Período" valueLabel={activePreset} minWidth={200}>
@@ -814,8 +967,14 @@ function RelatoriosPage() {
               startDate={filterStart}
               endDate={filterEnd}
               maxDate={todayISO()}
-              onStartChange={(d) => { setFilterStart(d); setActivePreset("Personalizado"); }}
-              onEndChange={(d) => { setFilterEnd(d); setActivePreset("Personalizado"); }}
+              onStartChange={(d) => {
+                setFilterStart(d);
+                setActivePreset("Personalizado");
+              }}
+              onEndChange={(d) => {
+                setFilterEnd(d);
+                setActivePreset("Personalizado");
+              }}
             />
             <div className="flex flex-wrap gap-1.5">
               {REL_PRESETS.map((preset) => (
@@ -846,7 +1005,12 @@ function RelatoriosPage() {
 
       {/* Abas — sem linha divisória */}
       <div className="aurora-page-tabs">
-        {([{ key: "exportar", label: "Exportar" }, { key: "historico", label: "Histórico" }] as { key: RelTab; label: string }[]).map((tab) => (
+        {(
+          [
+            { key: "exportar", label: "Exportar" },
+            { key: "historico", label: "Histórico" },
+          ] as { key: RelTab; label: string }[]
+        ).map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
@@ -874,7 +1038,11 @@ function RelatoriosPage() {
               <thead>
                 <tr style={{ background: "var(--offwhite)" }}>
                   {["Cliente", "Período", "Último extrato", "Formato", "Exportar"].map((h) => (
-                    <th key={h} className="text-left px-6 py-3 aurora-cap" style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}>
+                    <th
+                      key={h}
+                      className="text-left px-6 py-3 aurora-cap"
+                      style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}
+                    >
                       {h}
                     </th>
                   ))}
@@ -883,84 +1051,159 @@ function RelatoriosPage() {
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                    <td
+                      colSpan={5}
+                      className="px-6 py-10 text-center text-[12px]"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
                       Carregando clientes...
                     </td>
                   </tr>
                 )}
                 {!loading && clients.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                    <td
+                      colSpan={5}
+                      className="px-6 py-10 text-center text-[12px]"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
                       Nenhum cliente cadastrado.
                     </td>
                   </tr>
                 )}
-                {!loading && filteredClients.map((c, i) => {
-                  const p = periods[c.id] ?? { start: firstOfMonthISO(-1), end: lastOfMonthISO(-1) };
-                  const hasData = !!c.last_upload_at;
-                  const isExp = exporting[c.id];
-                  return (
-                    <tr key={c.id} style={{ background: i % 2 === 0 ? "#fff" : "#FAFBFA", borderTop: "1px solid var(--line)" }}>
-                      <td className="px-6 py-4 text-[13px]" style={{ fontWeight: 500 }}>{c.name}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[10px] uppercase" style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)", fontWeight: 500 }}>De</span>
-                          <DateInput
-                            value={p.start}
-                            max={p.end}
-                            onChange={(iso) => setPeriod(c.id, "start", iso)}
-                            className="text-[11px] px-2 py-1 outline-none"
-                            style={{ border: "1px solid var(--line)", color: "var(--foreground)", background: "#fff", minWidth: 120 }}
-                          />
-                          <span className="text-[10px] uppercase" style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)", fontWeight: 500 }}>Até</span>
-                          <DateInput
-                            value={p.end}
-                            min={p.start}
-                            max={todayISO()}
-                            onChange={(iso) => setPeriod(c.id, "end", iso)}
-                            className="text-[11px] px-2 py-1 outline-none"
-                            style={{ border: "1px solid var(--line)", color: "var(--foreground)", background: "#fff", minWidth: 120 }}
-                          />
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                        {c.last_upload_at ? `Importado em ${formatDatePtBR(c.last_upload_at)}` : "—"}
-                      </td>
-                      <td className="px-6 py-4">
-                        {hasData ? (
-                          <span
-                            className="text-[10px] uppercase px-3 py-1.5"
-                            style={{ letterSpacing: "1.5px", fontWeight: 500, background: "var(--navy)", color: "#fff", border: "1px solid var(--navy)" , borderRadius: 999 }}
-                          >
-                            DFC + Gerencial
-                          </span>
-                        ) : (
-                          <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Sem dados</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handlePDF(c.id)}
-                            disabled={!hasData || !!isExp}
-                            className="text-[10px] uppercase px-3 py-1.5 disabled:opacity-40 transition-opacity"
-                            style={{ border: "1px solid var(--navy)", color: "var(--navy)", letterSpacing: "1.5px" , borderRadius: 12 }}
-                          >
-                            {isExp === "pdf" ? "..." : "PDF ↓"}
-                          </button>
-                          <button
-                            onClick={() => handleExcel(c.id)}
-                            disabled={!hasData || !!isExp}
-                            className="text-[10px] uppercase px-3 py-1.5 disabled:opacity-40 transition-opacity"
-                            style={{ border: "1px solid var(--green)", color: "var(--green)", letterSpacing: "1.5px" , borderRadius: 12 }}
-                          >
-                            {isExp === "excel" ? "..." : "Excel ↓"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {!loading &&
+                  filteredClients.map((c, i) => {
+                    const p = periods[c.id] ?? {
+                      start: firstOfMonthISO(-1),
+                      end: lastOfMonthISO(-1),
+                    };
+                    const hasData = !!c.last_upload_at;
+                    const isExp = exporting[c.id];
+                    return (
+                      <tr
+                        key={c.id}
+                        style={{
+                          background: i % 2 === 0 ? "#fff" : "#FAFBFA",
+                          borderTop: "1px solid var(--line)",
+                        }}
+                      >
+                        <td className="px-6 py-4 text-[13px]" style={{ fontWeight: 500 }}>
+                          {c.name}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className="text-[10px] uppercase"
+                              style={{
+                                letterSpacing: "1.5px",
+                                color: "var(--muted-foreground)",
+                                fontWeight: 500,
+                              }}
+                            >
+                              De
+                            </span>
+                            <DateInput
+                              value={p.start}
+                              max={p.end}
+                              onChange={(iso) => setPeriod(c.id, "start", iso)}
+                              className="text-[11px] px-2 py-1 outline-none"
+                              style={{
+                                border: "1px solid var(--line)",
+                                color: "var(--foreground)",
+                                background: "#fff",
+                                minWidth: 120,
+                              }}
+                            />
+                            <span
+                              className="text-[10px] uppercase"
+                              style={{
+                                letterSpacing: "1.5px",
+                                color: "var(--muted-foreground)",
+                                fontWeight: 500,
+                              }}
+                            >
+                              Até
+                            </span>
+                            <DateInput
+                              value={p.end}
+                              min={p.start}
+                              max={todayISO()}
+                              onChange={(iso) => setPeriod(c.id, "end", iso)}
+                              className="text-[11px] px-2 py-1 outline-none"
+                              style={{
+                                border: "1px solid var(--line)",
+                                color: "var(--foreground)",
+                                background: "#fff",
+                                minWidth: 120,
+                              }}
+                            />
+                          </div>
+                        </td>
+                        <td
+                          className="px-6 py-4 text-[12px]"
+                          style={{ color: "var(--muted-foreground)" }}
+                        >
+                          {c.last_upload_at
+                            ? `Importado em ${formatDatePtBR(c.last_upload_at)}`
+                            : "—"}
+                        </td>
+                        <td className="px-6 py-4">
+                          {hasData ? (
+                            <span
+                              className="text-[10px] uppercase px-3 py-1.5"
+                              style={{
+                                letterSpacing: "1.5px",
+                                fontWeight: 500,
+                                background: "var(--navy)",
+                                color: "#fff",
+                                border: "1px solid var(--navy)",
+                                borderRadius: 999,
+                              }}
+                            >
+                              DFC + Gerencial
+                            </span>
+                          ) : (
+                            <span
+                              className="text-[11px]"
+                              style={{ color: "var(--muted-foreground)" }}
+                            >
+                              Sem dados
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handlePDF(c.id)}
+                              disabled={!hasData || !!isExp}
+                              className="text-[10px] uppercase px-3 py-1.5 disabled:opacity-40 transition-opacity"
+                              style={{
+                                border: "1px solid var(--navy)",
+                                color: "var(--navy)",
+                                letterSpacing: "1.5px",
+                                borderRadius: 12,
+                              }}
+                            >
+                              {isExp === "pdf" ? "..." : "PDF ↓"}
+                            </button>
+                            <button
+                              onClick={() => handleExcel(c.id)}
+                              disabled={!hasData || !!isExp}
+                              className="text-[10px] uppercase px-3 py-1.5 disabled:opacity-40 transition-opacity"
+                              style={{
+                                border: "1px solid var(--green)",
+                                color: "var(--green)",
+                                letterSpacing: "1.5px",
+                                borderRadius: 12,
+                              }}
+                            >
+                              {isExp === "excel" ? "..." : "Excel ↓"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
@@ -973,7 +1216,11 @@ function RelatoriosPage() {
               <thead>
                 <tr style={{ background: "var(--offwhite)" }}>
                   {["Cliente", "Período", "Tipo", "Formato", "Exportado em", ""].map((h) => (
-                    <th key={h} className="text-left px-6 py-3 aurora-cap" style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}>
+                    <th
+                      key={h}
+                      className="text-left px-6 py-3 aurora-cap"
+                      style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}
+                    >
                       {h}
                     </th>
                   ))}
@@ -981,58 +1228,101 @@ function RelatoriosPage() {
               </thead>
               <tbody>
                 {histLoading && (
-                  <tr><td colSpan={6} className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>Carregando...</td></tr>
-                )}
-                {!histLoading && filteredHistory.length === 0 && (
-                  <tr><td colSpan={6} className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>Nenhum relatório exportado ainda.</td></tr>
-                )}
-                {!histLoading && filteredHistory.map((r, i) => (
-                  <tr key={r.id} style={{ background: i % 2 === 0 ? "#fff" : "#FAFBFA", borderTop: "1px solid var(--line)" }}>
-                    <td className="px-6 py-3 text-[13px]" style={{ fontWeight: 500 }}>{r.client_name}</td>
-                    <td className="px-6 py-3 text-[12px]">{r.period_label}</td>
-                    <td className="px-6 py-3">
-                      <span
-                        className="text-[10px] uppercase px-2 py-0.5"
-                        style={{
-                          border: `1px solid ${r.type === "pdf" ? "var(--navy)" : "var(--green)"}`,
-                          color: r.type === "pdf" ? "var(--navy)" : "var(--green)",
-                          borderRadius: 999,
-                          letterSpacing: "1.5px",
-                        }}
-                      >
-                        {r.type === "pdf" ? "PDF" : "Excel"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3">
-                      <span
-                        className="text-[10px] px-2 py-0.5"
-                        style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", borderRadius: 999, letterSpacing: "0.5px" }}
-                      >
-                        {r.report_format ?? "DFC"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                      {new Date(r.exported_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    </td>
-                    <td className="px-6 py-3 text-right whitespace-nowrap">
-                      <button
-                        onClick={() => handleReexport(r)}
-                        disabled={reexporting === r.id}
-                        className="aurora-link text-[11px] mr-4 disabled:opacity-40"
-                      >
-                        {reexporting === r.id ? "..." : r.type === "pdf" ? "Abrir PDF" : "Baixar Excel"}
-                      </button>
-                      <button
-                        onClick={() => deleteExportRecord(r.id)}
-                        disabled={deletingId === r.id}
-                        className="text-[11px] transition-opacity hover:opacity-70 disabled:opacity-40"
-                        style={{ color: "var(--tan)" }}
-                      >
-                        {deletingId === r.id ? "..." : "Excluir"}
-                      </button>
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-6 py-10 text-center text-[12px]"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
+                      Carregando...
                     </td>
                   </tr>
-                ))}
+                )}
+                {!histLoading && filteredHistory.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-6 py-10 text-center text-[12px]"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
+                      Nenhum relatório exportado ainda.
+                    </td>
+                  </tr>
+                )}
+                {!histLoading &&
+                  filteredHistory.map((r, i) => (
+                    <tr
+                      key={r.id}
+                      style={{
+                        background: i % 2 === 0 ? "#fff" : "#FAFBFA",
+                        borderTop: "1px solid var(--line)",
+                      }}
+                    >
+                      <td className="px-6 py-3 text-[13px]" style={{ fontWeight: 500 }}>
+                        {r.client_name}
+                      </td>
+                      <td className="px-6 py-3 text-[12px]">{r.period_label}</td>
+                      <td className="px-6 py-3">
+                        <span
+                          className="text-[10px] uppercase px-2 py-0.5"
+                          style={{
+                            border: `1px solid ${r.type === "pdf" ? "var(--navy)" : "var(--green)"}`,
+                            color: r.type === "pdf" ? "var(--navy)" : "var(--green)",
+                            borderRadius: 999,
+                            letterSpacing: "1.5px",
+                          }}
+                        >
+                          {r.type === "pdf" ? "PDF" : "Excel"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3">
+                        <span
+                          className="text-[10px] px-2 py-0.5"
+                          style={{
+                            border: "1px solid var(--line)",
+                            color: "var(--muted-foreground)",
+                            borderRadius: 999,
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          {r.report_format ?? "DFC"}
+                        </span>
+                      </td>
+                      <td
+                        className="px-6 py-3 text-[12px]"
+                        style={{ color: "var(--muted-foreground)" }}
+                      >
+                        {new Date(r.exported_at).toLocaleString("pt-BR", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td className="px-6 py-3 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => handleReexport(r)}
+                          disabled={reexporting === r.id}
+                          className="aurora-link text-[11px] mr-4 disabled:opacity-40"
+                        >
+                          {reexporting === r.id
+                            ? "..."
+                            : r.type === "pdf"
+                              ? "Abrir PDF"
+                              : "Baixar Excel"}
+                        </button>
+                        <button
+                          onClick={() => deleteExportRecord(r.id)}
+                          disabled={deletingId === r.id}
+                          className="text-[11px] transition-opacity hover:opacity-70 disabled:opacity-40"
+                          style={{ color: "var(--tan)" }}
+                        >
+                          {deletingId === r.id ? "..." : "Excluir"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>

@@ -104,7 +104,8 @@ export function LeadForm() {
             color: "#fff",
             letterSpacing: "2.5px",
             fontWeight: 500,
-          borderRadius: 999 }}
+            borderRadius: 999,
+          }}
         >
           Falar agora pelo WhatsApp →
         </a>
@@ -150,7 +151,12 @@ export function LeadForm() {
       </Field>
 
       <Field label="E-mail (opcional)" error={errors.email?.message}>
-        <input type="email" {...register("email")} className="aurora-input" placeholder="você@empresa.com.br" />
+        <input
+          type="email"
+          {...register("email")}
+          className="aurora-input"
+          placeholder="você@empresa.com.br"
+        />
       </Field>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -158,7 +164,12 @@ export function LeadForm() {
           <input type="text" {...register("company")} className="aurora-input" />
         </Field>
         <Field label="Ramo / segmento" error={errors.segment?.message}>
-          <input type="text" {...register("segment")} className="aurora-input" placeholder="Ex: restaurante, clínica…" />
+          <input
+            type="text"
+            {...register("segment")}
+            className="aurora-input"
+            placeholder="Ex: restaurante, clínica…"
+          />
         </Field>
       </div>
 
@@ -182,11 +193,12 @@ export function LeadForm() {
         />
       </Field>
 
-      <label className="flex items-start gap-2 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+      <label
+        className="flex items-start gap-2 text-[12px]"
+        style={{ color: "var(--muted-foreground)" }}
+      >
         <input type="checkbox" {...register("consent_lgpd")} className="mt-1" />
-        <span>
-          Autorizo a Aurora a entrar em contato sobre meu interesse. (LGPD)
-        </span>
+        <span>Autorizo a Aurora a entrar em contato sobre meu interesse. (LGPD)</span>
       </label>
       {errors.consent_lgpd && (
         <span className="text-[11px]" style={{ color: "var(--destructive)" }}>
@@ -209,7 +221,8 @@ export function LeadForm() {
           color: "#fff",
           letterSpacing: "2.5px",
           fontWeight: 500,
-        borderRadius: 999 }}
+          borderRadius: 999,
+        }}
       >
         {status === "loading" ? "Enviando…" : "Quero ver com clareza →"}
       </button>

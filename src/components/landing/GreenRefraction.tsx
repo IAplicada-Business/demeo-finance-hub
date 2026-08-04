@@ -68,7 +68,13 @@ export function GreenRefraction({ className }: { className?: string }) {
         />
 
         {/* Símbolo Aurora gigante (3 arcos + ponto âncora) */}
-        <g transform="translate(300, 460)" stroke="rgba(255,255,255,0.18)" strokeWidth="2" fill="none" strokeLinecap="round">
+        <g
+          transform="translate(300, 460)"
+          stroke="rgba(255,255,255,0.18)"
+          strokeWidth="2"
+          fill="none"
+          strokeLinecap="round"
+        >
           <path d="M-110,0 A110,110 0 0 1 110,0" />
           <path d="M-80,0 A80,80 0 0 1 80,0" opacity="0.7" />
           <path d="M-48,0 A48,48 0 0 1 48,0" opacity="0.45" />

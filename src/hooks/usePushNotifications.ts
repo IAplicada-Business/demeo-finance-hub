@@ -15,9 +15,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 export function usePushNotifications() {
-  const [isSupported] = useState(
-    () => "serviceWorker" in navigator && "PushManager" in window
-  );
+  const [isSupported] = useState(() => "serviceWorker" in navigator && "PushManager" in window);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -66,10 +64,7 @@ export function usePushNotifications() {
       const sub = await reg.pushManager.getSubscription();
       if (!sub) return;
       await sub.unsubscribe();
-      await supabase()
-        .from("push_subscriptions")
-        .delete()
-        .eq("endpoint", sub.endpoint);
+      await supabase().from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
       setIsSubscribed(false);
     } finally {
       setLoading(false);

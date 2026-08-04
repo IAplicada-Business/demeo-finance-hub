@@ -59,7 +59,11 @@ function pingAlert(source: string, message: string, detail?: string): void {
     // sendBeacon com string envia text/plain; Blob garante application/json para o n8n parsear corretamente
     navigator.sendBeacon(alertUrl, new Blob([body], { type: "application/json" }));
   } catch {
-    fetch(alertUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body }).catch(() => {});
+    fetch(alertUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    }).catch(() => {});
   }
 }
 
@@ -116,10 +120,7 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
               }}
             >
               Atualizando a{" "}
-              <em style={{ fontStyle: "italic", color: "var(--green, #4A6741)" }}>
-                Aurora
-              </em>
-              …
+              <em style={{ fontStyle: "italic", color: "var(--green, #4A6741)" }}>Aurora</em>…
             </h1>
             <p
               className="mt-5"
@@ -187,11 +188,7 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
                 color: "var(--foreground, #1C1C19)",
               }}
             >
-              Um{" "}
-              <em style={{ fontStyle: "italic", color: "var(--green, #4A6741)" }}>
-                instante
-              </em>
-              .
+              Um <em style={{ fontStyle: "italic", color: "var(--green, #4A6741)" }}>instante</em>.
             </h1>
             <p
               className="mt-5"
@@ -201,8 +198,8 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
                 lineHeight: 1.7,
               }}
             >
-              Aconteceu um erro inesperado por aqui. Tenta de novo — se persistir,
-              chama a Claudia no WhatsApp.
+              Aconteceu um erro inesperado por aqui. Tenta de novo — se persistir, chama a Claudia
+              no WhatsApp.
             </p>
 
             {isDev && error.message && (
@@ -279,9 +276,7 @@ if (typeof window !== "undefined") {
   window.addEventListener("unhandledrejection", (e) => {
     const reason = e.reason;
     const err =
-      reason instanceof Error
-        ? reason
-        : new Error(typeof reason === "string" ? reason : "");
+      reason instanceof Error ? reason : new Error(typeof reason === "string" ? reason : "");
     if (!isChunkLoadError(err)) {
       pingAlert("unhandledrejection", err.message);
       return;

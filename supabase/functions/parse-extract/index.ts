@@ -16,8 +16,11 @@ async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
       return await fn();
     } catch (err) {
       if (attempt === maxAttempts) throw err;
-      console.error(`[parse-extract] Claude call attempt ${attempt} failed, retrying in ${2 ** (attempt - 1)}s:`, err);
-      await new Promise(r => setTimeout(r, 1000 * 2 ** (attempt - 1)));
+      console.error(
+        `[parse-extract] Claude call attempt ${attempt} failed, retrying in ${2 ** (attempt - 1)}s:`,
+        err,
+      );
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** (attempt - 1)));
     }
   }
   throw new Error("unreachable");
@@ -122,7 +125,11 @@ const KNOWN_BANKS = Object.values(KEY_TO_DISPLAY);
 const BANK_PLACEHOLDER = "Identificando…";
 
 function bankKey(name: string): string {
-  return name.toLowerCase().trim().normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "");
+  return name
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(new RegExp("[\\u0300-\\u036f]", "g"), "");
 }
 function isConfiguredBank(name?: string | null): boolean {
   return !!name && !!BANK_CONFIGS[bankKey(name)];
@@ -164,7 +171,9 @@ function parseCSVAuto(text: string): { bank: string; transactions: ParsedTransac
     try {
       const txs = parseCSV(text, key);
       if (txs.length > 0 && (!best || txs.length > best.txs.length)) best = { key, txs };
-    } catch { /* config não aplicável a este arquivo */ }
+    } catch {
+      /* config não aplicável a este arquivo */
+    }
   }
   if (!best) return null;
   const bank = KEY_TO_DISPLAY[best.key] ?? best.key;
@@ -212,7 +221,10 @@ function parseCSVLine(line: string, sep: string): string[] {
     const ch = line[i];
     if (inQuote) {
       if (ch === '"') {
-        if (line[i + 1] === '"') { cur += '"'; i++; } // escaped quote ""
+        if (line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } // escaped quote ""
         else inQuote = false;
       } else {
         cur += ch;
@@ -293,11 +305,15 @@ function parseXLSX(buffer: ArrayBuffer, bankName: string): ParsedTransaction[] {
     }
   }
 
-  const rawHeader = Array.isArray(rows[headerRow]) ? rows[headerRow] as unknown[] : [];
+  const rawHeader = Array.isArray(rows[headerRow]) ? (rows[headerRow] as unknown[]) : [];
   const header = Array.from(rawHeader, (h) => cellText(h).toLowerCase());
   const colDate = header.findIndex((h) => h.includes("data"));
-  const colDesc = header.findIndex((h) => h.includes("descri") || h.includes("hist") || h.includes("lança"));
-  const colAmount = header.findIndex((h) => h.includes("valor") || h.includes("quantia") || h.includes("amount"));
+  const colDesc = header.findIndex(
+    (h) => h.includes("descri") || h.includes("hist") || h.includes("lança"),
+  );
+  const colAmount = header.findIndex(
+    (h) => h.includes("valor") || h.includes("quantia") || h.includes("amount"),
+  );
 
   if (colDate === -1 || colDesc === -1 || colAmount === -1) {
     for (let i = headerRow + 1; i < rows.length; i++) {
@@ -379,7 +395,7 @@ async function parseWithAI(
 
   if (buffer.byteLength > MAX_PDF_BYTES) {
     throw new Error(
-      `Arquivo muito grande (${(buffer.byteLength / 1024 / 1024).toFixed(1)} MB). O limite é 20 MB. Reduza o PDF e tente novamente.`
+      `Arquivo muito grande (${(buffer.byteLength / 1024 / 1024).toFixed(1)} MB). O limite é 20 MB. Reduza o PDF e tente novamente.`,
     );
   }
 
@@ -452,13 +468,16 @@ Regras:
           ],
         },
       ],
-    })
+    }),
   );
 
   const raw = content[0].type === "text" ? content[0].text.trim() : "{}";
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    console.error("[parse-extract] AI response had no JSON object. Raw (first 300 chars):", raw.slice(0, 300));
+    console.error(
+      "[parse-extract] AI response had no JSON object. Raw (first 300 chars):",
+      raw.slice(0, 300),
+    );
     return { transactions: [], detectedBank: null };
   }
 
@@ -466,7 +485,10 @@ Regras:
   try {
     parsed = JSON.parse(jsonMatch[0]);
   } catch (e) {
-    console.error("[parse-extract] AI returned unparseable JSON. Raw (first 300 chars):", jsonMatch[0].slice(0, 300));
+    console.error(
+      "[parse-extract] AI returned unparseable JSON. Raw (first 300 chars):",
+      jsonMatch[0].slice(0, 300),
+    );
     console.error("[parse-extract] JSON.parse error:", e);
     return { transactions: [], detectedBank: null };
   }
@@ -494,7 +516,8 @@ Regras:
   const transactions = (parsed.transactions ?? [])
     .filter((t) => {
       const ok = t.date && t.description && typeof t.amount === "number" && t.amount !== 0;
-      if (!ok) console.error("[parse-extract] AI returned invalid transaction row:", JSON.stringify(t));
+      if (!ok)
+        console.error("[parse-extract] AI returned invalid transaction row:", JSON.stringify(t));
       return ok;
     })
     .map((t) => ({
@@ -515,7 +538,10 @@ Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(origin);
 
   try {
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
 
     const { upload_id } = await req.json();
 
@@ -584,7 +610,10 @@ Deno.serve(async (req) => {
       }
       if (transactions.length === 0) {
         const auto = parseCSVAuto(text);
-        if (auto) { transactions = auto.transactions; resolvedBank = auto.bank; }
+        if (auto) {
+          transactions = auto.transactions;
+          resolvedBank = auto.bank;
+        }
       }
     } else if (filename.endsWith(".xlsx") || filename.endsWith(".xls")) {
       const buffer = await fileData.arrayBuffer();
@@ -594,8 +623,13 @@ Deno.serve(async (req) => {
         const wb = XLSX.read(buffer, { type: "array" });
         const sn = wb.SheetNames[0];
         if (sn) sheetText = XLSX.utils.sheet_to_csv(wb.Sheets[sn]);
-      } catch { /* ignora — usa hint/fallback */ }
-      resolvedBank = (isConfiguredBank(hint) ? displayBank(hint!) : null) ?? detectBankName(sheetText) ?? "Outro";
+      } catch {
+        /* ignora — usa hint/fallback */
+      }
+      resolvedBank =
+        (isConfiguredBank(hint) ? displayBank(hint!) : null) ??
+        detectBankName(sheetText) ??
+        "Outro";
     } else if (
       filename.endsWith(".pdf") ||
       filename.endsWith(".png") ||
@@ -628,7 +662,8 @@ Deno.serve(async (req) => {
         .from("uploads")
         .update({
           status: "error",
-          error_message: "Nenhum lançamento encontrado no arquivo. Verifique se é um extrato bancário válido.",
+          error_message:
+            "Nenhum lançamento encontrado no arquivo. Verifique se é um extrato bancário válido.",
         })
         .eq("id", upload_id);
       return new Response(JSON.stringify({ error: "Nenhum lançamento encontrado" }), {
@@ -662,10 +697,10 @@ Deno.serve(async (req) => {
       .in("status", ["approved", "pending", "classified"]);
 
     const existingKeys = new Set(
-      (existing ?? []).map((t) => `${t.date}|${t.amount}|${t.description}|${t.bank ?? ""}`)
+      (existing ?? []).map((t) => `${t.date}|${t.amount}|${t.description}|${t.bank ?? ""}`),
     );
     const deduped = txRows.filter(
-      (t) => !existingKeys.has(`${t.date}|${t.amount}|${t.description}|${t.bank ?? ""}`)
+      (t) => !existingKeys.has(`${t.date}|${t.amount}|${t.description}|${t.bank ?? ""}`),
     );
     const duplicatesCount = txRows.length - deduped.length;
 
@@ -710,14 +745,16 @@ Deno.serve(async (req) => {
         (lt) =>
           Math.abs(Math.abs(lt.amount) - Math.abs(t.amount)) <= 0.01 &&
           daysApart(lt.date, t.date) <= 3 &&
-          descOverlap(lt.description ?? "", t.description ?? "")
+          descOverlap(lt.description ?? "", t.description ?? ""),
       );
       if (dup) payableDupSkipped++;
       return !dup;
     });
 
     if (payableDupSkipped > 0) {
-      console.log(`[parse-extract] ${payableDupSkipped} lançamento(s) ignorado(s) — já quitado na agenda`);
+      console.log(
+        `[parse-extract] ${payableDupSkipped} lançamento(s) ignorado(s) — já quitado na agenda`,
+      );
     }
 
     if (afterPayableDup.length === 0) {
@@ -730,7 +767,7 @@ Deno.serve(async (req) => {
         .eq("id", upload_id);
       return new Response(
         JSON.stringify({ error: "Arquivo duplicado: todos os lançamentos já existem" }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 

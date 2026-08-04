@@ -1,4 +1,5 @@
 # Módulo 01 · Importação Inteligente de Extratos
+
 ### Plano de Execução e Testes — Aurora
 
 > Sprint 1 · MVP  
@@ -65,6 +66,7 @@ sequenceDiagram
 ### Etapa 1 — Supabase (via Cloud Lovable)
 
 #### 1.1 Storage
+
 - Criar bucket `extratos` (privado)
 - Política: somente admin pode fazer upload
 
@@ -155,25 +157,26 @@ Detecta o formato pelo nome do arquivo e normaliza para saída padrão:
 
 ```typescript
 interface ParsedTransaction {
-  date: string          // 'YYYY-MM-DD'
-  description: string   // texto limpo
-  raw_description: string
-  amount: number        // positivo = receita, negativo = despesa
-  bank: string
+  date: string; // 'YYYY-MM-DD'
+  description: string; // texto limpo
+  raw_description: string;
+  amount: number; // positivo = receita, negativo = despesa
+  bank: string;
 }
 ```
 
 Mapeamento de bancos (CSV):
 
-| Banco | Formato de data | Separador |
-|-------|----------------|-----------|
-| Itaú | DD/MM/AAAA | `;` |
-| Bradesco | DD/MM/AAAA | `;` |
-| Nubank | AAAA-MM-DD | `,` |
-| Inter | DD/MM/AAAA | `,` |
-| Banco do Brasil | DD/MM/AAAA | `\t` |
+| Banco           | Formato de data | Separador |
+| --------------- | --------------- | --------- |
+| Itaú            | DD/MM/AAAA      | `;`       |
+| Bradesco        | DD/MM/AAAA      | `;`       |
+| Nubank          | AAAA-MM-DD      | `,`       |
+| Inter           | DD/MM/AAAA      | `,`       |
+| Banco do Brasil | DD/MM/AAAA      | `\t`      |
 
 Lógica por formato:
+
 - **CSV** → papaparse + normalização por banco
 - **XLSX** → SheetJS / ExcelJS, lê primeira aba
 - **PDF** → pdf-parse + regex por banco
@@ -192,6 +195,7 @@ Ordem de prioridade na classificação:
 ```
 
 Prompt Claude (compacto):
+
 ```
 Classifique cada lançamento. SOMENTE JSON array de retorno.
 Categorias: Receita · Vendas, Receita · Serviços, Receita · Delivery,
@@ -233,14 +237,15 @@ Nodes em ordem:
 
 Substituições do mock atual:
 
-| Mock hoje | Implementação real |
-|-----------|-------------------|
-| `setTimeout` simulando estágios | Supabase Realtime em `uploads.status` |
-| `mockResultados` hardcoded | Query `transactions` por `upload_id` |
-| Botão "Aprovar" sem ação | `UPDATE status=approved` + INSERT em `classification_rules` |
-| Seleção de banco sem persistência | INSERT em `client_banks` |
+| Mock hoje                         | Implementação real                                          |
+| --------------------------------- | ----------------------------------------------------------- |
+| `setTimeout` simulando estágios   | Supabase Realtime em `uploads.status`                       |
+| `mockResultados` hardcoded        | Query `transactions` por `upload_id`                        |
+| Botão "Aprovar" sem ação          | `UPDATE status=approved` + INSERT em `classification_rules` |
+| Seleção de banco sem persistência | INSERT em `client_banks`                                    |
 
 Fluxo UI:
+
 ```
 1. Claudia seleciona cliente + banco + arquivo
 2. UI faz upload para Storage: extratos/{client_id}/{upload_id}/{filename}
@@ -261,38 +266,38 @@ Fluxo UI:
 
 ```typescript
 // parsers/csv.test.ts
-describe('Parser CSV', () => {
-  it('Nubank (AAAA-MM-DD, vírgula)')
-  it('Itaú (DD/MM/AAAA, ponto-e-vírgula)')
-  it('Bradesco (DD/MM/AAAA, ponto-e-vírgula)')
-  it('valor negativo = despesa')
-  it('valor positivo = receita')
-  it('ignora linhas de cabeçalho/saldo/total')
-})
+describe("Parser CSV", () => {
+  it("Nubank (AAAA-MM-DD, vírgula)");
+  it("Itaú (DD/MM/AAAA, ponto-e-vírgula)");
+  it("Bradesco (DD/MM/AAAA, ponto-e-vírgula)");
+  it("valor negativo = despesa");
+  it("valor positivo = receita");
+  it("ignora linhas de cabeçalho/saldo/total");
+});
 
 // ai/classify.test.ts
-describe('Classificação', () => {
-  it('aplica regra salva antes de chamar IA')
-  it('confiança < 70% → status=pending')
-  it('batch não ultrapassa 50 transações por chamada')
-  it('salvar aprovação → INSERT classification_rules')
-  it('mês seguinte: regra aplica automaticamente')
-})
+describe("Classificação", () => {
+  it("aplica regra salva antes de chamar IA");
+  it("confiança < 70% → status=pending");
+  it("batch não ultrapassa 50 transações por chamada");
+  it("salvar aprovação → INSERT classification_rules");
+  it("mês seguinte: regra aplica automaticamente");
+});
 ```
 
 ### Integração
 
-| Cenário | Entrada | Esperado |
-|---------|---------|----------|
-| CSV Nubank válido | `nubank_abril.csv` | Lançamentos corretos, datas ISO |
-| CSV Itaú com linhas de saldo | `itau_extrato.csv` | Linhas de saldo ignoradas |
-| XLSX com múltiplas abas | `extrato.xlsx` | Lê somente primeira aba |
-| PDF Bradesco (texto) | `bradesco.pdf` | Extrai via regex |
-| Imagem legível | `foto_extrato.jpg` | Claude Vision extrai dados |
-| Imagem ilegível | `foto_borrada.jpg` | status=error, mensagem clara |
-| Nome desconhecido (PIX 4521) | Upload com PIX aleatório | status=pending, fila manual |
-| Lançamento recorrente (2º mês) | Upload mês seguinte | Classifica sem chamar IA |
-| Dois clientes, mesmo padrão | Uploads paralelos | Regras não vazam entre clientes |
+| Cenário                        | Entrada                  | Esperado                        |
+| ------------------------------ | ------------------------ | ------------------------------- |
+| CSV Nubank válido              | `nubank_abril.csv`       | Lançamentos corretos, datas ISO |
+| CSV Itaú com linhas de saldo   | `itau_extrato.csv`       | Linhas de saldo ignoradas       |
+| XLSX com múltiplas abas        | `extrato.xlsx`           | Lê somente primeira aba         |
+| PDF Bradesco (texto)           | `bradesco.pdf`           | Extrai via regex                |
+| Imagem legível                 | `foto_extrato.jpg`       | Claude Vision extrai dados      |
+| Imagem ilegível                | `foto_borrada.jpg`       | status=error, mensagem clara    |
+| Nome desconhecido (PIX 4521)   | Upload com PIX aleatório | status=pending, fila manual     |
+| Lançamento recorrente (2º mês) | Upload mês seguinte      | Classifica sem chamar IA        |
+| Dois clientes, mesmo padrão    | Uploads paralelos        | Regras não vazam entre clientes |
 
 ### E2E (Playwright) — Fluxo Completo
 
@@ -329,17 +334,17 @@ describe('Classificação', () => {
 
 ## Ordem de Construção (12 dias)
 
-| Dia | Entrega |
-|-----|---------|
+| Dia | Entrega                                                 |
+| --- | ------------------------------------------------------- |
 | 1–2 | Schema SQL + Storage + RLS (Supabase via Cloud Lovable) |
-| 3–4 | Edge Function `parse-extract` (CSV + XLSX) |
-| 5 | n8n Workflow (trigger + orquestração) |
-| 6–7 | Edge Function `classify-batch` (regras + Claude Haiku) |
-| 8–9 | Lovable UI — substituir mock por Supabase real |
-| 10 | Parser PDF + Claude Vision (imagem) |
-| 11 | Testes de integração + ajustes |
-| 12 | Call MVP com extratos reais da Claudia |
+| 3–4 | Edge Function `parse-extract` (CSV + XLSX)              |
+| 5   | n8n Workflow (trigger + orquestração)                   |
+| 6–7 | Edge Function `classify-batch` (regras + Claude Haiku)  |
+| 8–9 | Lovable UI — substituir mock por Supabase real          |
+| 10  | Parser PDF + Claude Vision (imagem)                     |
+| 11  | Testes de integração + ajustes                          |
+| 12  | Call MVP com extratos reais da Claudia                  |
 
 ---
 
-*Aurora · IAplicada · Sprint 1 · 2026*
+_Aurora · IAplicada · Sprint 1 · 2026_

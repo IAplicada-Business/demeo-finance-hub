@@ -58,17 +58,17 @@ function NovoContrato() {
       const { data, error } = await supabase()
         .from("contracts")
         .insert({
-          proposal_id:             selected.id,
-          deal_id:                 selected.deal_id,
-          client_name:             selected.client_name,
-          client_email:            selected.client_email,
-          client_document:         selected.client_document,
-          total_monthly:           selected.total_monthly,
-          total_one_off:           oneOff > 0 ? oneOff : null,
-          client_address:          clientAddress.trim() || null,
-          start_date:              startDate,
+          proposal_id: selected.id,
+          deal_id: selected.deal_id,
+          client_name: selected.client_name,
+          client_email: selected.client_email,
+          client_document: selected.client_document,
+          total_monthly: selected.total_monthly,
+          total_one_off: oneOff > 0 ? oneOff : null,
+          client_address: clientAddress.trim() || null,
+          start_date: startDate,
           termination_notice_days: terminationDays,
-          signature_provider:      "manual",
+          signature_provider: "manual",
         })
         .select()
         .single();
@@ -160,7 +160,10 @@ function NovoContrato() {
               </button>
             ))}
             {proposals.length === 0 && (
-              <div className="text-[12px] py-6 text-center" style={{ color: "var(--muted-foreground)" }}>
+              <div
+                className="text-[12px] py-6 text-center"
+                style={{ color: "var(--muted-foreground)" }}
+              >
                 Nenhuma proposta aceita ainda.
               </div>
             )}
@@ -222,7 +225,13 @@ function NovoContrato() {
                   disabled={saving}
                   onClick={createContract}
                   className="text-[10px] uppercase px-6 py-3 disabled:opacity-50 mt-2"
-                  style={{ background: "var(--green)", color: "#fff", letterSpacing: "2.5px", fontWeight: 500 , borderRadius: 999 }}
+                  style={{
+                    background: "var(--green)",
+                    color: "#fff",
+                    letterSpacing: "2.5px",
+                    fontWeight: 500,
+                    borderRadius: 999,
+                  }}
                 >
                   {saving ? "Gerando…" : "Criar contrato →"}
                 </button>
@@ -251,7 +260,9 @@ function NovoContrato() {
                         className="aurora-card p-5 text-center"
                         style={{ borderColor: "var(--green)", background: "rgba(74,103,65,0.04)" }}
                       >
-                        <div className="aurora-cap mb-1" style={{ color: "var(--green)" }}>Enviado</div>
+                        <div className="aurora-cap mb-1" style={{ color: "var(--green)" }}>
+                          Enviado
+                        </div>
                         <div className="aurora-serif text-[16px]" style={{ color: "var(--green)" }}>
                           E-mail enviado ✓
                         </div>

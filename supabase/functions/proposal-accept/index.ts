@@ -42,11 +42,7 @@ Deno.serve(async (req) => {
     .eq("id", proposal.id);
 
   // Move deal pra 'fechado'
-  const { data: stage } = await sb
-    .from("deal_stages")
-    .select("id")
-    .eq("slug", "fechado")
-    .single();
+  const { data: stage } = await sb.from("deal_stages").select("id").eq("slug", "fechado").single();
   if (stage) {
     await sb.from("deals").update({ stage_id: stage.id }).eq("id", proposal.deal_id);
   }

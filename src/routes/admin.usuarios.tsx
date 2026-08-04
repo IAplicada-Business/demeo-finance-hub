@@ -32,16 +32,24 @@ interface PortalUser {
   clients: { name: string } | null;
 }
 
-interface PortalFeatures { dfc: boolean; projecao: boolean; download: boolean; }
+interface PortalFeatures {
+  dfc: boolean;
+  projecao: boolean;
+  download: boolean;
+}
 const DEFAULT_FEATURES: PortalFeatures = { dfc: true, projecao: false, download: false };
 
-interface ClientFeatureRow { id: string; name: string; portal_features: PortalFeatures | null; }
+interface ClientFeatureRow {
+  id: string;
+  name: string;
+  portal_features: PortalFeatures | null;
+}
 
 type FilterRole = "todos" | "owner" | "financeiro";
 type InviteKind = "admin" | "portal";
 
 const FEATURE_LABELS: { key: keyof PortalFeatures; label: string }[] = [
-  { key: "dfc",      label: "DFC / DRE" },
+  { key: "dfc", label: "DFC / DRE" },
   { key: "projecao", label: "Projeção" },
   { key: "download", label: "Download PDF" },
 ];
@@ -76,10 +84,20 @@ function UsuariosPage() {
         .select("user_id, display_name")
         .in("user_id", ids);
       const profileById = new Map(
-        (profiles ?? []).map((p: { user_id: string; display_name: string | null }) => [p.user_id, p.display_name])
+        (profiles ?? []).map((p: { user_id: string; display_name: string | null }) => [
+          p.user_id,
+          p.display_name,
+        ]),
       );
 
-      return (roles as { user_id: string; role: string; display_name?: string | null; email?: string | null }[]).map((r) => ({
+      return (
+        roles as {
+          user_id: string;
+          role: string;
+          display_name?: string | null;
+          email?: string | null;
+        }[]
+      ).map((r) => ({
         user_id: r.user_id,
         role: r.role as "admin" | "owner",
         email: r.email ?? null,
@@ -118,7 +136,11 @@ function UsuariosPage() {
             body: JSON.stringify({ action: "delete", user_id: userId }),
           });
           let json: Record<string, unknown> = {};
-          try { json = await res.json(); } catch { /* vazio */ }
+          try {
+            json = await res.json();
+          } catch {
+            /* vazio */
+          }
           if (res.ok) return;
           if (res.status !== 404) throw new Error((json.error as string) ?? `Erro ${res.status}`);
         } catch (err) {
@@ -157,16 +179,31 @@ function UsuariosPage() {
     },
   });
 
-  async function handleToggleFeature(clientId: string, key: keyof PortalFeatures, current: PortalFeatures) {
+  async function handleToggleFeature(
+    clientId: string,
+    key: keyof PortalFeatures,
+    current: PortalFeatures,
+  ) {
     setSavingFeature(`${clientId}-${key}`);
     const updated = { ...current, [key]: !current[key] };
-    await supabase().from("clients").update({ portal_features: updated as any }).eq("id", clientId);
+    await supabase()
+      .from("clients")
+      .update({ portal_features: updated as any })
+      .eq("id", clientId);
     await refetchClients();
     setSavingFeature(null);
   }
 
   const updateRole = useMutation({
-    mutationFn: async ({ userId, clientId, role }: { userId: string; clientId: string; role: "owner" | "financeiro" }) => {
+    mutationFn: async ({
+      userId,
+      clientId,
+      role,
+    }: {
+      userId: string;
+      clientId: string;
+      role: "owner" | "financeiro";
+    }) => {
       await supabase()
         .from("user_client_mapping")
         .update({ portal_role: role })
@@ -188,7 +225,8 @@ function UsuariosPage() {
   });
 
   const filtered = users.filter((u) => {
-    if (filterClient && !u.clients?.name.toLowerCase().includes(filterClient.toLowerCase())) return false;
+    if (filterClient && !u.clients?.name.toLowerCase().includes(filterClient.toLowerCase()))
+      return false;
     if (filterRole !== "todos" && u.portal_role !== filterRole) return false;
     return true;
   });
@@ -205,14 +243,26 @@ function UsuariosPage() {
             <button
               onClick={() => setInviteKind("admin")}
               className="text-[10px] uppercase px-5 py-2.5"
-              style={{ background: "var(--navy)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+              style={{
+                background: "var(--navy)",
+                color: "#fff",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 999,
+              }}
             >
               + Admin Aurora
             </button>
             <button
               onClick={() => setInviteKind("portal")}
               className="text-[10px] uppercase px-5 py-2.5"
-              style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+              style={{
+                background: "var(--green)",
+                color: "#fff",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 999,
+              }}
             >
               + Usuário do portal
             </button>
@@ -221,7 +271,6 @@ function UsuariosPage() {
       />
 
       <div className="aurora-page">
-
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "Admins Aurora", value: adminUsers.length, tone: "var(--navy)" },
@@ -231,7 +280,9 @@ function UsuariosPage() {
           ].map(({ label, value, tone }) => (
             <div key={label} className="aurora-card">
               <div className="aurora-cap mb-2">{label}</div>
-              <div className="aurora-value" style={{ fontSize: 36, color: tone }}>{value}</div>
+              <div className="aurora-value" style={{ fontSize: 36, color: tone }}>
+                {value}
+              </div>
             </div>
           ))}
         </div>
@@ -241,11 +292,21 @@ function UsuariosPage() {
           <section className="aurora-panel">
             <header
               className="flex items-center justify-between px-6 py-4"
-              style={{ borderBottom: adminSectionOpen ? "1px solid var(--line)" : "none", background: "var(--offwhite)" }}
+              style={{
+                borderBottom: adminSectionOpen ? "1px solid var(--line)" : "none",
+                background: "var(--offwhite)",
+              }}
             >
               <div>
-                <div className="text-[10px] uppercase" style={{ letterSpacing: "2px", color: "var(--navy)", fontWeight: 600 }}>Painel Aurora</div>
-                <div className="text-[15px]" style={{ fontWeight: 500, marginTop: 2 }}>Administradores</div>
+                <div
+                  className="text-[10px] uppercase"
+                  style={{ letterSpacing: "2px", color: "var(--navy)", fontWeight: 600 }}
+                >
+                  Painel Aurora
+                </div>
+                <div className="text-[15px]" style={{ fontWeight: 500, marginTop: 2 }}>
+                  Administradores
+                </div>
                 <div className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>
                   Acesso completo ao admin: importação, clientes, DFC, regras e configuração.
                 </div>
@@ -255,7 +316,13 @@ function UsuariosPage() {
                   <button
                     onClick={() => setInviteKind("admin")}
                     className="text-[9px] uppercase px-4 py-2"
-                    style={{ background: "var(--navy)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+                    style={{
+                      background: "var(--navy)",
+                      color: "#fff",
+                      letterSpacing: "2px",
+                      fontWeight: 500,
+                      borderRadius: 999,
+                    }}
                   >
                     + Convidar admin
                   </button>
@@ -264,40 +331,70 @@ function UsuariosPage() {
                   onClick={() => setAdminSectionOpen((v) => !v)}
                   aria-label={adminSectionOpen ? "Colapsar" : "Expandir"}
                   style={{
-                    width: 30, height: 30, borderRadius: 12,
-                    border: "1px solid var(--line)", background: "transparent",
-                    color: "var(--muted-foreground)", fontSize: 10,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    cursor: "pointer", flexShrink: 0,
+                    width: 30,
+                    height: 30,
+                    borderRadius: 12,
+                    border: "1px solid var(--line)",
+                    background: "transparent",
+                    color: "var(--muted-foreground)",
+                    fontSize: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    flexShrink: 0,
                   }}
                 >
                   {adminSectionOpen ? "▲" : "▼"}
                 </button>
               </div>
             </header>
-            {adminSectionOpen && (
-              loadingAdmins ? (
-                <div className="px-6 py-6 text-[12px]" style={{ color: "var(--muted-foreground)" }}>Carregando…</div>
+            {adminSectionOpen &&
+              (loadingAdmins ? (
+                <div className="px-6 py-6 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                  Carregando…
+                </div>
               ) : (
                 <table className="w-full">
                   <thead>
                     <tr style={{ background: "rgba(255,255,255,0.72)" }}>
                       {["Nome", "E-mail", "Papel", "Ações"].map((h) => (
-                        <th key={h} className="text-left px-5 py-3 aurora-cap" style={{ fontWeight: 500, fontSize: 9, borderBottom: "1px solid var(--line)", letterSpacing: "2px" }}>{h}</th>
+                        <th
+                          key={h}
+                          className="text-left px-5 py-3 aurora-cap"
+                          style={{
+                            fontWeight: 500,
+                            fontSize: 9,
+                            borderBottom: "1px solid var(--line)",
+                            letterSpacing: "2px",
+                          }}
+                        >
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {adminUsers.map((u) => (
                       <tr key={u.user_id} style={{ borderTop: "1px solid var(--line)" }}>
-                        <td className="px-5 py-3 text-[13px]" style={{ fontWeight: 500 }}>{u.display_name ?? "—"}</td>
-                        <td className="px-5 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>{u.email ?? "—"}</td>
+                        <td className="px-5 py-3 text-[13px]" style={{ fontWeight: 500 }}>
+                          {u.display_name ?? "—"}
+                        </td>
+                        <td
+                          className="px-5 py-3 text-[12px]"
+                          style={{ color: "var(--muted-foreground)" }}
+                        >
+                          {u.email ?? "—"}
+                        </td>
                         <td className="px-5 py-3">
                           <span
                             className="text-[9px] uppercase px-2.5 py-1"
                             style={{
-                              letterSpacing: "1px", fontWeight: 600, borderRadius: 999,
-                              background: u.role === "owner" ? "rgba(27,57,77,0.10)" : "rgba(74,103,65,0.10)",
+                              letterSpacing: "1px",
+                              fontWeight: 600,
+                              borderRadius: 999,
+                              background:
+                                u.role === "owner" ? "rgba(27,57,77,0.10)" : "rgba(74,103,65,0.10)",
                               color: u.role === "owner" ? "var(--navy)" : "var(--green)",
                             }}
                           >
@@ -310,7 +407,12 @@ function UsuariosPage() {
                               type="button"
                               onClick={() => setEditAdmin(u)}
                               className="text-[9px] uppercase px-3 py-1.5 transition-opacity hover:opacity-70"
-                              style={{ border: "1px solid var(--line)", color: "var(--foreground)", letterSpacing: "1.5px" , borderRadius: 12 }}
+                              style={{
+                                border: "1px solid var(--line)",
+                                color: "var(--foreground)",
+                                letterSpacing: "1.5px",
+                                borderRadius: 12,
+                              }}
                             >
                               Editar
                             </button>
@@ -320,14 +422,26 @@ function UsuariosPage() {
                                 disabled={removeAdmin.isPending}
                                 onClick={() => {
                                   const label = u.display_name ?? u.email ?? "este admin";
-                                  if (confirm(`Remover o acesso admin de ${label}? A pessoa deixa de entrar no painel Aurora.`)) {
+                                  if (
+                                    confirm(
+                                      `Remover o acesso admin de ${label}? A pessoa deixa de entrar no painel Aurora.`,
+                                    )
+                                  ) {
                                     removeAdmin.mutate(u.user_id, {
-                                      onError: (err) => alert(err instanceof Error ? err.message : "Erro ao remover"),
+                                      onError: (err) =>
+                                        alert(
+                                          err instanceof Error ? err.message : "Erro ao remover",
+                                        ),
                                     });
                                   }
                                 }}
                                 className="text-[9px] uppercase px-3 py-1.5 transition-opacity hover:opacity-70 disabled:opacity-40"
-                                style={{ border: "1px solid var(--line)", color: "var(--tan)", letterSpacing: "1.5px" , borderRadius: 12 }}
+                                style={{
+                                  border: "1px solid var(--line)",
+                                  color: "var(--tan)",
+                                  letterSpacing: "1.5px",
+                                  borderRadius: 12,
+                                }}
                               >
                                 Remover
                               </button>
@@ -338,15 +452,18 @@ function UsuariosPage() {
                     ))}
                     {adminUsers.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-5 py-6 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                        <td
+                          colSpan={4}
+                          className="px-5 py-6 text-center text-[12px]"
+                          style={{ color: "var(--muted-foreground)" }}
+                        >
                           Nenhum administrador ainda. Use “+ Admin Aurora” para convidar.
                         </td>
                       </tr>
                     )}
                   </tbody>
                 </table>
-              )
-            )}
+              ))}
           </section>
         )}
 
@@ -354,13 +471,24 @@ function UsuariosPage() {
         <section className="aurora-panel">
           <header
             className="flex items-center justify-between px-6 py-4"
-            style={{ borderBottom: usersSectionOpen ? "1px solid var(--line)" : "none", background: "var(--offwhite)" }}
+            style={{
+              borderBottom: usersSectionOpen ? "1px solid var(--line)" : "none",
+              background: "var(--offwhite)",
+            }}
           >
             <div>
-              <div className="text-[10px] uppercase" style={{ letterSpacing: "2px", color: "var(--green)", fontWeight: 600 }}>Portal do cliente</div>
-              <div className="text-[15px]" style={{ fontWeight: 500, marginTop: 2 }}>Usuários do Portal</div>
+              <div
+                className="text-[10px] uppercase"
+                style={{ letterSpacing: "2px", color: "var(--green)", fontWeight: 600 }}
+              >
+                Portal do cliente
+              </div>
+              <div className="text-[15px]" style={{ fontWeight: 500, marginTop: 2 }}>
+                Usuários do Portal
+              </div>
               <div className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>
-                Acesso só ao portal da empresa vinculada — Proprietário (completo) ou Financeiro (restrito).
+                Acesso só ao portal da empresa vinculada — Proprietário (completo) ou Financeiro
+                (restrito).
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -368,7 +496,13 @@ function UsuariosPage() {
                 <button
                   onClick={() => setInviteKind("portal")}
                   className="text-[9px] uppercase px-4 py-2"
-                  style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+                  style={{
+                    background: "var(--green)",
+                    color: "#fff",
+                    letterSpacing: "2px",
+                    fontWeight: 500,
+                    borderRadius: 999,
+                  }}
                 >
                   + Convidar portal
                 </button>
@@ -377,11 +511,18 @@ function UsuariosPage() {
                 onClick={() => setUsersSectionOpen((v) => !v)}
                 aria-label={usersSectionOpen ? "Colapsar" : "Expandir"}
                 style={{
-                  width: 30, height: 30, borderRadius: 12,
-                  border: "1px solid var(--line)", background: "transparent",
-                  color: "var(--muted-foreground)", fontSize: 10,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", flexShrink: 0,
+                  width: 30,
+                  height: 30,
+                  borderRadius: 12,
+                  border: "1px solid var(--line)",
+                  background: "transparent",
+                  color: "var(--muted-foreground)",
+                  fontSize: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  flexShrink: 0,
                 }}
               >
                 {usersSectionOpen ? "▲" : "▼"}
@@ -391,7 +532,10 @@ function UsuariosPage() {
 
           {usersSectionOpen && (
             <>
-              <div className="flex flex-col md:flex-row gap-3 px-6 py-4" style={{ borderBottom: "1px solid var(--line)" }}>
+              <div
+                className="flex flex-col md:flex-row gap-3 px-6 py-4"
+                style={{ borderBottom: "1px solid var(--line)" }}
+              >
                 <input
                   type="text"
                   placeholder="Filtrar por cliente…"
@@ -413,7 +557,8 @@ function UsuariosPage() {
                         color: filterRole === r ? "var(--green)" : "var(--muted-foreground)",
                         background: filterRole === r ? "rgba(74,103,65,0.05)" : "transparent",
                         fontWeight: filterRole === r ? 600 : 400,
-                      borderRadius: 12 }}
+                        borderRadius: 12,
+                      }}
                     >
                       {r === "todos" ? "Todos" : r === "owner" ? "Proprietários" : "Financeiro"}
                     </button>
@@ -422,18 +567,36 @@ function UsuariosPage() {
               </div>
 
               {isLoading ? (
-                <div className="px-6 py-12 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>Carregando…</div>
+                <div
+                  className="px-6 py-12 text-center text-[12px]"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  Carregando…
+                </div>
               ) : filtered.length === 0 ? (
-                <div className="px-6 py-12 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                  {users.length === 0 ? "Nenhum usuário de portal criado ainda." : "Nenhum resultado para os filtros aplicados."}
+                <div
+                  className="px-6 py-12 text-center text-[12px]"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  {users.length === 0
+                    ? "Nenhum usuário de portal criado ainda."
+                    : "Nenhum resultado para os filtros aplicados."}
                 </div>
               ) : (
                 <table className="w-full">
                   <thead>
                     <tr style={{ background: "rgba(255,255,255,0.72)" }}>
                       {["Nome", "E-mail", "Cliente", "Perfil", "Ações"].map((h) => (
-                        <th key={h} className="text-left px-5 py-3 aurora-cap"
-                          style={{ fontWeight: 500, fontSize: 9, borderBottom: "1px solid var(--line)", letterSpacing: "2px" }}>
+                        <th
+                          key={h}
+                          className="text-left px-5 py-3 aurora-cap"
+                          style={{
+                            fontWeight: 500,
+                            fontSize: 9,
+                            borderBottom: "1px solid var(--line)",
+                            letterSpacing: "2px",
+                          }}
+                        >
                           {h}
                         </th>
                       ))}
@@ -443,28 +606,52 @@ function UsuariosPage() {
                     {filtered.map((u) => {
                       const isExpanded = expandedUserId === u.user_id;
                       const clientData = clients.find((c) => c.id === u.client_id);
-                      const f: PortalFeatures = (clientData?.portal_features as PortalFeatures | null) ?? DEFAULT_FEATURES;
+                      const f: PortalFeatures =
+                        (clientData?.portal_features as PortalFeatures | null) ?? DEFAULT_FEATURES;
                       return (
                         <Fragment key={`${u.user_id}-${u.client_id}`}>
                           <tr style={{ borderTop: "1px solid var(--line)" }}>
-                            <td className="px-5 py-3 text-[13px]" style={{ fontWeight: 500 }}>{u.display_name ?? "—"}</td>
-                            <td className="px-5 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>{u.email ?? "—"}</td>
+                            <td className="px-5 py-3 text-[13px]" style={{ fontWeight: 500 }}>
+                              {u.display_name ?? "—"}
+                            </td>
+                            <td
+                              className="px-5 py-3 text-[12px]"
+                              style={{ color: "var(--muted-foreground)" }}
+                            >
+                              {u.email ?? "—"}
+                            </td>
                             <td className="px-5 py-3 text-[12px]">{u.clients?.name ?? "—"}</td>
                             <td className="px-5 py-3">
                               <div className="flex gap-1.5">
                                 {(["owner", "financeiro"] as const).map((r) => (
                                   <button
                                     key={r}
-                                    onClick={() => { if (u.portal_role !== r) updateRole.mutate({ userId: u.user_id, clientId: u.client_id, role: r }); }}
+                                    onClick={() => {
+                                      if (u.portal_role !== r)
+                                        updateRole.mutate({
+                                          userId: u.user_id,
+                                          clientId: u.client_id,
+                                          role: r,
+                                        });
+                                    }}
                                     className="text-[9px] uppercase px-2.5 py-1 transition-all"
                                     style={{
-                                      letterSpacing: "1px", border: "1px solid",
-                                      borderColor: u.portal_role === r ? "var(--green)" : "var(--line)",
-                                      color: u.portal_role === r ? "var(--green)" : "var(--muted-foreground)",
-                                      background: u.portal_role === r ? "rgba(74,103,65,0.06)" : "transparent",
+                                      letterSpacing: "1px",
+                                      border: "1px solid",
+                                      borderColor:
+                                        u.portal_role === r ? "var(--green)" : "var(--line)",
+                                      color:
+                                        u.portal_role === r
+                                          ? "var(--green)"
+                                          : "var(--muted-foreground)",
+                                      background:
+                                        u.portal_role === r
+                                          ? "rgba(74,103,65,0.06)"
+                                          : "transparent",
                                       fontWeight: u.portal_role === r ? 600 : 400,
                                       cursor: u.portal_role === r ? "default" : "pointer",
-                                    borderRadius: 12 }}
+                                      borderRadius: 12,
+                                    }}
                                   >
                                     {r === "owner" ? "Proprietário" : "Financeiro"}
                                   </button>
@@ -477,21 +664,35 @@ function UsuariosPage() {
                                   onClick={() => setExpandedUserId(isExpanded ? null : u.user_id)}
                                   className="text-[9px] uppercase px-3 py-1.5 transition-all"
                                   style={{
-                                    letterSpacing: "1.5px", border: "1px solid",
+                                    letterSpacing: "1.5px",
+                                    border: "1px solid",
                                     borderColor: isExpanded ? "var(--green)" : "var(--line)",
                                     color: isExpanded ? "var(--green)" : "var(--muted-foreground)",
                                     background: isExpanded ? "rgba(74,103,65,0.06)" : "transparent",
-                                  borderRadius: 12 }}
+                                    borderRadius: 12,
+                                  }}
                                 >
                                   Recursos
                                 </button>
                                 <button
                                   onClick={() => {
-                                    if (confirm(`Revogar acesso de ${u.display_name ?? u.email} ao portal?`))
-                                      revokeAccess.mutate({ userId: u.user_id, clientId: u.client_id });
+                                    if (
+                                      confirm(
+                                        `Revogar acesso de ${u.display_name ?? u.email} ao portal?`,
+                                      )
+                                    )
+                                      revokeAccess.mutate({
+                                        userId: u.user_id,
+                                        clientId: u.client_id,
+                                      });
                                   }}
                                   className="text-[9px] uppercase px-3 py-1.5 transition-opacity hover:opacity-70"
-                                  style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", letterSpacing: "1.5px" , borderRadius: 12 }}
+                                  style={{
+                                    border: "1px solid var(--line)",
+                                    color: "var(--muted-foreground)",
+                                    letterSpacing: "1.5px",
+                                    borderRadius: 12,
+                                  }}
                                 >
                                   Revogar
                                 </button>
@@ -501,7 +702,14 @@ function UsuariosPage() {
 
                           {isExpanded && (
                             <tr>
-                              <td colSpan={5} style={{ background: "rgba(74,103,65,0.03)", borderTop: "1px solid var(--line)", padding: "16px 20px" }}>
+                              <td
+                                colSpan={5}
+                                style={{
+                                  background: "rgba(74,103,65,0.03)",
+                                  borderTop: "1px solid var(--line)",
+                                  padding: "16px 20px",
+                                }}
+                              >
                                 <div className="aurora-cap mb-3" style={{ color: "var(--green)" }}>
                                   Funcionalidades · {u.clients?.name ?? "cliente"}
                                 </div>
@@ -514,14 +722,37 @@ function UsuariosPage() {
                                         onClick={() => handleToggleFeature(u.client_id, key, f)}
                                         disabled={!!savingFeature}
                                         className="flex items-center gap-2.5 px-4 py-2.5 transition-all disabled:opacity-40"
-                                        style={{ border: `1px solid ${f[key] ? "var(--green)" : "var(--line)"}`, background: f[key] ? "rgba(74,103,65,0.06)" : "#fff" }}
+                                        style={{
+                                          border: `1px solid ${f[key] ? "var(--green)" : "var(--line)"}`,
+                                          background: f[key] ? "rgba(74,103,65,0.06)" : "#fff",
+                                        }}
                                       >
-                                        <div className="w-8 h-[18px] rounded-full flex items-center flex-shrink-0 transition-colors"
-                                          style={{ background: f[key] ? "var(--green)" : "var(--line)", padding: "2px" }}>
-                                          <div className="w-[14px] h-[14px] rounded-full bg-white transition-transform"
-                                            style={{ transform: f[key] ? "translateX(14px)" : "translateX(0)" }} />
+                                        <div
+                                          className="w-8 h-[18px] rounded-full flex items-center flex-shrink-0 transition-colors"
+                                          style={{
+                                            background: f[key] ? "var(--green)" : "var(--line)",
+                                            padding: "2px",
+                                          }}
+                                        >
+                                          <div
+                                            className="w-[14px] h-[14px] rounded-full bg-white transition-transform"
+                                            style={{
+                                              transform: f[key]
+                                                ? "translateX(14px)"
+                                                : "translateX(0)",
+                                            }}
+                                          />
                                         </div>
-                                        <span className="text-[10px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 600, color: f[key] ? "var(--green)" : "var(--muted-foreground)" }}>
+                                        <span
+                                          className="text-[10px] uppercase"
+                                          style={{
+                                            letterSpacing: "1.5px",
+                                            fontWeight: 600,
+                                            color: f[key]
+                                              ? "var(--green)"
+                                              : "var(--muted-foreground)",
+                                          }}
+                                        >
                                           {busy ? "…" : label}
                                         </span>
                                       </button>
@@ -540,7 +771,6 @@ function UsuariosPage() {
             </>
           )}
         </section>
-
       </div>
 
       {inviteKind === "portal" && (
@@ -622,11 +852,17 @@ function InviteAdminModal({ onClose, onSuccess }: { onClose: () => void; onSucce
         body: JSON.stringify({ email, display_name: name, password }),
       });
       let json: Record<string, unknown> = {};
-      try { json = await res.json(); } catch { /* vazio */ }
+      try {
+        json = await res.json();
+      } catch {
+        /* vazio */
+      }
       if (!res.ok) {
         const msg = (json.error as string) ?? `Erro ${res.status}`;
         if (/owner pode convidar/i.test(msg)) {
-          setError("Não foi possível criar o admin no servidor. Verifique se o service role está configurado no hosting.");
+          setError(
+            "Não foi possível criar o admin no servidor. Verifique se o service role está configurado no hosting.",
+          );
           return;
         }
         setError(msg);
@@ -648,46 +884,106 @@ function InviteAdminModal({ onClose, onSuccess }: { onClose: () => void; onSucce
     >
       <div
         className="aurora-modal w-full max-w-[440px] bg-white p-8"
-        style={{ borderRadius: 24, overflow: "hidden", border: "1px solid var(--line)", boxShadow: "0 24px 64px -16px rgba(28,45,69,0.22)" }}
+        style={{
+          borderRadius: 24,
+          overflow: "hidden",
+          border: "1px solid var(--line)",
+          boxShadow: "0 24px 64px -16px rgba(28,45,69,0.22)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="aurora-cap mb-1" style={{ color: "var(--navy)" }}>Painel Aurora</div>
+        <div className="aurora-cap mb-1" style={{ color: "var(--navy)" }}>
+          Painel Aurora
+        </div>
         <h2 className="aurora-serif text-[22px] mb-2">
-          Convidar <em className="italic" style={{ color: "var(--navy)" }}>administrador</em>
+          Convidar{" "}
+          <em className="italic" style={{ color: "var(--navy)" }}>
+            administrador
+          </em>
         </h2>
-        <p className="text-[12px] mb-6" style={{ color: "var(--muted-foreground)", lineHeight: 1.5 }}>
-          Este usuário entra no painel admin (importação, clientes, DFC, configuração). Não é acesso de portal do cliente.
+        <p
+          className="text-[12px] mb-6"
+          style={{ color: "var(--muted-foreground)", lineHeight: 1.5 }}
+        >
+          Este usuário entra no painel admin (importação, clientes, DFC, configuração). Não é acesso
+          de portal do cliente.
         </p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <label className="block">
             <div className="aurora-cap mb-1.5">Nome completo</div>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Mariana Marques"
-              className="w-full px-4 py-2.5 text-[13px]" style={{ border: "1px solid var(--line)", background: "#fff", outline: "none" }} />
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              placeholder="Mariana Marques"
+              className="w-full px-4 py-2.5 text-[13px]"
+              style={{ border: "1px solid var(--line)", background: "#fff", outline: "none" }}
+            />
           </label>
           <label className="block">
             <div className="aurora-cap mb-1.5">E-mail</div>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="mariana@aurora.com.br"
-              className="w-full px-4 py-2.5 text-[13px]" style={{ border: "1px solid var(--line)", background: "#fff", outline: "none" }} />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="mariana@aurora.com.br"
+              className="w-full px-4 py-2.5 text-[13px]"
+              style={{ border: "1px solid var(--line)", background: "#fff", outline: "none" }}
+            />
           </label>
           <label className="block">
             <div className="aurora-cap mb-1.5">Senha temporária</div>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} placeholder="Mínimo 8 caracteres"
-              className="w-full px-4 py-2.5 text-[13px]" style={{ border: "1px solid var(--line)", background: "#fff", outline: "none" }} />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              placeholder="Mínimo 8 caracteres"
+              className="w-full px-4 py-2.5 text-[13px]"
+              style={{ border: "1px solid var(--line)", background: "#fff", outline: "none" }}
+            />
           </label>
           {error && (
-            <div className="text-[12px] px-3 py-2.5" style={{ background: "rgba(109,146,166,0.10)", color: "var(--tan)", border: "1px solid var(--tan)" }}>
+            <div
+              className="text-[12px] px-3 py-2.5"
+              style={{
+                background: "rgba(109,146,166,0.10)",
+                color: "var(--tan)",
+                border: "1px solid var(--tan)",
+              }}
+            >
               {error}
             </div>
           )}
           <div className="flex gap-3 pt-2">
-            <button type="submit" disabled={loading || !email || !name || password.length < 8}
+            <button
+              type="submit"
+              disabled={loading || !email || !name || password.length < 8}
               className="flex-1 text-[10px] uppercase py-3 disabled:opacity-50"
-              style={{ background: "var(--navy)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}>
+              style={{
+                background: "var(--navy)",
+                color: "#fff",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 999,
+              }}
+            >
               {loading ? "Criando…" : "Criar admin →"}
             </button>
-            <button type="button" onClick={onClose}
+            <button
+              type="button"
+              onClick={onClose}
               className="px-5 py-3 text-[10px] uppercase"
-              style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", letterSpacing: "2px" , borderRadius: 12 }}>
+              style={{
+                border: "1px solid var(--line)",
+                color: "var(--muted-foreground)",
+                letterSpacing: "2px",
+                borderRadius: 12,
+              }}
+            >
               Cancelar
             </button>
           </div>
@@ -725,7 +1021,10 @@ async function syncAdminAuth(payload: {
       const msg = err instanceof Error ? err.message : String(err);
       // Se service role estiver ausente no host, tenta edge
       console.warn("[syncAdminAuth] server fn:", msg);
-      if (!/Missing Supabase|SERVICE_ROLE|service role/i.test(msg) && !/fetch|network|Failed/i.test(msg)) {
+      if (
+        !/Missing Supabase|SERVICE_ROLE|service role/i.test(msg) &&
+        !/fetch|network|Failed/i.test(msg)
+      ) {
         // Erro de negócio real (ex.: único owner) — não mascara
         if (!/Não autenticado|administradores do painel/i.test(msg)) {
           return { ok: false, error: msg };
@@ -760,7 +1059,11 @@ async function syncAdminAuth(payload: {
         body: JSON.stringify(body),
       });
       let json: Record<string, unknown> = {};
-      try { json = await res.json(); } catch { /* vazio */ }
+      try {
+        json = await res.json();
+      } catch {
+        /* vazio */
+      }
       if (res.ok) return { ok: true };
       if (res.status === 404) continue;
       const msg = (json.error as string) ?? `Erro ${res.status}`;
@@ -786,7 +1089,10 @@ async function syncAdminAuth(payload: {
 }
 
 function EditAdminModal({
-  user, ownerCount, onClose, onSuccess,
+  user,
+  ownerCount,
+  onClose,
+  onSuccess,
 }: {
   user: AdminUser;
   ownerCount: number;
@@ -804,8 +1110,14 @@ function EditAdminModal({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) { setError("Informe o nome."); return; }
-    if (!email.trim()) { setError("Informe o e-mail."); return; }
+    if (!name.trim()) {
+      setError("Informe o nome.");
+      return;
+    }
+    if (!email.trim()) {
+      setError("Informe o e-mail.");
+      return;
+    }
     if (!canDemoteOwner) {
       setError("Não é possível rebaixar o único Owner da conta.");
       return;
@@ -858,7 +1170,9 @@ function EditAdminModal({
             return;
           }
           // Nome/e-mail/perfil já gravados no painel; Auth pode ficar dessincronizado
-          alert(`Dados salvos. Atenção: o e-mail de login no Auth pode ainda ser o anterior (${user.email ?? "—"}).`);
+          alert(
+            `Dados salvos. Atenção: o e-mail de login no Auth pode ainda ser o anterior (${user.email ?? "—"}).`,
+          );
         }
       }
 
@@ -878,25 +1192,47 @@ function EditAdminModal({
     >
       <div
         className="aurora-modal w-full max-w-[440px] bg-white p-8"
-        style={{ borderRadius: 24, overflow: "hidden", border: "1px solid var(--line)", boxShadow: "0 24px 64px -16px rgba(28,45,69,0.22)" }}
+        style={{
+          borderRadius: 24,
+          overflow: "hidden",
+          border: "1px solid var(--line)",
+          boxShadow: "0 24px 64px -16px rgba(28,45,69,0.22)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="aurora-cap mb-1" style={{ color: "var(--navy)" }}>
           {role === "owner" ? "Owner · Painel Aurora" : "Admin · Painel Aurora"}
         </div>
         <h2 className="aurora-serif text-[22px] mb-6">
-          Editar <em className="italic" style={{ color: "var(--navy)" }}>usuário</em>
+          Editar{" "}
+          <em className="italic" style={{ color: "var(--navy)" }}>
+            usuário
+          </em>
         </h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4" autoComplete="off">
           <label className="block">
             <div className="aurora-cap mb-1.5">Nome completo</div>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="off"
-              className="w-full px-4 py-2.5 text-[13px]" style={{ border: "1px solid var(--line)", background: "#fff", outline: "none" }} />
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              autoComplete="off"
+              className="w-full px-4 py-2.5 text-[13px]"
+              style={{ border: "1px solid var(--line)", background: "#fff", outline: "none" }}
+            />
           </label>
           <label className="block">
             <div className="aurora-cap mb-1.5">E-mail</div>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="off"
-              className="w-full px-4 py-2.5 text-[13px]" style={{ border: "1px solid var(--line)", background: "#fff", outline: "none" }} />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="off"
+              className="w-full px-4 py-2.5 text-[13px]"
+              style={{ border: "1px solid var(--line)", background: "#fff", outline: "none" }}
+            />
           </label>
           <label className="block">
             <div className="aurora-cap mb-1.5">Perfil no painel</div>
@@ -929,19 +1265,49 @@ function EditAdminModal({
             />
           </label>
           {error && (
-            <div className="text-[12px] px-3 py-2.5" style={{ background: "rgba(109,146,166,0.10)", color: "var(--tan)", border: "1px solid var(--tan)" }}>
+            <div
+              className="text-[12px] px-3 py-2.5"
+              style={{
+                background: "rgba(109,146,166,0.10)",
+                color: "var(--tan)",
+                border: "1px solid var(--tan)",
+              }}
+            >
               {error}
             </div>
           )}
           <div className="flex gap-3 pt-2">
-            <button type="submit" disabled={loading || !name.trim() || !email.trim() || !canDemoteOwner || (password.length > 0 && password.length < 8)}
+            <button
+              type="submit"
+              disabled={
+                loading ||
+                !name.trim() ||
+                !email.trim() ||
+                !canDemoteOwner ||
+                (password.length > 0 && password.length < 8)
+              }
               className="flex-1 text-[10px] uppercase py-3 disabled:opacity-50"
-              style={{ background: "var(--navy)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}>
+              style={{
+                background: "var(--navy)",
+                color: "#fff",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 999,
+              }}
+            >
               {loading ? "Salvando…" : "Salvar →"}
             </button>
-            <button type="button" onClick={onClose}
+            <button
+              type="button"
+              onClick={onClose}
               className="px-5 py-3 text-[10px] uppercase"
-              style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", letterSpacing: "2px" , borderRadius: 12 }}>
+              style={{
+                border: "1px solid var(--line)",
+                color: "var(--muted-foreground)",
+                letterSpacing: "2px",
+                borderRadius: 12,
+              }}
+            >
               Cancelar
             </button>
           </div>
@@ -980,7 +1346,11 @@ function InvitePortalModal({
         body: JSON.stringify({ client_id: clientId, email, display_name: name, portal_role: role }),
       });
       let json: Record<string, unknown> = {};
-      try { json = await res.json(); } catch { /* body não era JSON */ }
+      try {
+        json = await res.json();
+      } catch {
+        /* body não era JSON */
+      }
       if (!res.ok) {
         setError((json.error as string) ?? `Erro HTTP ${res.status}. Tente novamente.`);
         return;
@@ -1001,14 +1371,25 @@ function InvitePortalModal({
     >
       <div
         className="aurora-modal w-full max-w-[480px] bg-white p-8"
-        style={{ borderRadius: 24, overflow: "hidden", border: "1px solid var(--line)", boxShadow: "0 24px 64px -16px rgba(28,45,69,0.22)" }}
+        style={{
+          borderRadius: 24,
+          overflow: "hidden",
+          border: "1px solid var(--line)",
+          boxShadow: "0 24px 64px -16px rgba(28,45,69,0.22)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="aurora-cap mb-1">Portal do cliente</div>
         <h2 className="aurora-serif text-[24px] mb-2">
-          Convidar <em className="italic" style={{ color: "var(--green)" }}>usuário do portal</em>
+          Convidar{" "}
+          <em className="italic" style={{ color: "var(--green)" }}>
+            usuário do portal
+          </em>
         </h2>
-        <p className="text-[12px] mb-6" style={{ color: "var(--muted-foreground)", lineHeight: 1.5 }}>
+        <p
+          className="text-[12px] mb-6"
+          style={{ color: "var(--muted-foreground)", lineHeight: 1.5 }}
+        >
           Acesso apenas ao portal da empresa escolhida — sem painel admin da Aurora.
         </p>
 
@@ -1023,7 +1404,9 @@ function InvitePortalModal({
               style={{ border: "1px solid var(--line)", background: "#fff", outline: "none" }}
             >
               {clients.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
               ))}
             </select>
           </div>
@@ -1070,7 +1453,8 @@ function InvitePortalModal({
                     color: role === r ? "var(--green)" : "var(--muted-foreground)",
                     background: role === r ? "rgba(74,103,65,0.06)" : "transparent",
                     fontWeight: role === r ? 600 : 400,
-                  borderRadius: 12 }}
+                    borderRadius: 12,
+                  }}
                 >
                   {r === "owner" ? "Proprietário" : "Financeiro"}
                 </button>
@@ -1084,7 +1468,14 @@ function InvitePortalModal({
           </div>
 
           {error && (
-            <div className="text-[12px] px-3 py-2.5" style={{ background: "rgba(109,146,166,0.10)", color: "var(--tan)", border: "1px solid var(--tan)" }}>
+            <div
+              className="text-[12px] px-3 py-2.5"
+              style={{
+                background: "rgba(109,146,166,0.10)",
+                color: "var(--tan)",
+                border: "1px solid var(--tan)",
+              }}
+            >
               {error}
             </div>
           )}
@@ -1094,7 +1485,13 @@ function InvitePortalModal({
               type="submit"
               disabled={loading || !clientId || !email || !name}
               className="flex-1 text-[10px] uppercase py-3 disabled:opacity-50"
-              style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+              style={{
+                background: "var(--green)",
+                color: "#fff",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 999,
+              }}
             >
               {loading ? "Enviando convite…" : "Enviar convite →"}
             </button>
@@ -1102,7 +1499,12 @@ function InvitePortalModal({
               type="button"
               onClick={onClose}
               className="px-5 py-3 text-[10px] uppercase"
-              style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", letterSpacing: "2px" , borderRadius: 12 }}
+              style={{
+                border: "1px solid var(--line)",
+                color: "var(--muted-foreground)",
+                letterSpacing: "2px",
+                borderRadius: 12,
+              }}
             >
               Cancelar
             </button>

@@ -146,16 +146,15 @@ export function ClaudiaSection() {
             }}
           >
             <p>
-              Há 8 anos, comecei organizando a empresa de um amigo. Vi que a demanda por
-              esse cuidado era gigante e percebi que empresários brilhantes perdiam dinheiro
-              simplesmente porque ninguém olhava para o caixa do jeito certo. Foi aí que
-              fundei a Aurora.
+              Há 8 anos, comecei organizando a empresa de um amigo. Vi que a demanda por esse
+              cuidado era gigante e percebi que empresários brilhantes perdiam dinheiro simplesmente
+              porque ninguém olhava para o caixa do jeito certo. Foi aí que fundei a Aurora.
             </p>
             <p>
               Em 2018, dei o nome e a forma ao que já fazia:{" "}
               <strong style={{ color: INK, fontWeight: 700 }}>caminhar junto</strong> com o
-              empresário. Não como software impessoal. Como alguém que entra na conta,
-              organiza, fecha o mês e te entrega a próxima decisão pronta — pelo WhatsApp.
+              empresário. Não como software impessoal. Como alguém que entra na conta, organiza,
+              fecha o mês e te entrega a próxima decisão pronta — pelo WhatsApp.
             </p>
           </div>
 

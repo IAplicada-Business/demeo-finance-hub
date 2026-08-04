@@ -39,12 +39,19 @@ Deno.serve(async (req: Request) => {
   if (!caller) return jsonResponse({ error: "Não autenticado" }, 401, origin);
   if (!(await isAdmin(caller.id))) {
     // Ambos admin e owner gerenciam o painel — Owner não é gate exclusivo.
-    return jsonResponse({ error: "Apenas administradores do painel podem gerenciar usuários" }, 403, origin);
+    return jsonResponse(
+      { error: "Apenas administradores do painel podem gerenciar usuários" },
+      403,
+      origin,
+    );
   }
 
   let raw: unknown;
-  try { raw = await req.json(); }
-  catch { return jsonResponse({ error: "JSON inválido" }, 400, origin); }
+  try {
+    raw = await req.json();
+  } catch {
+    return jsonResponse({ error: "JSON inválido" }, 400, origin);
+  }
 
   const action = (raw as { action?: string } | null)?.action;
   if (action === "update") return handleUpdate(raw, caller.id, origin);
@@ -54,8 +61,11 @@ Deno.serve(async (req: Request) => {
 
 async function handleCreate(raw: unknown, origin: string) {
   let body: z.infer<typeof CreateSchema>;
-  try { body = CreateSchema.parse(raw); }
-  catch (e) { return jsonResponse({ error: String(e) }, 400, origin); }
+  try {
+    body = CreateSchema.parse(raw);
+  } catch (e) {
+    return jsonResponse({ error: String(e) }, 400, origin);
+  }
 
   const { email, display_name, password } = body;
   const sb = serviceClient();
@@ -71,11 +81,13 @@ async function handleCreate(raw: unknown, origin: string) {
   }
 
   if (userId) {
-    await sb.auth.admin.updateUserById(userId, {
-      password,
-      email_confirm: true,
-      user_metadata: { display_name },
-    }).catch(() => null);
+    await sb.auth.admin
+      .updateUserById(userId, {
+        password,
+        email_confirm: true,
+        user_metadata: { display_name },
+      })
+      .catch(() => null);
   } else {
     const { data: created, error: createErr } = await sb.auth.admin.createUser({
       email,
@@ -84,15 +96,16 @@ async function handleCreate(raw: unknown, origin: string) {
       user_metadata: { display_name },
     });
     if (createErr || !created?.user) {
-      return jsonResponse({ error: `Erro ao criar usuário: ${createErr?.message ?? "desconhecido"}` }, 500, origin);
+      return jsonResponse(
+        { error: `Erro ao criar usuário: ${createErr?.message ?? "desconhecido"}` },
+        500,
+        origin,
+      );
     }
     userId = created.user.id;
   }
 
-  const { data: roles } = await sb
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
+  const { data: roles } = await sb.from("user_roles").select("role").eq("user_id", userId);
 
   const roleSet = new Set((roles ?? []).map((r: { role: string }) => r.role));
 
@@ -102,35 +115,50 @@ async function handleCreate(raw: unknown, origin: string) {
       .update({ display_name, email })
       .eq("user_id", userId)
       .eq("role", "owner");
-    if (error) return jsonResponse({ error: `Erro ao atualizar papel: ${error.message}` }, 500, origin);
+    if (error)
+      return jsonResponse({ error: `Erro ao atualizar papel: ${error.message}` }, 500, origin);
   } else if (roleSet.has("admin")) {
     const { error } = await sb
       .from("user_roles")
       .update({ display_name, email })
       .eq("user_id", userId)
       .eq("role", "admin");
-    if (error) return jsonResponse({ error: `Erro ao atualizar papel: ${error.message}` }, 500, origin);
+    if (error)
+      return jsonResponse({ error: `Erro ao atualizar papel: ${error.message}` }, 500, origin);
   } else {
     const { error: roleErr } = await sb
       .from("user_roles")
       .insert({ user_id: userId, role: "admin", display_name, email });
-    if (roleErr) return jsonResponse({ error: `Erro ao definir papel: ${roleErr.message}` }, 500, origin);
+    if (roleErr)
+      return jsonResponse({ error: `Erro ao definir papel: ${roleErr.message}` }, 500, origin);
   }
 
-  await sb.from("user_roles").delete().eq("user_id", userId).eq("role", "client").catch(() => null);
+  await sb
+    .from("user_roles")
+    .delete()
+    .eq("user_id", userId)
+    .eq("role", "client")
+    .catch(() => null);
 
-  return jsonResponse({
-    ok: true,
-    user_id: userId,
-    email,
-    role: roleSet.has("owner") ? "owner" : "admin",
-  }, 200, origin);
+  return jsonResponse(
+    {
+      ok: true,
+      user_id: userId,
+      email,
+      role: roleSet.has("owner") ? "owner" : "admin",
+    },
+    200,
+    origin,
+  );
 }
 
 async function handleUpdate(raw: unknown, callerId: string, origin: string) {
   let body: z.infer<typeof UpdateSchema>;
-  try { body = UpdateSchema.parse(raw); }
-  catch (e) { return jsonResponse({ error: String(e) }, 400, origin); }
+  try {
+    body = UpdateSchema.parse(raw);
+  } catch (e) {
+    return jsonResponse({ error: String(e) }, 400, origin);
+  }
 
   const { user_id, display_name, email, password, role } = body;
   if (!display_name && !email && !password && !role) {
@@ -157,7 +185,11 @@ async function handleUpdate(raw: unknown, callerId: string, origin: string) {
         .select("user_id", { count: "exact", head: true })
         .eq("role", "owner");
       if ((count ?? 0) <= 1) {
-        return jsonResponse({ error: "Não é possível rebaixar o único Owner da conta." }, 400, origin);
+        return jsonResponse(
+          { error: "Não é possível rebaixar o único Owner da conta." },
+          400,
+          origin,
+        );
       }
     }
     const { error: roleErr } = await sb
@@ -165,7 +197,8 @@ async function handleUpdate(raw: unknown, callerId: string, origin: string) {
       .update({ role })
       .eq("user_id", user_id)
       .eq("role", targetRole.role);
-    if (roleErr) return jsonResponse({ error: `Erro ao alterar perfil: ${roleErr.message}` }, 500, origin);
+    if (roleErr)
+      return jsonResponse({ error: `Erro ao alterar perfil: ${roleErr.message}` }, 500, origin);
   }
 
   const authPatch: Record<string, unknown> = {};
@@ -178,7 +211,8 @@ async function handleUpdate(raw: unknown, callerId: string, origin: string) {
 
   if (Object.keys(authPatch).length > 0) {
     const { error: authErr } = await sb.auth.admin.updateUserById(user_id, authPatch);
-    if (authErr) return jsonResponse({ error: `Erro ao atualizar Auth: ${authErr.message}` }, 500, origin);
+    if (authErr)
+      return jsonResponse({ error: `Erro ao atualizar Auth: ${authErr.message}` }, 500, origin);
   }
 
   const rolePatch: Record<string, string> = {};
@@ -190,11 +224,16 @@ async function handleUpdate(raw: unknown, callerId: string, origin: string) {
       .update(rolePatch)
       .eq("user_id", user_id)
       .in("role", ["admin", "owner"]);
-    if (metaErr) return jsonResponse({ error: `Erro ao atualizar dados: ${metaErr.message}` }, 500, origin);
+    if (metaErr)
+      return jsonResponse({ error: `Erro ao atualizar dados: ${metaErr.message}` }, 500, origin);
   }
 
   if (display_name) {
-    await sb.from("profiles").update({ display_name }).eq("user_id", user_id).catch(() => null);
+    await sb
+      .from("profiles")
+      .update({ display_name })
+      .eq("user_id", user_id)
+      .catch(() => null);
   }
 
   return jsonResponse({ ok: true, user_id, action: "update", caller_id: callerId }, 200, origin);
@@ -202,8 +241,11 @@ async function handleUpdate(raw: unknown, callerId: string, origin: string) {
 
 async function handleDelete(raw: unknown, callerId: string, origin: string) {
   let body: z.infer<typeof DeleteSchema>;
-  try { body = DeleteSchema.parse(raw); }
-  catch (e) { return jsonResponse({ error: String(e) }, 400, origin); }
+  try {
+    body = DeleteSchema.parse(raw);
+  } catch (e) {
+    return jsonResponse({ error: String(e) }, 400, origin);
+  }
 
   if (body.user_id === callerId) {
     return jsonResponse({ error: "Você não pode remover o próprio acesso admin." }, 400, origin);
@@ -222,7 +264,11 @@ async function handleDelete(raw: unknown, callerId: string, origin: string) {
     return jsonResponse({ error: "Usuário administrador não encontrado" }, 404, origin);
   }
   if (targetRole.role === "owner") {
-    return jsonResponse({ error: "Não é possível remover o Owner da conta. Transfira o papel antes." }, 400, origin);
+    return jsonResponse(
+      { error: "Não é possível remover o Owner da conta. Transfira o papel antes." },
+      400,
+      origin,
+    );
   }
 
   const { error: delErr } = await sb
@@ -230,7 +276,8 @@ async function handleDelete(raw: unknown, callerId: string, origin: string) {
     .delete()
     .eq("user_id", body.user_id)
     .eq("role", "admin");
-  if (delErr) return jsonResponse({ error: `Erro ao remover admin: ${delErr.message}` }, 500, origin);
+  if (delErr)
+    return jsonResponse({ error: `Erro ao remover admin: ${delErr.message}` }, 500, origin);
 
   return jsonResponse({ ok: true, user_id: body.user_id, action: "delete" }, 200, origin);
 }

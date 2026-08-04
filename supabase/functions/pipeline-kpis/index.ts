@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
           "Cache-Control": "private, max-age=60",
           "Access-Control-Allow-Origin": origin ?? "*",
-          "Vary": "Origin",
+          Vary: "Origin",
         },
       });
     }
@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
         "Cache-Control": "private, max-age=60",
         "Access-Control-Allow-Origin": origin ?? "*",
-        "Vary": "Origin",
+        Vary: "Origin",
       },
     });
   } catch (e) {

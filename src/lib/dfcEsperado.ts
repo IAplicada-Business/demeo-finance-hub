@@ -27,13 +27,14 @@ function payablesByCategory(
   payables: PayableProjection[],
   startDate: string,
   endDate: string,
-  type: "receber" | "pagar"
+  type: "receber" | "pagar",
 ): Map<string, number> {
   const map = new Map<string, number>();
   for (const p of payables) {
     if (p.type !== type) continue;
     if (p.due_date < startDate || p.due_date > endDate) continue;
-    const cat = (p as PayableProjection & { category?: string | null }).category?.trim() || "Sem categoria";
+    const cat =
+      (p as PayableProjection & { category?: string | null }).category?.trim() || "Sem categoria";
     map.set(cat, (map.get(cat) ?? 0) + p.amount);
   }
   return map;
@@ -44,7 +45,7 @@ export function buildDfcCategoryRows(
   prevTx: TxLike[],
   payables: (PayableProjection & { category?: string | null })[],
   startDate: string,
-  endDate: string
+  endDate: string,
 ): { entradas: DfcCategoryRow[]; saidas: DfcCategoryRow[] } {
   const curEnt = sumByCategory(tx, true);
   const curDes = sumByCategory(tx, false);
@@ -57,7 +58,7 @@ export function buildDfcCategoryRows(
     cur: Map<string, number>,
     prev: Map<string, number>,
     pay: Map<string, number>,
-    isEntrada: boolean
+    isEntrada: boolean,
   ): DfcCategoryRow[] => {
     const cats = new Set([...cur.keys(), ...pay.keys()]);
     return Array.from(cats)

@@ -42,10 +42,7 @@ export async function deleteUploadCascade(uploadId: string): Promise<{ error: st
 
   // 2. Transações — não depende só do ON DELETE CASCADE
   //    (cobre pending/classified/approved e evita órfãos se a FK falhar).
-  const { error: txErr } = await client
-    .from("transactions")
-    .delete()
-    .eq("upload_id", uploadId);
+  const { error: txErr } = await client.from("transactions").delete().eq("upload_id", uploadId);
 
   if (txErr) return { error: `Erro ao remover lançamentos: ${txErr.message}` };
 
@@ -55,10 +52,7 @@ export async function deleteUploadCascade(uploadId: string): Promise<{ error: st
   }
 
   // 4. Registro do upload
-  const { error: upErr } = await client
-    .from("uploads")
-    .delete()
-    .eq("id", uploadId);
+  const { error: upErr } = await client.from("uploads").delete().eq("id", uploadId);
 
   if (upErr) return { error: `Erro ao remover extrato: ${upErr.message}` };
 

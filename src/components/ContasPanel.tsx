@@ -113,7 +113,10 @@ function PayableSection({
       </div>
 
       {items.length === 0 ? (
-        <div className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+        <div
+          className="px-6 py-10 text-center text-[12px]"
+          style={{ color: "var(--muted-foreground)" }}
+        >
           Nenhum lançamento {view === "pendentes" ? "pendente" : view === "pagos" ? "pago" : ""}.
         </div>
       ) : (
@@ -124,7 +127,11 @@ function PayableSection({
                 <th
                   key={h}
                   className="text-left px-5 py-3 aurora-cap"
-                  style={{ fontWeight: 500, borderBottom: "1px solid var(--line)", whiteSpace: "nowrap" }}
+                  style={{
+                    fontWeight: 500,
+                    borderBottom: "1px solid var(--line)",
+                    whiteSpace: "nowrap",
+                  }}
                 >
                   {h}
                 </th>
@@ -140,23 +147,38 @@ function PayableSection({
                 <tr key={p.id} style={{ background: idx % 2 === 0 ? "#fff" : "#FAFBFA" }}>
                   <td
                     className="px-5 py-3 text-[12px]"
-                    style={{ color: status === "vencido" ? "#B06040" : undefined, whiteSpace: "nowrap" }}
+                    style={{
+                      color: status === "vencido" ? "#B06040" : undefined,
+                      whiteSpace: "nowrap",
+                    }}
                   >
                     {formatDatePtBR(p.due_date)}
                     {status === "vencido" && <span className="ml-1.5 text-[10px]">⚠</span>}
                   </td>
-                  <td className="px-5 py-3 text-[12px] max-w-[220px] truncate" title={p.description}>
+                  <td
+                    className="px-5 py-3 text-[12px] max-w-[220px] truncate"
+                    title={p.description}
+                  >
                     {p.description}
                     {p.notes && (
-                      <div className="text-[10px] mt-0.5 truncate" style={{ color: "var(--muted-foreground)" }}>
+                      <div
+                        className="text-[10px] mt-0.5 truncate"
+                        style={{ color: "var(--muted-foreground)" }}
+                      >
                         {p.notes}
                       </div>
                     )}
                   </td>
-                  <td className="px-5 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                  <td
+                    className="px-5 py-3 text-[12px]"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
                     {p.category ?? "—"}
                   </td>
-                  <td className="px-5 py-3 aurora-value text-[14px]" style={{ color: accentColor, whiteSpace: "nowrap" }}>
+                  <td
+                    className="px-5 py-3 aurora-value text-[14px]"
+                    style={{ color: accentColor, whiteSpace: "nowrap" }}
+                  >
                     {brl(p.amount)}
                   </td>
                   <td className="px-5 py-3">
@@ -170,7 +192,13 @@ function PayableSection({
                             onClick={() => onReconcile(p)}
                             disabled={isMarking}
                             className="text-[10px] uppercase px-2.5 py-1 transition-opacity disabled:opacity-40"
-                            style={{ border: "1px solid var(--line)", color: "var(--navy)", letterSpacing: "1.5px", whiteSpace: "nowrap", borderRadius: 12 }}
+                            style={{
+                              border: "1px solid var(--line)",
+                              color: "var(--navy)",
+                              letterSpacing: "1.5px",
+                              whiteSpace: "nowrap",
+                              borderRadius: 12,
+                            }}
                           >
                             Conciliar
                           </button>
@@ -179,7 +207,14 @@ function PayableSection({
                             disabled={isMarking}
                             title="Dinheiro: registra no caixa. Banco: importe extrato e concilie."
                             className="text-[10px] uppercase px-2.5 py-1 transition-opacity disabled:opacity-40"
-                            style={{ background: "var(--green)", color: "#fff", letterSpacing: "1.5px", fontWeight: 500, whiteSpace: "nowrap", borderRadius: 999 }}
+                            style={{
+                              background: "var(--green)",
+                              color: "#fff",
+                              letterSpacing: "1.5px",
+                              fontWeight: 500,
+                              whiteSpace: "nowrap",
+                              borderRadius: 999,
+                            }}
                           >
                             {isMarking ? "…" : "✓ Pago (dinheiro)"}
                           </button>
@@ -190,7 +225,13 @@ function PayableSection({
                           onClick={() => onUndo(p)}
                           disabled={isMarking}
                           className="text-[10px] uppercase px-2.5 py-1 transition-opacity disabled:opacity-40"
-                          style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", letterSpacing: "1.5px", whiteSpace: "nowrap", borderRadius: 12 }}
+                          style={{
+                            border: "1px solid var(--line)",
+                            color: "var(--muted-foreground)",
+                            letterSpacing: "1.5px",
+                            whiteSpace: "nowrap",
+                            borderRadius: 12,
+                          }}
                         >
                           {isMarking ? "…" : "Desfazer"}
                         </button>
@@ -262,7 +303,9 @@ function ReconcileModal({
       }
       setLoading(false);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [clientId, payable]);
 
   async function handleLink(txId: string) {
@@ -281,13 +324,23 @@ function ReconcileModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ background: "rgba(0,0,0,0.35)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div
         className="aurora-modal bg-white flex flex-col"
-        style={{ width: 560, maxHeight: "85vh", overflowY: "auto", borderTop: "3px solid var(--navy)" }}
+        style={{
+          width: 560,
+          maxHeight: "85vh",
+          overflowY: "auto",
+          borderTop: "3px solid var(--navy)",
+        }}
       >
-        <div className="px-6 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid var(--line)" }}>
+        <div
+          className="px-6 py-5 flex items-center justify-between"
+          style={{ borderBottom: "1px solid var(--line)" }}
+        >
           <div>
             <div className="aurora-cap mb-0.5">Conciliar</div>
             <div className="aurora-serif text-[18px]">{payable.description}</div>
@@ -295,13 +348,21 @@ function ReconcileModal({
               {brl(payable.amount)} · venc. {formatDatePtBR(payable.due_date)}
             </div>
           </div>
-          <button onClick={onClose} className="text-[16px] opacity-40 hover:opacity-70 transition-opacity">✕</button>
+          <button
+            onClick={onClose}
+            className="text-[16px] opacity-40 hover:opacity-70 transition-opacity"
+          >
+            ✕
+          </button>
         </div>
 
         <div className="px-6 py-4">
           {loading && <div className="text-[13px]">Buscando lançamentos no extrato...</div>}
           {error && (
-            <div className="text-[12px] px-3 py-2" style={{ background: "rgba(176,96,64,0.1)", color: "#B06040" }}>
+            <div
+              className="text-[12px] px-3 py-2"
+              style={{ background: "rgba(176,96,64,0.1)", color: "#B06040" }}
+            >
               {error}
             </div>
           )}
@@ -320,7 +381,10 @@ function ReconcileModal({
                 >
                   <div className="min-w-0">
                     <div className="text-[13px] truncate">{tx.description}</div>
-                    <div className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                    <div
+                      className="text-[11px] mt-0.5"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
                       {formatDatePtBR(tx.date)} · {brl(Math.abs(tx.amount))} · score {score}
                     </div>
                   </div>
@@ -329,7 +393,12 @@ function ReconcileModal({
                     disabled={linking !== null}
                     onClick={() => handleLink(tx.id)}
                     className="text-[10px] uppercase px-3 py-1.5 shrink-0 transition-opacity disabled:opacity-40"
-                    style={{ background: "var(--navy)", color: "#fff", letterSpacing: "1.5px", borderRadius: 999 }}
+                    style={{
+                      background: "var(--navy)",
+                      color: "#fff",
+                      letterSpacing: "1.5px",
+                      borderRadius: 999,
+                    }}
                   >
                     {linking === tx.id ? "…" : "Vincular"}
                   </button>
@@ -388,9 +457,18 @@ function NovoLancamentoModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const amount = parseBRNumber(form.amount);
-    if (!form.description.trim()) { setError("Informe a descrição."); return; }
-    if (isNaN(amount) || amount <= 0) { setError("Valor inválido."); return; }
-    if (!form.due_date) { setError("Informe o vencimento."); return; }
+    if (!form.description.trim()) {
+      setError("Informe a descrição.");
+      return;
+    }
+    if (isNaN(amount) || amount <= 0) {
+      setError("Valor inválido.");
+      return;
+    }
+    if (!form.due_date) {
+      setError("Informe o vencimento.");
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -406,43 +484,81 @@ function NovoLancamentoModal({
         category: form.category.trim() || null,
         notes: form.notes.trim() || null,
       })
-      .select("id, client_id, type, description, amount, due_date, paid_at, matched_transaction_id, category, notes")
+      .select(
+        "id, client_id, type, description, amount, due_date, paid_at, matched_transaction_id, category, notes",
+      )
       .single();
 
-    if (err) { setError(err.message); setSaving(false); return; }
+    if (err) {
+      setError(err.message);
+      setSaving(false);
+      return;
+    }
     onSaved(data as Payable);
   }
 
-  const inputStyle = { border: "1px solid var(--line)", background: "#fff", padding: "6px 10px", fontSize: 13, width: "100%", borderRadius: 12 };
+  const inputStyle = {
+    border: "1px solid var(--line)",
+    background: "#fff",
+    padding: "6px 10px",
+    fontSize: 13,
+    width: "100%",
+    borderRadius: 12,
+  };
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ background: "rgba(0,0,0,0.35)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div
         className="aurora-modal bg-white flex flex-col"
-        style={{ width: 480, maxHeight: "90vh", overflowY: "auto", borderTop: "3px solid var(--green)" }}
+        style={{
+          width: 480,
+          maxHeight: "90vh",
+          overflowY: "auto",
+          borderTop: "3px solid var(--green)",
+        }}
       >
-        <div className="px-6 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid var(--line)" }}>
+        <div
+          className="px-6 py-5 flex items-center justify-between"
+          style={{ borderBottom: "1px solid var(--line)" }}
+        >
           <div>
             <div className="aurora-cap mb-0.5">Novo lançamento</div>
             <div className="aurora-serif text-[18px]">Conta a pagar ou receber</div>
           </div>
-          <button onClick={onClose} className="text-[16px] opacity-40 hover:opacity-70 transition-opacity">✕</button>
+          <button
+            onClick={onClose}
+            className="text-[16px] opacity-40 hover:opacity-70 transition-opacity"
+          >
+            ✕
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-5 flex flex-col gap-4">
           {error && (
-            <div className="text-[12px] px-3 py-2" style={{ background: "rgba(176,96,64,0.1)", color: "#B06040", border: "1px solid rgba(176,96,64,0.2)" }}>
+            <div
+              className="text-[12px] px-3 py-2"
+              style={{
+                background: "rgba(176,96,64,0.1)",
+                color: "#B06040",
+                border: "1px solid rgba(176,96,64,0.2)",
+              }}
+            >
               {error}
             </div>
           )}
 
           <div>
             <div className="aurora-cap mb-2">Tipo</div>
-            <div className="flex" style={{ borderRadius: 12, overflow: "hidden", border: "1px solid var(--line)" }}>
+            <div
+              className="flex"
+              style={{ borderRadius: 12, overflow: "hidden", border: "1px solid var(--line)" }}
+            >
               {(["pagar", "receber"] as const).map((t) => (
                 <button
                   key={t}
@@ -452,7 +568,12 @@ function NovoLancamentoModal({
                   style={{
                     letterSpacing: "1.5px",
                     fontWeight: 600,
-                    background: form.type === t ? (t === "pagar" ? "var(--navy)" : "var(--green)") : "var(--linen)",
+                    background:
+                      form.type === t
+                        ? t === "pagar"
+                          ? "var(--navy)"
+                          : "var(--green)"
+                        : "var(--linen)",
                     color: form.type === t ? "#fff" : "var(--muted-foreground)",
                     border: "none",
                   }}
@@ -465,40 +586,89 @@ function NovoLancamentoModal({
 
           <div>
             <label className="aurora-cap mb-1 block">Descrição *</label>
-            <input type="text" value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Ex: Aluguel junho, Mensalidade serviço X..." style={inputStyle} />
+            <input
+              type="text"
+              value={form.description}
+              onChange={(e) => set("description", e.target.value)}
+              placeholder="Ex: Aluguel junho, Mensalidade serviço X..."
+              style={inputStyle}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="aurora-cap mb-1 block">Valor (R$) *</label>
-              <input type="text" inputMode="decimal" value={form.amount} onChange={(e) => set("amount", e.target.value)} placeholder="0,00" style={inputStyle} />
+              <input
+                type="text"
+                inputMode="decimal"
+                value={form.amount}
+                onChange={(e) => set("amount", e.target.value)}
+                placeholder="0,00"
+                style={inputStyle}
+              />
             </div>
             <div>
               <label className="aurora-cap mb-1 block">Vencimento *</label>
-              <DateInput value={form.due_date} onChange={(iso) => set("due_date", iso)} required style={inputStyle} />
+              <DateInput
+                value={form.due_date}
+                onChange={(iso) => set("due_date", iso)}
+                required
+                style={inputStyle}
+              />
             </div>
           </div>
 
           <div>
             <label className="aurora-cap mb-1 block">Categoria</label>
-            <select value={form.category} onChange={(e) => set("category", e.target.value)} style={inputStyle}>
+            <select
+              value={form.category}
+              onChange={(e) => set("category", e.target.value)}
+              style={inputStyle}
+            >
               <option value="">— Selecione —</option>
               {categories.map((c) => (
-                <option key={c} value={c}>{c}</option>
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
             <label className="aurora-cap mb-1 block">Observações</label>
-            <input type="text" value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Informações adicionais..." style={inputStyle} />
+            <input
+              type="text"
+              value={form.notes}
+              onChange={(e) => set("notes", e.target.value)}
+              placeholder="Informações adicionais..."
+              style={inputStyle}
+            />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-2" style={{ borderTop: "1px solid var(--line)" }}>
-            <button type="button" onClick={onClose} className="text-[11px] uppercase px-4 py-2" style={{ color: "var(--muted-foreground)", letterSpacing: "1.5px" }}>
+          <div
+            className="flex items-center justify-end gap-3 pt-2"
+            style={{ borderTop: "1px solid var(--line)" }}
+          >
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-[11px] uppercase px-4 py-2"
+              style={{ color: "var(--muted-foreground)", letterSpacing: "1.5px" }}
+            >
               Cancelar
             </button>
-            <button type="submit" disabled={saving} className="text-[11px] uppercase px-5 py-2 transition-opacity disabled:opacity-50" style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}>
+            <button
+              type="submit"
+              disabled={saving}
+              className="text-[11px] uppercase px-5 py-2 transition-opacity disabled:opacity-50"
+              style={{
+                background: "var(--green)",
+                color: "#fff",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 999,
+              }}
+            >
               {saving ? "Salvando..." : "Salvar"}
             </button>
           </div>
@@ -540,7 +710,9 @@ export function ContasPanel({
     setError(null);
     const { data, error: err } = await supabase()
       .from("payables")
-      .select("id, client_id, type, description, amount, due_date, paid_at, matched_transaction_id, category, notes")
+      .select(
+        "id, client_id, type, description, amount, due_date, paid_at, matched_transaction_id, category, notes",
+      )
       .eq("client_id", clientId)
       .order("due_date", { ascending: true });
     if (err) {
@@ -568,7 +740,9 @@ export function ContasPanel({
     setLoading(false);
   }
 
-  useEffect(() => { if (clientId) loadPayables(); }, [clientId]);
+  useEffect(() => {
+    if (clientId) loadPayables();
+  }, [clientId]);
 
   async function handleCashPaid(id: string) {
     setConfirmCashId(null);
@@ -587,9 +761,7 @@ export function ContasPanel({
     setMarking(p.id);
     const status = displayStatus(p, txUploadMap);
     const result =
-      status === "conciliado"
-        ? await unreconcilePayable(p.id)
-        : await undoManualPayment(p.id);
+      status === "conciliado" ? await unreconcilePayable(p.id) : await undoManualPayment(p.id);
     if (!result.ok) {
       toast.error(result.error);
     } else {
@@ -636,7 +808,9 @@ export function ContasPanel({
   const pagar = paged.filter((p) => p.type === "pagar");
 
   const pending = payables.filter((p) => !p.paid_at && !p.matched_transaction_id);
-  const totalReceber = pending.filter((p) => p.type === "receber").reduce((s, p) => s + p.amount, 0);
+  const totalReceber = pending
+    .filter((p) => p.type === "receber")
+    .reduce((s, p) => s + p.amount, 0);
   const totalPagar = pending.filter((p) => p.type === "pagar").reduce((s, p) => s + p.amount, 0);
   const saldoPrevisto = totalReceber - totalPagar;
 
@@ -646,33 +820,50 @@ export function ContasPanel({
         <div className="grid grid-cols-3 gap-4 flex-1">
           <div className="aurora-card">
             <div className="aurora-cap mb-2">A Receber</div>
-            <div className="aurora-value text-[32px]" style={{ color: "var(--green)" }}>{brl(totalReceber)}</div>
+            <div className="aurora-value text-[32px]" style={{ color: "var(--green)" }}>
+              {brl(totalReceber)}
+            </div>
             <div className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>
               {pending.filter((p) => p.type === "receber").length} pendentes
             </div>
           </div>
           <div className="aurora-card">
             <div className="aurora-cap mb-2">A Pagar</div>
-            <div className="aurora-value text-[32px]" style={{ color: "var(--navy)" }}>{brl(totalPagar)}</div>
+            <div className="aurora-value text-[32px]" style={{ color: "var(--navy)" }}>
+              {brl(totalPagar)}
+            </div>
             <div className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>
               {pending.filter((p) => p.type === "pagar").length} pendentes
             </div>
           </div>
           <div className="aurora-card">
             <div className="aurora-cap mb-2">Saldo Previsto</div>
-            <div className="aurora-value text-[32px]" style={{ color: saldoPrevisto >= 0 ? "var(--green)" : "#B06040" }}>
+            <div
+              className="aurora-value text-[32px]"
+              style={{ color: saldoPrevisto >= 0 ? "var(--green)" : "#B06040" }}
+            >
               {brl(saldoPrevisto)}
             </div>
-            <div className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>receber − pagar pendentes</div>
+            <div className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+              receber − pagar pendentes
+            </div>
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="aurora-card flex items-center gap-3" style={{ background: "rgba(176,96,64,0.08)", borderLeft: "3px solid #B06040" }}>
+        <div
+          className="aurora-card flex items-center gap-3"
+          style={{ background: "rgba(176,96,64,0.08)", borderLeft: "3px solid #B06040" }}
+        >
           <span style={{ color: "#B06040", fontSize: 18 }}>!</span>
           <div className="text-[13px]">{error}</div>
-          <button className="ml-auto text-[11px] opacity-50 hover:opacity-100" onClick={() => setError(null)}>✕</button>
+          <button
+            className="ml-auto text-[11px] opacity-50 hover:opacity-100"
+            onClick={() => setError(null)}
+          >
+            ✕
+          </button>
         </div>
       )}
 
@@ -702,7 +893,10 @@ export function ContasPanel({
 
       {loading && (
         <div className="aurora-card flex items-center gap-4">
-          <div className="w-5 h-5 rounded-full border-2 animate-spin" style={{ borderColor: "var(--green)", borderTopColor: "transparent" }} />
+          <div
+            className="w-5 h-5 rounded-full border-2 animate-spin"
+            style={{ borderColor: "var(--green)", borderTopColor: "transparent" }}
+          />
           <div className="text-[13px]">Carregando agenda...</div>
         </div>
       )}
@@ -735,7 +929,10 @@ export function ContasPanel({
           />
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-2">
-              <div className="text-[11px] uppercase" style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)" }}>
+              <div
+                className="text-[11px] uppercase"
+                style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)" }}
+              >
                 Página {page + 1} de {totalPages} · {filtered.length} lançamentos
               </div>
               <div className="flex items-center gap-2">
@@ -743,7 +940,12 @@ export function ContasPanel({
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
                   className="text-[10px] uppercase px-4 py-2 transition-opacity disabled:opacity-30"
-                  style={{ border: "1px solid var(--line)", letterSpacing: "1.5px", fontWeight: 500 , borderRadius: 12 }}
+                  style={{
+                    border: "1px solid var(--line)",
+                    letterSpacing: "1.5px",
+                    fontWeight: 500,
+                    borderRadius: 12,
+                  }}
                 >
                   ← Anterior
                 </button>
@@ -751,7 +953,12 @@ export function ContasPanel({
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
                   className="text-[10px] uppercase px-4 py-2 transition-opacity disabled:opacity-30"
-                  style={{ border: "1px solid var(--line)", letterSpacing: "1.5px", fontWeight: 500 , borderRadius: 12 }}
+                  style={{
+                    border: "1px solid var(--line)",
+                    letterSpacing: "1.5px",
+                    fontWeight: 500,
+                    borderRadius: 12,
+                  }}
                 >
                   Próximo →
                 </button>
@@ -764,7 +971,13 @@ export function ContasPanel({
                 type="button"
                 onClick={onOpenLivro}
                 className="text-[11px] uppercase aurora-link"
-                style={{ letterSpacing: "1.5px", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                style={{
+                  letterSpacing: "1.5px",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                }}
               >
                 Ver no Livro Diário →
               </button>
@@ -778,7 +991,9 @@ export function ContasPanel({
           clientId={clientId}
           onClose={() => setShowModal(false)}
           onSaved={(p) => {
-            setPayables((prev) => [...prev, p].sort((a, b) => a.due_date.localeCompare(b.due_date)));
+            setPayables((prev) =>
+              [...prev, p].sort((a, b) => a.due_date.localeCompare(b.due_date)),
+            );
             setShowModal(false);
           }}
         />
@@ -800,15 +1015,21 @@ export function ContasPanel({
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
           style={{ background: "rgba(0,0,0,0.35)" }}
-          onClick={(e) => { if (e.target === e.currentTarget) setConfirmCashId(null); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setConfirmCashId(null);
+          }}
         >
-          <div className="aurora-modal bg-white flex flex-col" style={{ width: 420, borderTop: "3px solid var(--green)" }}>
+          <div
+            className="aurora-modal bg-white flex flex-col"
+            style={{ width: 420, borderTop: "3px solid var(--green)" }}
+          >
             <div className="px-6 py-5" style={{ borderBottom: "1px solid var(--line)" }}>
               <div className="aurora-cap mb-0.5">Pago em dinheiro</div>
               <div className="aurora-serif text-[18px]">Registrar no caixa?</div>
             </div>
             <div className="px-6 py-4 text-[13px]" style={{ color: "var(--muted-foreground)" }}>
-              Cria um lançamento aprovado no Livro Diário (Espécie). Para pagamento via banco, importe o extrato e use Conciliar.
+              Cria um lançamento aprovado no Livro Diário (Espécie). Para pagamento via banco,
+              importe o extrato e use Conciliar.
             </div>
             <div className="px-6 pb-5 flex items-center justify-end gap-3">
               <button
@@ -823,7 +1044,13 @@ export function ContasPanel({
                 type="button"
                 onClick={() => handleCashPaid(confirmCashId)}
                 className="text-[11px] uppercase px-5 py-2"
-                style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500, borderRadius: 999 }}
+                style={{
+                  background: "var(--green)",
+                  color: "#fff",
+                  letterSpacing: "2px",
+                  fontWeight: 500,
+                  borderRadius: 999,
+                }}
               >
                 Confirmar
               </button>
@@ -836,11 +1063,18 @@ export function ContasPanel({
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
           style={{ background: "rgba(0,0,0,0.35)" }}
-          onClick={(e) => { if (e.target === e.currentTarget) setConfirmDeleteId(null); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setConfirmDeleteId(null);
+          }}
         >
-          <div className="aurora-modal bg-white flex flex-col" style={{ width: 400, borderTop: "3px solid #B06040" }}>
+          <div
+            className="aurora-modal bg-white flex flex-col"
+            style={{ width: 400, borderTop: "3px solid #B06040" }}
+          >
             <div className="px-6 py-5" style={{ borderBottom: "1px solid var(--line)" }}>
-              <div className="aurora-cap mb-0.5" style={{ color: "#B06040" }}>Excluir lançamento</div>
+              <div className="aurora-cap mb-0.5" style={{ color: "#B06040" }}>
+                Excluir lançamento
+              </div>
               <div className="aurora-serif text-[18px]">Tem certeza que deseja excluir?</div>
             </div>
             <div className="px-6 py-4 text-[13px]" style={{ color: "var(--muted-foreground)" }}>
@@ -859,7 +1093,12 @@ export function ContasPanel({
                 type="button"
                 onClick={confirmDelete}
                 className="text-[11px] uppercase px-5 py-2"
-                style={{ background: "#B06040", color: "#fff", letterSpacing: "2px", fontWeight: 500 }}
+                style={{
+                  background: "#B06040",
+                  color: "#fff",
+                  letterSpacing: "2px",
+                  fontWeight: 500,
+                }}
               >
                 Excluir
               </button>

@@ -20,9 +20,7 @@ export function TiltCard({ children, intensity = 8, style, className }: Props) {
     const y = (e.clientY - rect.top) / rect.height;
     const ry = (x - 0.5) * intensity;
     const rx = (0.5 - y) * intensity;
-    setTransform(
-      `perspective(1100px) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(0)`,
-    );
+    setTransform(`perspective(1100px) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(0)`);
   }
 
   function handleLeave() {

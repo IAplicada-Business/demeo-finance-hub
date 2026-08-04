@@ -30,7 +30,7 @@ export interface RecurringPattern {
 }
 
 function clampGrowth(rate: number) {
-  return Math.max(-0.15, Math.min(0.20, rate));
+  return Math.max(-0.15, Math.min(0.2, rate));
 }
 
 /** Converte uma data JS para chave YYYY-MM sem dependência de timezone. */
@@ -69,7 +69,7 @@ export function computeForecastMonths(
   mm: number,
   yyyy: number,
   payables: PayableProjection[] = [],
-  recurringPatterns: RecurringPattern[] = []
+  recurringPatterns: RecurringPattern[] = [],
 ): ForecastMonth[] {
   // 1. Tendência histórica por mês
   const monthMap = new Map<string, { rec: number; des: number }>();
@@ -123,7 +123,8 @@ export function computeForecastMonths(
     const remaining = inst.installment_total - inst.installment_number;
     for (let i = 1; i <= Math.min(remaining, 3); i++) {
       const projDate = new Date(yyyy, mm - 1 + i, 1);
-      const afterInstallmentMonth = projDate >= new Date(instDate.getFullYear(), instDate.getMonth() + 1, 1);
+      const afterInstallmentMonth =
+        projDate >= new Date(instDate.getFullYear(), instDate.getMonth() + 1, 1);
       if (afterInstallmentMonth) {
         installmentsByOffset[i] = (installmentsByOffset[i] ?? 0) + Math.abs(inst.amount);
       }
@@ -149,7 +150,7 @@ export function computeForecastMonths(
     const baseRec = last.rec * (1 + growthRec * offset);
     const baseDes = Math.max(
       last.des * (1 + growthDes * offset),
-      last.des * 0.85 + fixedCostAnchor
+      last.des * 0.85 + fixedCostAnchor,
     );
 
     const pay = payByMonth.get(monthKey) ?? { rec: 0, des: 0 };
@@ -216,7 +217,9 @@ export function useDFCForecast(
           groupMap.set(row.installment_group_id, row);
         }
       }
-      return Array.from(groupMap.values()).filter((r) => r.installment_number < r.installment_total);
+      return Array.from(groupMap.values()).filter(
+        (r) => r.installment_number < r.installment_total,
+      );
     },
   });
 
@@ -255,7 +258,6 @@ export function useDFCForecast(
       periodValid
         ? computeForecastMonths(txs, installments, mm, yyyy, payables, recurringPatterns)
         : [],
-    [txs, installments, mm, yyyy, payables, recurringPatterns, periodValid]
+    [txs, installments, mm, yyyy, payables, recurringPatterns, periodValid],
   );
 }
-

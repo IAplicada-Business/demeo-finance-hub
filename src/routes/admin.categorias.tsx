@@ -48,7 +48,7 @@ function CategoriasPage() {
   const [newName, setNewName] = useState("");
   const [newGroup, setNewGroup] = useState(GRUPOS[0]);
   const [newType, setNewType] = useState<"receita" | "despesa" | "transferencia">(
-    GRUPOS[0] === "Receita" || GRUPOS[0] === "Receita não Operacional" ? "receita" : "despesa"
+    GRUPOS[0] === "Receita" || GRUPOS[0] === "Receita não Operacional" ? "receita" : "despesa",
   );
   const [saving, setSaving] = useState(false);
   const canAdd = !!clientId && !!newName.trim() && !saving;
@@ -123,7 +123,9 @@ function CategoriasPage() {
         return;
       }
       if (data) {
-        setCategories((prev) => [...prev, data as Category].sort((a, b) => a.sort_order - b.sort_order));
+        setCategories((prev) =>
+          [...prev, data as Category].sort((a, b) => a.sort_order - b.sort_order),
+        );
       } else {
         await loadCategories();
       }
@@ -141,7 +143,7 @@ function CategoriasPage() {
   async function toggleActive(cat: Category) {
     await supabase().from("categories").update({ is_active: !cat.is_active }).eq("id", cat.id);
     setCategories((prev) =>
-      prev.map((c) => (c.id === cat.id ? { ...c, is_active: !cat.is_active } : c))
+      prev.map((c) => (c.id === cat.id ? { ...c, is_active: !cat.is_active } : c)),
     );
   }
 
@@ -189,11 +191,14 @@ function CategoriasPage() {
       .from("categories")
       .update({ name: editName.trim(), group_name: editGroup, type: editType })
       .eq("id", id);
-    if (err) { setError(err.message); return; }
+    if (err) {
+      setError(err.message);
+      return;
+    }
     setCategories((prev) =>
       prev.map((c) =>
-        c.id === id ? { ...c, name: editName.trim(), group_name: editGroup, type: editType } : c
-      )
+        c.id === id ? { ...c, name: editName.trim(), group_name: editGroup, type: editType } : c,
+      ),
     );
     setEditingId(null);
   }
@@ -220,11 +225,18 @@ function CategoriasPage() {
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
             className="px-3 py-2 text-[13px]"
-            style={{ border: "1px solid var(--line)", background: "#fff", minWidth: 220 , borderRadius: 12 }}
+            style={{
+              border: "1px solid var(--line)",
+              background: "#fff",
+              minWidth: 220,
+              borderRadius: 12,
+            }}
           >
             {clients.length === 0 && <option value="">Carregando clientes...</option>}
             {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </select>
         </div>
@@ -232,7 +244,11 @@ function CategoriasPage() {
         {error && (
           <div
             className="text-[12px] px-4 py-3"
-            style={{ background: "rgba(109,146,166,0.1)", borderLeft: "3px solid var(--tan)", color: "var(--tan)" }}
+            style={{
+              background: "rgba(109,146,166,0.1)",
+              borderLeft: "3px solid var(--tan)",
+              color: "var(--tan)",
+            }}
           >
             {error}
           </div>
@@ -244,7 +260,9 @@ function CategoriasPage() {
           style={{ background: "#fff", border: "1px solid var(--line)", borderRadius: 22 }}
         >
           <div className="flex flex-col gap-1.5">
-            <label className="aurora-cap" htmlFor="cat-new-name">Nome</label>
+            <label className="aurora-cap" htmlFor="cat-new-name">
+              Nome
+            </label>
             <input
               id="cat-new-name"
               type="text"
@@ -257,7 +275,14 @@ function CategoriasPage() {
                 }
               }}
               placeholder="Ex: Receita · Honorários"
-              style={{ padding: "8px 12px", fontSize: 13, border: "1px solid var(--line)", background: "#fff", minWidth: 220 , borderRadius: 12 }}
+              style={{
+                padding: "8px 12px",
+                fontSize: 13,
+                border: "1px solid var(--line)",
+                background: "#fff",
+                minWidth: 220,
+                borderRadius: 12,
+              }}
             />
           </div>
 
@@ -271,9 +296,19 @@ function CategoriasPage() {
                 if (g === "Receita" || g === "Receita não Operacional") setNewType("receita");
                 else if (g === "Despesa Fixa" || g === "Despesa Variável") setNewType("despesa");
               }}
-              style={{ padding: "8px 12px", fontSize: 13, border: "1px solid var(--line)", background: "#fff" , borderRadius: 12 }}
+              style={{
+                padding: "8px 12px",
+                fontSize: 13,
+                border: "1px solid var(--line)",
+                background: "#fff",
+                borderRadius: 12,
+              }}
             >
-              {GRUPOS.map((g) => <option key={g} value={g}>{g}</option>)}
+              {GRUPOS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -282,9 +317,19 @@ function CategoriasPage() {
             <select
               value={newType}
               onChange={(e) => setNewType(e.target.value as typeof newType)}
-              style={{ padding: "8px 12px", fontSize: 13, border: "1px solid var(--line)", background: "#fff" , borderRadius: 12 }}
+              style={{
+                padding: "8px 12px",
+                fontSize: 13,
+                border: "1px solid var(--line)",
+                background: "#fff",
+                borderRadius: 12,
+              }}
             >
-              {TIPOS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {TIPOS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -313,7 +358,9 @@ function CategoriasPage() {
 
         {/* Lista agrupada */}
         {loading ? (
-          <div className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>Carregando categorias...</div>
+          <div className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+            Carregando categorias...
+          </div>
         ) : categories.length === 0 ? (
           <div className="text-center py-12" style={{ color: "var(--muted-foreground)" }}>
             <div className="text-[13px]">Nenhuma categoria cadastrada para este cliente.</div>
@@ -321,7 +368,10 @@ function CategoriasPage() {
         ) : (
           Object.entries(grouped).map(([group, items]) => (
             <section key={group}>
-              <div className="aurora-cap mb-2 px-1" style={{ color: "var(--green)", letterSpacing: "2.5px" }}>
+              <div
+                className="aurora-cap mb-2 px-1"
+                style={{ color: "var(--green)", letterSpacing: "2.5px" }}
+              >
                 {group}
               </div>
               <div className="aurora-card p-0 overflow-hidden">
@@ -343,10 +393,16 @@ function CategoriasPage() {
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
                                 className="text-[13px] px-2 py-1"
-                                style={{ border: "1px solid var(--line)", minWidth: 180 , borderRadius: 12 }}
+                                style={{
+                                  border: "1px solid var(--line)",
+                                  minWidth: 180,
+                                  borderRadius: 12,
+                                }}
                               />
                             ) : (
-                              <span className="text-[13px]" style={{ fontWeight: 500 }}>{cat.name}</span>
+                              <span className="text-[13px]" style={{ fontWeight: 500 }}>
+                                {cat.name}
+                              </span>
                             )}
                           </td>
                           <td className="px-6 py-3">
@@ -357,20 +413,29 @@ function CategoriasPage() {
                                   onChange={(e) => {
                                     const g = e.target.value;
                                     setEditGroup(g);
-                                    if (g === "Receita" || g === "Receita não Operacional") setEditType("receita");
+                                    if (g === "Receita" || g === "Receita não Operacional")
+                                      setEditType("receita");
                                   }}
                                   className="text-[12px] px-2 py-1"
-                                  style={{ border: "1px solid var(--line)" , borderRadius: 12 }}
+                                  style={{ border: "1px solid var(--line)", borderRadius: 12 }}
                                 >
-                                  {GRUPOS.map((g) => <option key={g} value={g}>{g}</option>)}
+                                  {GRUPOS.map((g) => (
+                                    <option key={g} value={g}>
+                                      {g}
+                                    </option>
+                                  ))}
                                 </select>
                                 <select
                                   value={editType}
                                   onChange={(e) => setEditType(e.target.value as typeof editType)}
                                   className="text-[12px] px-2 py-1"
-                                  style={{ border: "1px solid var(--line)" , borderRadius: 12 }}
+                                  style={{ border: "1px solid var(--line)", borderRadius: 12 }}
                                 >
-                                  {TIPOS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                  {TIPOS.map((t) => (
+                                    <option key={t.value} value={t.value}>
+                                      {t.label}
+                                    </option>
+                                  ))}
                                 </select>
                               </div>
                             ) : (
@@ -384,14 +449,23 @@ function CategoriasPage() {
                                   <button
                                     onClick={() => saveEdit(cat.id)}
                                     className="text-[10px] uppercase px-3 py-1"
-                                    style={{ background: "var(--green)", color: "#fff", letterSpacing: "1.5px" , borderRadius: 999 }}
+                                    style={{
+                                      background: "var(--green)",
+                                      color: "#fff",
+                                      letterSpacing: "1.5px",
+                                      borderRadius: 999,
+                                    }}
                                   >
                                     Salvar
                                   </button>
                                   <button
                                     onClick={() => setEditingId(null)}
                                     className="text-[10px] uppercase px-3 py-1"
-                                    style={{ border: "1px solid var(--line)", letterSpacing: "1.5px" , borderRadius: 12 }}
+                                    style={{
+                                      border: "1px solid var(--line)",
+                                      letterSpacing: "1.5px",
+                                      borderRadius: 12,
+                                    }}
                                   >
                                     Cancelar
                                   </button>
@@ -401,7 +475,12 @@ function CategoriasPage() {
                                   <button
                                     onClick={() => startEdit(cat)}
                                     className="text-[10px] uppercase px-3 py-1"
-                                    style={{ border: "1px solid var(--navy)", color: "var(--navy)", letterSpacing: "1.5px" , borderRadius: 12 }}
+                                    style={{
+                                      border: "1px solid var(--navy)",
+                                      color: "var(--navy)",
+                                      letterSpacing: "1.5px",
+                                      borderRadius: 12,
+                                    }}
                                   >
                                     Editar
                                   </button>
@@ -410,7 +489,9 @@ function CategoriasPage() {
                                     className="text-[10px] uppercase px-3 py-1"
                                     style={{
                                       border: "1px solid var(--line)",
-                                      color: cat.is_active ? "var(--green)" : "var(--muted-foreground)",
+                                      color: cat.is_active
+                                        ? "var(--green)"
+                                        : "var(--muted-foreground)",
                                       letterSpacing: "1.5px",
                                       borderRadius: 12,
                                     }}
@@ -420,7 +501,12 @@ function CategoriasPage() {
                                   <button
                                     onClick={() => deleteCategory(cat.id)}
                                     className="text-[10px] uppercase px-3 py-1"
-                                    style={{ border: "1px solid rgba(109,146,166,0.4)", color: "var(--tan)", letterSpacing: "1.5px" , borderRadius: 12 }}
+                                    style={{
+                                      border: "1px solid rgba(109,146,166,0.4)",
+                                      color: "var(--tan)",
+                                      letterSpacing: "1.5px",
+                                      borderRadius: 12,
+                                    }}
                                   >
                                     Excluir
                                   </button>
@@ -444,8 +530,8 @@ function CategoriasPage() {
 
 function TypeBadge({ type }: { type: string }) {
   const map: Record<string, { label: string; color: string }> = {
-    receita:       { label: "Receita",       color: "var(--green)" },
-    despesa:       { label: "Despesa",       color: "var(--navy)" },
+    receita: { label: "Receita", color: "var(--green)" },
+    despesa: { label: "Despesa", color: "var(--navy)" },
     transferencia: { label: "Transferência", color: "var(--tan)" },
   };
   const { label, color } = map[type] ?? { label: type, color: "var(--muted-foreground)" };

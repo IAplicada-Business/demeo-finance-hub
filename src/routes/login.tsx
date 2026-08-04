@@ -51,13 +51,19 @@ function LoginPage() {
 
   async function handleForgotPassword(e: React.FormEvent) {
     e.preventDefault();
-    if (!email) { setError("Informe o e-mail para recuperar a senha."); return; }
+    if (!email) {
+      setError("Informe o e-mail para recuperar a senha.");
+      return;
+    }
     setResetLoading(true);
     setError(null);
     const redirectTo = `${window.location.origin}/configurar-acesso`;
     const { error: resetErr } = await supabase().auth.resetPasswordForEmail(email, { redirectTo });
     setResetLoading(false);
-    if (resetErr) { setError("Não foi possível enviar o e-mail. Verifique o endereço."); return; }
+    if (resetErr) {
+      setError("Não foi possível enviar o e-mail. Verifique o endereço.");
+      return;
+    }
     setResetSent(true);
   }
 
@@ -91,7 +97,10 @@ function LoginPage() {
           <span style={{ color: "var(--green)" }}>
             <LogoMark size={32} />
           </span>
-          <div className="aurora-serif text-[28px] mt-3" style={{ color: "var(--foreground)", fontWeight: 500 }}>
+          <div
+            className="aurora-serif text-[28px] mt-3"
+            style={{ color: "var(--foreground)", fontWeight: 500 }}
+          >
             Aurora
           </div>
           <div className="aurora-cap mt-1">Gestão financeira</div>
@@ -107,7 +116,10 @@ function LoginPage() {
         >
           <div className="aurora-cap mb-2">Acesso à plataforma</div>
           <h1 className="aurora-serif text-[28px] mb-1">
-            Entrar na <em className="italic" style={{ color: "var(--green)" }}>conta</em>
+            Entrar na{" "}
+            <em className="italic" style={{ color: "var(--green)" }}>
+              conta
+            </em>
           </h1>
           <p className="text-[12px] mb-6" style={{ color: "var(--muted-foreground)" }}>
             Use as credenciais enviadas pela Claudia.
@@ -141,11 +153,18 @@ function LoginPage() {
             <div>
               <div className="aurora-cap mb-2">Recuperar acesso</div>
               <h2 className="aurora-serif text-[22px] mb-1">
-                Esqueceu a <em className="italic" style={{ color: "var(--green)" }}>senha?</em>
+                Esqueceu a{" "}
+                <em className="italic" style={{ color: "var(--green)" }}>
+                  senha?
+                </em>
               </h2>
               {resetSent ? (
-                <div className="mt-4 text-[12px] px-3 py-3" style={{ background: "rgba(74,103,65,0.08)", color: "var(--green)" }}>
-                  E-mail enviado! Verifique sua caixa de entrada e clique no link para redefinir a senha.
+                <div
+                  className="mt-4 text-[12px] px-3 py-3"
+                  style={{ background: "rgba(74,103,65,0.08)", color: "var(--green)" }}
+                >
+                  E-mail enviado! Verifique sua caixa de entrada e clique no link para redefinir a
+                  senha.
                 </div>
               ) : (
                 <form onSubmit={handleForgotPassword} className="flex flex-col gap-4 mt-5">
@@ -164,20 +183,39 @@ function LoginPage() {
                     />
                   </label>
                   {error && (
-                    <div className="text-[12px] px-3 py-2" style={{ background: "rgba(109,146,166,0.12)", color: "var(--tan)", border: "1px solid var(--tan)" }}>{error}</div>
+                    <div
+                      className="text-[12px] px-3 py-2"
+                      style={{
+                        background: "rgba(109,146,166,0.12)",
+                        color: "var(--tan)",
+                        border: "1px solid var(--tan)",
+                      }}
+                    >
+                      {error}
+                    </div>
                   )}
                   <button
                     type="submit"
                     disabled={resetLoading}
                     className="w-full text-[10px] uppercase py-3.5 disabled:opacity-60"
-                    style={{ background: "var(--green)", color: "#fff", letterSpacing: "2.5px", fontWeight: 500 , borderRadius: 999 }}
+                    style={{
+                      background: "var(--green)",
+                      color: "#fff",
+                      letterSpacing: "2.5px",
+                      fontWeight: 500,
+                      borderRadius: 999,
+                    }}
                   >
                     {resetLoading ? "Enviando…" : "Enviar link de recuperação →"}
                   </button>
                 </form>
               )}
               <button
-                onClick={() => { setForgotMode(false); setResetSent(false); setError(null); }}
+                onClick={() => {
+                  setForgotMode(false);
+                  setResetSent(false);
+                  setError(null);
+                }}
                 className="mt-5 text-[10px] uppercase"
                 style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)" }}
               >
@@ -207,7 +245,10 @@ function LoginPage() {
                   <div className="aurora-cap">Senha</div>
                   <button
                     type="button"
-                    onClick={() => { setForgotMode(true); setError(null); }}
+                    onClick={() => {
+                      setForgotMode(true);
+                      setError(null);
+                    }}
                     className="text-[10px] uppercase"
                     style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)" }}
                   >
@@ -228,7 +269,15 @@ function LoginPage() {
               </label>
 
               {error && (
-                <div className="text-[12px] px-3 py-2" style={{ background: "rgba(109,146,166,0.12)", color: "var(--tan)", border: "1px solid var(--tan)", borderRadius: 12 }}>
+                <div
+                  className="text-[12px] px-3 py-2"
+                  style={{
+                    background: "rgba(109,146,166,0.12)",
+                    color: "var(--tan)",
+                    border: "1px solid var(--tan)",
+                    borderRadius: 12,
+                  }}
+                >
                   {error}
                 </div>
               )}
@@ -237,8 +286,16 @@ function LoginPage() {
                 type="submit"
                 disabled={loading}
                 className="mt-2 w-full text-[10px] uppercase py-3.5 transition-colors disabled:opacity-60"
-                style={{ background: "var(--green)", color: "#fff", letterSpacing: "2.5px", fontWeight: 500, borderRadius: 999 }}
-                onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "var(--green2)"; }}
+                style={{
+                  background: "var(--green)",
+                  color: "#fff",
+                  letterSpacing: "2.5px",
+                  fontWeight: 500,
+                  borderRadius: 999,
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) e.currentTarget.style.background = "var(--green2)";
+                }}
                 onMouseLeave={(e) => (e.currentTarget.style.background = "var(--green)")}
               >
                 {loading ? "Entrando..." : "Entrar →"}
@@ -246,7 +303,10 @@ function LoginPage() {
             </form>
           )}
 
-          <div className="mt-7 pt-5 text-[11px] text-center" style={{ borderTop: "1px solid var(--line)", color: "var(--muted-foreground)" }}>
+          <div
+            className="mt-7 pt-5 text-[11px] text-center"
+            style={{ borderTop: "1px solid var(--line)", color: "var(--muted-foreground)" }}
+          >
             Acesso solicitado por convite.{" "}
             <Link to="/" className="underline" style={{ color: "var(--green)" }}>
               Voltar ao site
@@ -254,7 +314,10 @@ function LoginPage() {
           </div>
         </div>
 
-        <div className="mt-6 text-center text-[9px] uppercase" style={{ letterSpacing: "2px", color: "var(--muted-foreground)" }}>
+        <div
+          className="mt-6 text-center text-[9px] uppercase"
+          style={{ letterSpacing: "2px", color: "var(--muted-foreground)" }}
+        >
           © Aurora Gestão Financeira 2026
         </div>
       </div>

@@ -72,7 +72,9 @@ if (!CLIENT_ID) {
     .maybeSingle();
   CLIENT_ID = byName?.id ?? null;
   if (!CLIENT_ID) {
-    console.log(JSON.stringify({ ok: false, error: `Cliente não encontrado: ${clientName}` }, null, 2));
+    console.log(
+      JSON.stringify({ ok: false, error: `Cliente não encontrado: ${clientName}` }, null, 2),
+    );
     process.exit(1);
   }
 }
@@ -91,7 +93,10 @@ const { count: activeCats } = await sb
   .eq("is_active", true);
 step("3. Plano de contas ativo", (activeCats ?? 0) > 0, `${activeCats} categorias`);
 
-const { data: allTx } = await sb.from("transactions").select("status, date, amount").eq("client_id", CLIENT_ID);
+const { data: allTx } = await sb
+  .from("transactions")
+  .select("status, date, amount")
+  .eq("client_id", CLIENT_ID);
 const statusAll = (allTx ?? []).reduce((a, t) => ((a[t.status] = (a[t.status] ?? 0) + 1), a), {});
 step("4. Lançamentos no banco", (allTx?.length ?? 0) > 0, statusAll);
 
@@ -107,11 +112,10 @@ const { count: pendingNoCat } = await sb
   .eq("client_id", CLIENT_ID)
   .eq("status", "pending")
   .not("upload_id", "is", null);
-step(
-  "5. Banner aprovação (Pendentes)",
-  (classifiedPending ?? 0) + (pendingNoCat ?? 0) === 0,
-  { classified: classifiedPending ?? 0, pending: pendingNoCat ?? 0 }
-);
+step("5. Banner aprovação (Pendentes)", (classifiedPending ?? 0) + (pendingNoCat ?? 0) === 0, {
+  classified: classifiedPending ?? 0,
+  pending: pendingNoCat ?? 0,
+});
 
 const { data: saldoRows } = await sb
   .from("transactions")
@@ -131,7 +135,9 @@ const { data: periodTx } = await sb
   .order("date");
 
 const receitas = (periodTx ?? []).filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-const despesas = (periodTx ?? []).filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+const despesas = (periodTx ?? [])
+  .filter((t) => t.amount < 0)
+  .reduce((s, t) => s + Math.abs(t.amount), 0);
 const resultado = receitas - despesas;
 const saldoFinal = saldoInicial + resultado;
 
@@ -198,7 +204,7 @@ const { data: errorUploads } = await sb
   .eq("client_id", CLIENT_ID)
   .eq("status", "error");
 const unexpectedErrors = (errorUploads ?? []).filter(
-  (u) => !u.error_message?.includes("já foram importados")
+  (u) => !u.error_message?.includes("já foram importados"),
 );
 step("10. Uploads com erro", unexpectedErrors.length === 0, {
   total: errorUploads?.length ?? 0,
@@ -212,7 +218,9 @@ const { data: portalTx } = await sb
   .eq("status", "approved")
   .gte("date", START)
   .lte("date", END);
-const portalReceitas = (portalTx ?? []).filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+const portalReceitas = (portalTx ?? [])
+  .filter((t) => t.amount > 0)
+  .reduce((s, t) => s + t.amount, 0);
 step("11. Portal (approved no período)", true, {
   lancamentos: portalTx?.length ?? 0,
   receitas: brl(portalReceitas),
@@ -259,12 +267,19 @@ if (sampleClassified) {
       p_updates: [{ id: catRow.id, category: catRow.category, is_recurring: false }],
     });
     if (!rpcErr) {
-      await sb.from("transactions").update({ status: "classified", approved_by: null, approved_at: null }).eq("id", catRow.id);
+      await sb
+        .from("transactions")
+        .update({ status: "classified", approved_by: null, approved_at: null })
+        .eq("id", catRow.id);
     }
     step("14. RPC approve_transactions_batch", !rpcErr, rpcErr?.message ?? "OK (revertido)");
   }
 } else {
-  step("14. RPC approve_transactions_batch", true, "Sem classified para testar — fluxo já aprovado");
+  step(
+    "14. RPC approve_transactions_batch",
+    true,
+    "Sem classified para testar — fluxo já aprovado",
+  );
 }
 
 await sb.auth.signOut();

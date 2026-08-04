@@ -6,7 +6,7 @@ export const CONFIDENCE_TOOLTIP =
 /** Confiança só vale quando há categoria — evita 100% com “Sem categoria”. */
 export function effectiveConfidence(
   conf: number | null,
-  category: string | null | undefined
+  category: string | null | undefined,
 ): number | null {
   if (!category?.trim()) return null;
   return conf;

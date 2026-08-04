@@ -28,7 +28,7 @@ export function BrandBackdrop({
       bottom: "-5%",
       transformOrigin: "bottom left",
     },
-    "center": {
+    center: {
       left: "50%",
       top: "50%",
       transformOrigin: "center",

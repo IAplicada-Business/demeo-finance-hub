@@ -83,7 +83,10 @@ export function HeroProduct() {
                   aria-hidden
                 />
               </div>
-              <div className="text-[9px] uppercase" style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)" }}>
+              <div
+                className="text-[9px] uppercase"
+                style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)" }}
+              >
                 {b.l}
               </div>
             </div>
@@ -91,7 +94,10 @@ export function HeroProduct() {
         </div>
 
         {/* Eixo */}
-        <div style={{ height: 1, background: "var(--tan2)", opacity: 0.5, marginBottom: 16 }} aria-hidden />
+        <div
+          style={{ height: 1, background: "var(--tan2)", opacity: 0.5, marginBottom: 16 }}
+          aria-hidden
+        />
 
         {/* KPIs */}
         <div className="grid grid-cols-3 gap-4">

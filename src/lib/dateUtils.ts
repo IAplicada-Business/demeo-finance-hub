@@ -35,7 +35,11 @@ export function isoMonthFromUploadPeriod(period: string): string | null {
 }
 
 /** O mês do extrato (MM/YYYY) intersecta o intervalo ISO [startDate, endDate]. */
-export function uploadPeriodInDateRange(period: string, startDate: string, endDate: string): boolean {
+export function uploadPeriodInDateRange(
+  period: string,
+  startDate: string,
+  endDate: string,
+): boolean {
   const iso = isoMonthFromUploadPeriod(period);
   if (!iso) return false;
   const [yyyy, mm] = iso.split("-").map(Number);

@@ -39,9 +39,7 @@ function buildLivroCount(transactions, payables) {
 }
 
 function esperadoDelta(payables, type) {
-  return payables
-    .filter((p) => p.type === type)
-    .reduce((s, p) => s + p.amount, 0);
+  return payables.filter((p) => p.type === type).reduce((s, p) => s + p.amount, 0);
 }
 
 const steps = [];
@@ -67,7 +65,9 @@ const { data: client } = await sb
   .maybeSingle();
 
 if (!client) {
-  console.log(JSON.stringify({ ok: false, error: `Cliente não encontrado: ${clientName}` }, null, 2));
+  console.log(
+    JSON.stringify({ ok: false, error: `Cliente não encontrado: ${clientName}` }, null, 2),
+  );
   process.exit(1);
 }
 
@@ -123,7 +123,11 @@ const { data: created, error: insErr } = await sb
   .select("id, type, amount, due_date, paid_at")
   .single();
 
-step("2. Contas — criar payable", !insErr && !!created, insErr?.message ?? { id: created?.id, dueDate });
+step(
+  "2. Contas — criar payable",
+  !insErr && !!created,
+  insErr?.message ?? { id: created?.id, dueDate },
+);
 
 let payableId = created?.id;
 
@@ -146,16 +150,20 @@ step("3. Livro — payable aparece como agendado", foundInLivro, {
 // ESPERADO DFC sobe pelo valor do payable
 const esperadoAntes = esperadoDelta(basePay ?? [], "pagar");
 const esperadoDepois = esperadoDelta(afterInsPay ?? [], "pagar");
-step("4. DFC ESPERADO — inclui payable em aberto", esperadoDepois - esperadoAntes === TEST_AMOUNT, {
-  antes: esperadoAntes,
-  depois: esperadoDepois,
-  delta: esperadoDepois - esperadoAntes,
-});
+step(
+  "4. DFC ESPERADO — inclui payable em aberto",
+  Math.abs(esperadoDepois - esperadoAntes - TEST_AMOUNT) < 0.02,
+  {
+    antes: esperadoAntes,
+    depois: esperadoDepois,
+    delta: esperadoDepois - esperadoAntes,
+  },
+);
 
-// Pago manual via RPC (Onda A — cria transaction no Livro)
+// Pago manual via RPC (Onda A — data no período do teste para refletir no DFC)
 const { data: txId, error: payErr } = await sb.rpc("create_manual_payment", {
   p_payable_id: payableId,
-  p_date: today,
+  p_date: dueDate,
   p_bank: "Espécie",
 });
 
@@ -174,6 +182,12 @@ step("6. Livro — payable some após baixa", (afterPaidPay ?? []).length === 0,
   aindaAberto: afterPaidPay?.length ?? 0,
 });
 
+const { data: cashTx } = await sb
+  .from("transactions")
+  .select("id, amount, bank, payable_id, date")
+  .eq("id", txId)
+  .maybeSingle();
+
 const { data: afterPaidTx } = await sb
   .from("transactions")
   .select("amount")
@@ -183,12 +197,20 @@ const { data: afterPaidTx } = await sb
   .lte("date", END);
 
 const realizadoDepois = (afterPaidTx ?? []).reduce((s, t) => s + t.amount, 0);
-step("7. DFC Realizado — aumenta após pago manual", realizadoDepois < baseRealizadoSum, {
-  antes: baseRealizadoSum,
-  depois: realizadoDepois,
-  delta: realizadoDepois - baseRealizadoSum,
-  nota: "Pago manual cria transaction aprovada",
-});
+const expectedDelta = -TEST_AMOUNT; // pagar → saída
+step(
+  "7. DFC Realizado — inclui pago manual no período",
+  !!cashTx &&
+    cashTx.payable_id === payableId &&
+    cashTx.bank === "Espécie" &&
+    Math.abs(realizadoDepois - (baseRealizadoSum + expectedDelta)) < 0.02,
+  {
+    antes: baseRealizadoSum,
+    depois: realizadoDepois,
+    delta: realizadoDepois - baseRealizadoSum,
+    cashTx,
+  },
+);
 
 // Limpeza — desfazer pago manual e excluir payable
 if (payableId) {
@@ -210,7 +232,7 @@ console.log(
       steps,
     },
     null,
-    2
-  )
+    2,
+  ),
 );
 process.exit(failed.length > 0 ? 1 : 0);

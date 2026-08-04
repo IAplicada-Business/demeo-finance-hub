@@ -53,69 +53,54 @@ Deno.serve(async (req) => {
     const sb = serviceClient();
 
     // Executa todas as queries em paralelo
-    const [
-      uploadsResult,
-      txResult,
-      clientsResult,
-      pipelineResult,
-      leadsResult,
-      proposalsResult,
-    ] = await Promise.all([
-      // Uploads: contagem por status nos últimos 30 dias
-      sb
-        .from("uploads")
-        .select("status", { count: "exact" })
-        .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
+    const [uploadsResult, txResult, clientsResult, pipelineResult, leadsResult, proposalsResult] =
+      await Promise.all([
+        // Uploads: contagem por status nos últimos 30 dias
+        sb
+          .from("uploads")
+          .select("status", { count: "exact" })
+          .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
 
-      // Transactions: contagem por status
-      sb
-        .from("transactions")
-        .select("status", { count: "exact" }),
+        // Transactions: contagem por status
+        sb.from("transactions").select("status", { count: "exact" }),
 
-      // Clients: total e ativos
-      sb
-        .from("clients")
-        .select("status", { count: "exact" }),
+        // Clients: total e ativos
+        sb.from("clients").select("status", { count: "exact" }),
 
-      // Pipeline KPIs (view já existente)
-      sb
-        .from("v_pipeline_kpis")
-        .select("*")
-        .maybeSingle(),
+        // Pipeline KPIs (view já existente)
+        sb.from("v_pipeline_kpis").select("*").maybeSingle(),
 
-      // Leads: total e últimos 7 dias
-      sb
-        .from("leads")
-        .select("id", { count: "exact" })
-        .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+        // Leads: total e últimos 7 dias
+        sb
+          .from("leads")
+          .select("id", { count: "exact" })
+          .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
 
-      // Proposals: por status
-      sb
-        .from("proposals")
-        .select("status", { count: "exact" }),
-    ]);
+        // Proposals: por status
+        sb.from("proposals").select("status", { count: "exact" }),
+      ]);
 
     // Agrega uploads por status
     const uploadsByStatus: Record<string, number> = {};
-    for (const row of (uploadsResult.data ?? [])) {
+    for (const row of uploadsResult.data ?? []) {
       uploadsByStatus[row.status] = (uploadsByStatus[row.status] ?? 0) + 1;
     }
 
     // Agrega transactions por status
     const txByStatus: Record<string, number> = {};
-    for (const row of (txResult.data ?? [])) {
+    for (const row of txResult.data ?? []) {
       txByStatus[row.status] = (txByStatus[row.status] ?? 0) + 1;
     }
 
     // Agrega clients por status
     const clientsByStatus: Record<string, number> = {};
-    for (const row of (clientsResult.data ?? [])) {
+    for (const row of clientsResult.data ?? []) {
       clientsByStatus[row.status] = (clientsByStatus[row.status] ?? 0) + 1;
     }
 
     // Agrega proposals por status
     const proposalsByStatus: Record<string, number> = {};
-    for (const row of (proposalsResult.data ?? [])) {
+    for (const row of proposalsResult.data ?? []) {
       proposalsByStatus[row.status] = (proposalsByStatus[row.status] ?? 0) + 1;
     }
 

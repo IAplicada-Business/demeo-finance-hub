@@ -21,7 +21,11 @@ const ZERO: Kpis = {
 };
 
 function brl(n: number) {
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
+  return n.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 0,
+  });
 }
 
 export function usePipelineKpis() {
@@ -53,19 +57,49 @@ export function MetricsRow() {
   );
 }
 
-function Metric({ label, value, tone }: { label: string; value: string; tone: "green" | "tan" | "navy" }) {
+function Metric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "green" | "tan" | "navy";
+}) {
   const color = tone === "green" ? "var(--green)" : tone === "tan" ? "var(--tan)" : "var(--navy)";
-  const bg    = tone === "green" ? "rgba(40,76,43,0.08)" : tone === "tan" ? "rgba(109,146,166,0.10)" : "rgba(28,45,69,0.08)";
+  const bg =
+    tone === "green"
+      ? "rgba(40,76,43,0.08)"
+      : tone === "tan"
+        ? "rgba(109,146,166,0.10)"
+        : "rgba(28,45,69,0.08)";
   return (
     <div
       className="aurora-card"
       style={{ transition: "transform 0.3s cubic-bezier(.22,.61,.36,1), box-shadow 0.3s" }}
-      onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "var(--shadow-card)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = "var(--shadow-card)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "";
+        e.currentTarget.style.boxShadow = "";
+      }}
     >
       <div className="flex items-center gap-2 mb-4">
-        <span style={{ width: 6, height: 6, borderRadius: 999, background: color, display: "inline-block", flexShrink: 0 }} />
-        <div className="aurora-cap" style={{ margin: 0 }}>{label}</div>
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 999,
+            background: color,
+            display: "inline-block",
+            flexShrink: 0,
+          }}
+        />
+        <div className="aurora-cap" style={{ margin: 0 }}>
+          {label}
+        </div>
       </div>
       <div className="aurora-value" style={{ fontSize: 36, color, marginBottom: 6 }}>
         {value}

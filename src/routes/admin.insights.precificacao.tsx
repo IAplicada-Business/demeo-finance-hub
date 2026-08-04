@@ -3,9 +3,23 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 import { AdminLayout, PageHeader } from "@/components/AdminLayout";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/admin/insights/precificacao")({
@@ -14,22 +28,40 @@ export const Route = createFileRoute("/admin/insights/precificacao")({
 });
 
 type ServiceRow = { id: string; name: string; base_price: number };
-type MonthlyRow = { service_id: string; service_name: string; month: string; avg_price: number; min_price: number; max_price: number; sample_size: number };
+type MonthlyRow = {
+  service_id: string;
+  service_name: string;
+  month: string;
+  avg_price: number;
+  min_price: number;
+  max_price: number;
+  sample_size: number;
+};
 
 function brl(n: number) {
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 });
+  return n.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 0,
+  });
 }
 
 function PrecificacaoPage() {
   const qc = useQueryClient();
-  const [editing, setEditing] = useState<{ id: string; name: string; base_price: number } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; name: string; base_price: number } | null>(
+    null,
+  );
   const [priceInput, setPriceInput] = useState("");
   const [saving, setSaving] = useState(false);
 
   const { data: services = [] } = useQuery({
     queryKey: ["services-active"],
     queryFn: async (): Promise<ServiceRow[]> => {
-      const { data } = await supabase().from("services").select("id, name, base_price").eq("is_active", true).order("name");
+      const { data } = await supabase()
+        .from("services")
+        .select("id, name, base_price")
+        .eq("is_active", true)
+        .order("name");
       return (data ?? []) as ServiceRow[];
     },
   });
@@ -100,7 +132,10 @@ function PrecificacaoPage() {
           if (won) b.won += 1;
         }
       }
-      return buckets.map((b) => ({ ...b, rate: b.total ? Math.round((b.won / b.total) * 100) : 0 }));
+      return buckets.map((b) => ({
+        ...b,
+        rate: b.total ? Math.round((b.won / b.total) * 100) : 0,
+      }));
     },
   });
 
@@ -117,7 +152,10 @@ function PrecificacaoPage() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase().from("services").update({ base_price: newPrice }).eq("id", editing.id);
+    const { error } = await supabase()
+      .from("services")
+      .update({ base_price: newPrice })
+      .eq("id", editing.id);
     if (error) {
       toast.error(error.message);
       setSaving(false);
@@ -158,7 +196,12 @@ function PrecificacaoPage() {
 
   return (
     <AdminLayout>
-      <PageHeader cap="Insights" title="Precificação" emphasis="dos serviços" description="Histórico real, sem suposições." />
+      <PageHeader
+        cap="Insights"
+        title="Precificação"
+        emphasis="dos serviços"
+        description="Histórico real, sem suposições."
+      />
       <div className="aurora-page">
         {/* Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -179,13 +222,19 @@ function PrecificacaoPage() {
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <div className="aurora-serif" style={{ fontSize: 28, color: "var(--green)", lineHeight: 1 }}>
+              <div
+                className="aurora-serif"
+                style={{ fontSize: 28, color: "var(--green)", lineHeight: 1 }}
+              >
                 {brl(c.recent)}
               </div>
               <div className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)" }}>
                 Últimos 90d ({c.count} amostras)
               </div>
-              <div className="text-[11px] mt-1" style={{ color: c.delta >= 0 ? "var(--green)" : "var(--tan)" }}>
+              <div
+                className="text-[11px] mt-1"
+                style={{ color: c.delta >= 0 ? "var(--green)" : "var(--tan)" }}
+              >
                 {c.delta >= 0 ? "↑" : "↓"} {Math.abs(c.delta).toFixed(1)}% vs 90d anteriores
               </div>
             </div>
@@ -198,7 +247,10 @@ function PrecificacaoPage() {
             <div>
               <div className="aurora-cap mb-1">Histórico</div>
               <div className="aurora-serif text-[22px]">
-                Preço médio <em className="italic" style={{ color: "var(--green)" }}>por mês</em>
+                Preço médio{" "}
+                <em className="italic" style={{ color: "var(--green)" }}>
+                  por mês
+                </em>
               </div>
             </div>
             <select
@@ -219,9 +271,19 @@ function PrecificacaoPage() {
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2D8CC" />
                 <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#5C6B78" }} />
-                <YAxis tickFormatter={(v) => brl(v)} tick={{ fontSize: 10, fill: "#5C6B78" }} width={80} />
+                <YAxis
+                  tickFormatter={(v) => brl(v)}
+                  tick={{ fontSize: 10, fill: "#5C6B78" }}
+                  width={80}
+                />
                 <Tooltip formatter={(v) => brl(Number(v))} />
-                <Line type="monotone" dataKey="avg" stroke="#4A6741" strokeWidth={2} dot={{ r: 3 }} />
+                <Line
+                  type="monotone"
+                  dataKey="avg"
+                  stroke="#4A6741"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -232,14 +294,21 @@ function PrecificacaoPage() {
           <div className="px-6 py-4" style={{ borderBottom: "1px solid var(--line)" }}>
             <div className="aurora-cap mb-1">Conversão</div>
             <div className="aurora-serif text-[22px]">
-              Win-rate <em className="italic" style={{ color: "var(--green)" }}>por faixa de preço</em>
+              Win-rate{" "}
+              <em className="italic" style={{ color: "var(--green)" }}>
+                por faixa de preço
+              </em>
             </div>
           </div>
           <table className="w-full">
             <thead>
               <tr style={{ background: "var(--offwhite)" }}>
                 {["Faixa", "Propostas", "Ganhas", "Win-rate"].map((h) => (
-                  <th key={h} className="text-left px-5 py-3 aurora-cap" style={{ fontWeight: 500 }}>
+                  <th
+                    key={h}
+                    className="text-left px-5 py-3 aurora-cap"
+                    style={{ fontWeight: 500 }}
+                  >
                     {h}
                   </th>
                 ))}
@@ -247,13 +316,22 @@ function PrecificacaoPage() {
             </thead>
             <tbody>
               {winRate.map((b, i) => (
-                <tr key={b.label} style={{ background: i % 2 === 0 ? "#fff" : "#FAFBFA", borderTop: "1px solid var(--line)" }}>
+                <tr
+                  key={b.label}
+                  style={{
+                    background: i % 2 === 0 ? "#fff" : "#FAFBFA",
+                    borderTop: "1px solid var(--line)",
+                  }}
+                >
                   <td className="px-5 py-3 text-[13px]">{b.label}</td>
                   <td className="px-5 py-3 text-[12px]">{b.total}</td>
                   <td className="px-5 py-3 text-[12px]" style={{ color: "var(--green)" }}>
                     {b.won}
                   </td>
-                  <td className="px-5 py-3 aurora-serif text-[18px]" style={{ color: "var(--green)" }}>
+                  <td
+                    className="px-5 py-3 aurora-serif text-[18px]"
+                    style={{ color: "var(--green)" }}
+                  >
                     {b.rate}%
                   </td>
                 </tr>
@@ -292,7 +370,12 @@ function PrecificacaoPage() {
               type="button"
               onClick={() => setEditing(null)}
               className="text-[10px] uppercase px-3 py-1.5"
-              style={{ border: "1px solid var(--line)", letterSpacing: "2px", fontWeight: 500 , borderRadius: 12 }}
+              style={{
+                border: "1px solid var(--line)",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 12,
+              }}
             >
               Cancelar
             </button>
@@ -301,7 +384,13 @@ function PrecificacaoPage() {
               disabled={saving}
               onClick={savePrice}
               className="text-[10px] uppercase px-3 py-1.5 disabled:opacity-40"
-              style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+              style={{
+                background: "var(--green)",
+                color: "#fff",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 999,
+              }}
             >
               {saving ? "Salvando…" : "Salvar"}
             </button>

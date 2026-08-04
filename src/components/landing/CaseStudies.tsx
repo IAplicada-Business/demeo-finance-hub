@@ -82,8 +82,8 @@ export function CaseStudies() {
               maxWidth: 460,
             }}
           >
-            Quatro recortes de carteira atual. Cada um começou no mesmo lugar — sem
-            saber para onde o dinheiro ia. Hoje decidem com a foto inteira na mão.
+            Quatro recortes de carteira atual. Cada um começou no mesmo lugar — sem saber para onde
+            o dinheiro ia. Hoje decidem com a foto inteira na mão.
           </p>
         </div>
 
@@ -119,11 +119,22 @@ export function CaseStudies() {
                 </h3>
                 <div
                   className="text-[12px] uppercase"
-                  style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)", fontWeight: 500 }}
+                  style={{
+                    letterSpacing: "1.5px",
+                    color: "var(--muted-foreground)",
+                    fontWeight: 500,
+                  }}
                 >
                   Dor inicial
                 </div>
-                <p style={{ fontSize: 13, color: "var(--foreground)", lineHeight: 1.55, marginTop: -4 }}>
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "var(--foreground)",
+                    lineHeight: 1.55,
+                    marginTop: -4,
+                  }}
+                >
                   {c.pain}
                 </p>
                 <div
@@ -224,15 +235,41 @@ function CaseAsset({ variant }: { variant: Case["asset"] }) {
           <circle cx="220" cy="180" r="20" fill="#6D92A6" />
           <circle cx="200" cy="200" r="18" fill="#99A989" opacity="0.85" />
           {/* Garfo e faca abstratos */}
-          <line x1="80" y1="80" x2="100" y2="240" stroke="#8FA688" strokeWidth="3" strokeLinecap="round" opacity="0.5" />
-          <line x1="320" y1="80" x2="300" y2="240" stroke="#8FA688" strokeWidth="3" strokeLinecap="round" opacity="0.5" />
+          <line
+            x1="80"
+            y1="80"
+            x2="100"
+            y2="240"
+            stroke="#8FA688"
+            strokeWidth="3"
+            strokeLinecap="round"
+            opacity="0.5"
+          />
+          <line
+            x1="320"
+            y1="80"
+            x2="300"
+            y2="240"
+            stroke="#8FA688"
+            strokeWidth="3"
+            strokeLinecap="round"
+            opacity="0.5"
+          />
         </svg>
       )}
       {variant === "consultorio" && (
         <svg viewBox="0 0 400 300" {...common}>
           <rect width="400" height="300" fill="#E0E4D6" />
           {/* Caduceus abstrato — duas linhas se cruzando */}
-          <line x1="200" y1="40" x2="200" y2="260" stroke="#4A6741" strokeWidth="3" strokeLinecap="round" />
+          <line
+            x1="200"
+            y1="40"
+            x2="200"
+            y2="260"
+            stroke="#4A6741"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
           <path
             d="M170,80 Q200,110 230,140 Q200,170 170,200 Q200,230 230,260"
             stroke="#8FA688"

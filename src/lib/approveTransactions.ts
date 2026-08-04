@@ -40,7 +40,7 @@ export async function ensureAdminSession(): Promise<{ ok: true } | { ok: false; 
 /** Aprovação atômica via RPC (Importar, Pendentes, Extratos). */
 export async function approveTransactionsBatch(
   updates: ApproveTxPayload[],
-  opts?: ApproveBatchOptions
+  opts?: ApproveBatchOptions,
 ): Promise<ApproveBatchResult> {
   if (!updates.length) {
     return { ok: false, error: "Nenhum lançamento classificado para aprovar." };
@@ -74,7 +74,10 @@ export async function approveTransactionsBatch(
 
   const approvedIds = (approvedRows ?? []).map((r) => r.id);
   if (approvedIds.length === 0) {
-    return { ok: false, error: "Nenhum lançamento foi aprovado. Verifique permissões de administrador." };
+    return {
+      ok: false,
+      error: "Nenhum lançamento foi aprovado. Verifique permissões de administrador.",
+    };
   }
 
   let reconcileSuggestions: number | undefined;
@@ -87,7 +90,7 @@ export async function approveTransactionsBatch(
 
 /** Upsert de regras recorrentes após aprovação (somente Pendentes). */
 export async function upsertRecurringRules(
-  rules: RecurringRulePayload[]
+  rules: RecurringRulePayload[],
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!rules.length) return { ok: true };
 
@@ -103,7 +106,7 @@ export async function upsertRecurringRules(
         source: "manual",
         is_active: true,
       })),
-      { onConflict: "client_id,pattern" }
+      { onConflict: "client_id,pattern" },
     );
 
   if (error) return { ok: false, error: error.message };
@@ -151,6 +154,6 @@ export async function syncUploadStatusAfterApproval(txIds: string[]): Promise<vo
       if (count === 0) {
         await supabase().from("uploads").update({ status: "approved" }).eq("id", uploadId);
       }
-    })
+    }),
   );
 }

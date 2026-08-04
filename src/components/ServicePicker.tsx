@@ -10,7 +10,13 @@ export type ServiceRow = {
   base_price: number;
 };
 
-export function ServicePicker({ onPick, onClose }: { onPick: (s: ServiceRow) => void; onClose: () => void }) {
+export function ServicePicker({
+  onPick,
+  onClose,
+}: {
+  onPick: (s: ServiceRow) => void;
+  onClose: () => void;
+}) {
   const [q, setQ] = useState("");
   const { data: services = [] } = useQuery({
     queryKey: ["services", "active"],
@@ -26,8 +32,15 @@ export function ServicePicker({ onPick, onClose }: { onPick: (s: ServiceRow) => 
   const filtered = services.filter((s) => s.name.toLowerCase().includes(q.toLowerCase()));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="aurora-modal bg-white p-6 max-w-[520px] w-full" style={{ borderRadius: 28 }} onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="aurora-modal bg-white p-6 max-w-[520px] w-full"
+        style={{ borderRadius: 28 }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="aurora-cap mb-2">Catálogo</div>
         <h3 className="aurora-serif text-[24px] mb-4">Adicionar serviço</h3>
         <input
@@ -57,7 +70,10 @@ export function ServicePicker({ onPick, onClose }: { onPick: (s: ServiceRow) => 
             </button>
           ))}
           {filtered.length === 0 && (
-            <div className="text-[11px] py-6 text-center" style={{ color: "var(--muted-foreground)" }}>
+            <div
+              className="text-[11px] py-6 text-center"
+              style={{ color: "var(--muted-foreground)" }}
+            >
               Nenhum serviço encontrado.
             </div>
           )}

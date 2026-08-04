@@ -133,7 +133,8 @@ Deno.serve(async (req) => {
 
   // Rate limit: 10 leads/hora por IP
   const rl = await checkRateLimit(ip, "lead-intake", 10, 60);
-  if (!rl.ok) return jsonResponse({ error: "Muitas tentativas. Tente em alguns minutos." }, 429, origin);
+  if (!rl.ok)
+    return jsonResponse({ error: "Muitas tentativas. Tente em alguns minutos." }, 429, origin);
 
   const sb = serviceClient();
 
@@ -187,11 +188,7 @@ Deno.serve(async (req) => {
   }
 
   // Stage 'lead'
-  const { data: leadStage } = await sb
-    .from("deal_stages")
-    .select("id")
-    .eq("slug", "lead")
-    .single();
+  const { data: leadStage } = await sb.from("deal_stages").select("id").eq("slug", "lead").single();
   if (!leadStage) {
     return jsonResponse({ error: "Stage 'lead' não encontrada" }, 500, origin);
   }

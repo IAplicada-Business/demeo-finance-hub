@@ -6,11 +6,7 @@ import {
   type TxMatchInput,
 } from "@/lib/reconciliationScoring";
 
-export type {
-  PayableMatchInput,
-  TxMatchInput,
-  ScoredMatch,
-} from "@/lib/reconciliationScoring";
+export type { PayableMatchInput, TxMatchInput, ScoredMatch } from "@/lib/reconciliationScoring";
 export {
   scoreMatch,
   pickAutoMatch,
@@ -20,7 +16,7 @@ export {
 
 export async function reconcilePayable(
   payableId: string,
-  transactionId: string
+  transactionId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { error } = await supabase().rpc("reconcile_payable", {
     p_payable_id: payableId,
@@ -31,7 +27,7 @@ export async function reconcilePayable(
 }
 
 export async function unreconcilePayable(
-  payableId: string
+  payableId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { error } = await supabase().rpc("unreconcile_payable", { p_payable_id: payableId });
   if (error) return { ok: false, error: error.message };
@@ -41,7 +37,7 @@ export async function unreconcilePayable(
 export async function createManualPayment(
   payableId: string,
   paymentDate?: string,
-  bank = "Espécie"
+  bank = "Espécie",
 ): Promise<{ ok: true; transactionId: string } | { ok: false; error: string }> {
   const { data, error } = await supabase().rpc("create_manual_payment", {
     p_payable_id: payableId,
@@ -53,7 +49,7 @@ export async function createManualPayment(
 }
 
 export async function undoManualPayment(
-  payableId: string
+  payableId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { error } = await supabase().rpc("undo_manual_payment", { p_payable_id: payableId });
   if (error) return { ok: false, error: error.message };
@@ -63,7 +59,7 @@ export async function undoManualPayment(
 /** Sugestões pós-aprovação (Onda A — toast, sem auto-link). */
 export async function fetchReconciliationSuggestions(
   clientId: string,
-  transactionIds: string[]
+  transactionIds: string[],
 ): Promise<number> {
   if (!transactionIds.length) return 0;
 
@@ -91,7 +87,10 @@ export async function fetchReconciliationSuggestions(
 }
 
 /** Toast pós-aprovação (Onda A — sem auto-link). */
-export function toastReconciliationSuggestions(count: number | undefined, onOpenAgenda?: () => void): void {
+export function toastReconciliationSuggestions(
+  count: number | undefined,
+  onOpenAgenda?: () => void,
+): void {
   if (!count || count <= 0) return;
   const label = count === 1 ? "1 lançamento pode bater" : `${count} lançamentos podem bater`;
   toast.info(`${label} com contas na Agenda`, {

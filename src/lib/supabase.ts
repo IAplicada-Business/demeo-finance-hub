@@ -2,7 +2,8 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { supabase as managedSupabase } from "@/integrations/supabase/client";
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) as string | undefined;
+const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY ??
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) as string | undefined;
 
 export function supabase(): SupabaseClient {
   return managedSupabase as SupabaseClient;

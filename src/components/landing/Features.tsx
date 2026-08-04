@@ -11,7 +11,13 @@ const TAN = "#99A989";
 
 type FeatureVariant = "import" | "dfc" | "projection" | "portal";
 
-const FEATURES: { cap: string; title: string; line: string; variant: FeatureVariant; accent: string }[] = [
+const FEATURES: {
+  cap: string;
+  title: string;
+  line: string;
+  variant: FeatureVariant;
+  accent: string;
+}[] = [
   {
     cap: "01",
     title: "Importação inteligente",
@@ -151,16 +157,43 @@ function FeatureMock({ variant, accent }: { variant: FeatureVariant; accent: str
     border: "1px solid rgba(28,45,69,0.1)",
     borderRadius: 16,
     padding: 24,
-    boxShadow:
-      "0 30px 60px -30px rgba(28,45,69,0.3), 0 12px 24px -8px rgba(40,76,43,0.12)",
+    boxShadow: "0 30px 60px -30px rgba(28,45,69,0.3), 0 12px 24px -8px rgba(40,76,43,0.12)",
   };
 
   if (variant === "import") {
     const rows = [
-      { d: "02/04", desc: "iFood Brasil", v: "+ R$ 4.820", cat: "Receita · Delivery", tag: "auto", pos: true },
-      { d: "03/04", desc: "Aluguel Galeria", v: "− R$ 6.800", cat: "Custo Fixo", tag: "auto", pos: false },
-      { d: "04/04", desc: "Folha funcionários", v: "− R$ 18.400", cat: "Salários", tag: "regra", pos: false },
-      { d: "05/04", desc: "Compra farinha", v: "− R$ 3.120", cat: "Insumos", tag: "auto", pos: false },
+      {
+        d: "02/04",
+        desc: "iFood Brasil",
+        v: "+ R$ 4.820",
+        cat: "Receita · Delivery",
+        tag: "auto",
+        pos: true,
+      },
+      {
+        d: "03/04",
+        desc: "Aluguel Galeria",
+        v: "− R$ 6.800",
+        cat: "Custo Fixo",
+        tag: "auto",
+        pos: false,
+      },
+      {
+        d: "04/04",
+        desc: "Folha funcionários",
+        v: "− R$ 18.400",
+        cat: "Salários",
+        tag: "regra",
+        pos: false,
+      },
+      {
+        d: "05/04",
+        desc: "Compra farinha",
+        v: "− R$ 3.120",
+        cat: "Insumos",
+        tag: "auto",
+        pos: false,
+      },
     ];
     return (
       <div style={wrap}>
@@ -420,7 +453,10 @@ function FeatureMock({ variant, accent }: { variant: FeatureVariant; accent: str
               strokeWidth="1"
             />
           ))}
-          <path d="M0,108 Q60,90 110,82 T220,46 L320,32 L320,160 L0,160 Z" fill="url(#proj-fill-2)" />
+          <path
+            d="M0,108 Q60,90 110,82 T220,46 L320,32 L320,160 L0,160 Z"
+            fill="url(#proj-fill-2)"
+          />
           <path
             d="M0,108 Q60,90 110,82 T220,46 L320,32"
             fill="none"

@@ -30,12 +30,19 @@ Deno.serve(async (req: Request) => {
   const caller = await userFromAuthHeader(req);
   if (!caller) return jsonResponse({ error: "Não autenticado" }, 401, origin);
   if (!(await isAdmin(caller.id))) {
-    return jsonResponse({ error: "Apenas administradores podem gerenciar usuários do painel" }, 403, origin);
+    return jsonResponse(
+      { error: "Apenas administradores podem gerenciar usuários do painel" },
+      403,
+      origin,
+    );
   }
 
   let body: z.infer<typeof BodySchema>;
-  try { body = BodySchema.parse(await req.json()); }
-  catch (e) { return jsonResponse({ error: String(e) }, 400, origin); }
+  try {
+    body = BodySchema.parse(await req.json());
+  } catch (e) {
+    return jsonResponse({ error: String(e) }, 400, origin);
+  }
 
   const sb = serviceClient();
 
@@ -64,7 +71,11 @@ Deno.serve(async (req: Request) => {
           .select("user_id", { count: "exact", head: true })
           .eq("role", "owner");
         if ((count ?? 0) <= 1) {
-          return jsonResponse({ error: "Não é possível rebaixar o único Owner da conta." }, 400, origin);
+          return jsonResponse(
+            { error: "Não é possível rebaixar o único Owner da conta." },
+            400,
+            origin,
+          );
         }
       }
       const { error: roleErr } = await sb
@@ -72,7 +83,8 @@ Deno.serve(async (req: Request) => {
         .update({ role })
         .eq("user_id", user_id)
         .eq("role", targetRole.role);
-      if (roleErr) return jsonResponse({ error: `Erro ao alterar perfil: ${roleErr.message}` }, 500, origin);
+      if (roleErr)
+        return jsonResponse({ error: `Erro ao alterar perfil: ${roleErr.message}` }, 500, origin);
     }
 
     const authPatch: Record<string, unknown> = {};
@@ -85,7 +97,8 @@ Deno.serve(async (req: Request) => {
 
     if (Object.keys(authPatch).length > 0) {
       const { error: authErr } = await sb.auth.admin.updateUserById(user_id, authPatch);
-      if (authErr) return jsonResponse({ error: `Erro ao atualizar Auth: ${authErr.message}` }, 500, origin);
+      if (authErr)
+        return jsonResponse({ error: `Erro ao atualizar Auth: ${authErr.message}` }, 500, origin);
     }
 
     const rolePatch: Record<string, string> = {};
@@ -97,11 +110,16 @@ Deno.serve(async (req: Request) => {
         .update(rolePatch)
         .eq("user_id", user_id)
         .in("role", ["admin", "owner"]);
-      if (roleErr) return jsonResponse({ error: `Erro ao atualizar papel: ${roleErr.message}` }, 500, origin);
+      if (roleErr)
+        return jsonResponse({ error: `Erro ao atualizar papel: ${roleErr.message}` }, 500, origin);
     }
 
     if (display_name) {
-      await sb.from("profiles").update({ display_name }).eq("user_id", user_id).catch(() => null);
+      await sb
+        .from("profiles")
+        .update({ display_name })
+        .eq("user_id", user_id)
+        .catch(() => null);
     }
 
     return jsonResponse({ ok: true, user_id, action: "update" }, 200, origin);
@@ -111,7 +129,11 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Você não pode remover o próprio acesso admin." }, 400, origin);
   }
   if (targetRole.role === "owner") {
-    return jsonResponse({ error: "Não é possível remover o Owner da conta. Transfira o papel antes." }, 400, origin);
+    return jsonResponse(
+      { error: "Não é possível remover o Owner da conta. Transfira o papel antes." },
+      400,
+      origin,
+    );
   }
 
   const { error: delErr } = await sb
@@ -119,7 +141,8 @@ Deno.serve(async (req: Request) => {
     .delete()
     .eq("user_id", body.user_id)
     .eq("role", "admin");
-  if (delErr) return jsonResponse({ error: `Erro ao remover admin: ${delErr.message}` }, 500, origin);
+  if (delErr)
+    return jsonResponse({ error: `Erro ao remover admin: ${delErr.message}` }, 500, origin);
 
   return jsonResponse({ ok: true, user_id: body.user_id, action: "delete" }, 200, origin);
 });

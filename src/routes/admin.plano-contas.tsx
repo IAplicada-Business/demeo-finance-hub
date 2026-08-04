@@ -50,7 +50,11 @@ function toBase64(file: File): Promise<string> {
 }
 
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return new Date(iso).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 function PlanoContasPage() {
@@ -114,21 +118,24 @@ function PlanoContasPage() {
     } = await supabase().auth.getSession();
     const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
     const file_base64 = await toBase64(f);
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-chart-of-accounts`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session?.access_token ?? anonKey}`,
-        apikey: anonKey,
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-chart-of-accounts`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token ?? anonKey}`,
+          apikey: anonKey,
+        },
+        body: JSON.stringify({
+          client_id: clientId,
+          filename: f.name,
+          file_base64,
+          mode,
+          uploaded_by: session?.user?.id ?? null,
+        }),
       },
-      body: JSON.stringify({
-        client_id: clientId,
-        filename: f.name,
-        file_base64,
-        mode,
-        uploaded_by: session?.user?.id ?? null,
-      }),
-    });
+    );
     const result = await res.json();
     if (!res.ok) throw new Error(result.error ?? "Falha ao processar o arquivo.");
     return result;
@@ -175,7 +182,9 @@ function PlanoContasPage() {
   }
 
   async function download(u: CoaUpload) {
-    const { data, error: err } = await supabase().storage.from("planos").createSignedUrl(u.storage_path, 60);
+    const { data, error: err } = await supabase()
+      .storage.from("planos")
+      .createSignedUrl(u.storage_path, 60);
     if (err || !data) {
       setError(`Não foi possível baixar o arquivo: ${err?.message ?? "erro desconhecido"}`);
       return;
@@ -209,7 +218,9 @@ function PlanoContasPage() {
             style={{ border: "1px solid var(--line)", background: "#fff", minWidth: 220 }}
           >
             {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </select>
         </div>
@@ -217,7 +228,11 @@ function PlanoContasPage() {
         {error && (
           <div
             className="text-[12px] px-4 py-3 whitespace-pre-line"
-            style={{ background: "rgba(109,146,166,0.1)", borderLeft: "3px solid var(--tan)", color: "var(--tan)" }}
+            style={{
+              background: "rgba(109,146,166,0.1)",
+              borderLeft: "3px solid var(--tan)",
+              color: "var(--tan)",
+            }}
           >
             {error}
           </div>
@@ -225,7 +240,11 @@ function PlanoContasPage() {
         {success && (
           <div
             className="text-[12px] px-4 py-3"
-            style={{ background: "rgba(74,103,65,0.10)", borderLeft: "3px solid var(--green)", color: "var(--green)" }}
+            style={{
+              background: "rgba(74,103,65,0.10)",
+              borderLeft: "3px solid var(--green)",
+              color: "var(--green)",
+            }}
           >
             {success}
           </div>
@@ -233,29 +252,41 @@ function PlanoContasPage() {
 
         {/* Plano vigente */}
         <section>
-          <div className="aurora-cap mb-2 px-1" style={{ color: "var(--green)", letterSpacing: "2.5px" }}>
+          <div
+            className="aurora-cap mb-2 px-1"
+            style={{ color: "var(--green)", letterSpacing: "2.5px" }}
+          >
             Plano vigente
           </div>
           <div className="aurora-card p-5 flex flex-wrap items-center gap-6">
             {activeUpload ? (
               <>
                 <div>
-                  <div className="text-[14px]" style={{ fontWeight: 600 }}>{activeUpload.filename}</div>
+                  <div className="text-[14px]" style={{ fontWeight: 600 }}>
+                    {activeUpload.filename}
+                  </div>
                   <div className="text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                    {activeUpload.accounts_count} contas · enviado em {fmtDate(activeUpload.created_at)}
+                    {activeUpload.accounts_count} contas · enviado em{" "}
+                    {fmtDate(activeUpload.created_at)}
                   </div>
                 </div>
                 <button
                   onClick={() => download(activeUpload)}
                   className="text-[10px] uppercase px-4 py-2 ml-auto"
-                  style={{ border: "1px solid var(--navy)", color: "var(--navy)", letterSpacing: "1.5px" , borderRadius: 12 }}
+                  style={{
+                    border: "1px solid var(--navy)",
+                    color: "var(--navy)",
+                    letterSpacing: "1.5px",
+                    borderRadius: 12,
+                  }}
                 >
                   Baixar arquivo
                 </button>
               </>
             ) : (
               <div className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
-                Nenhum plano de contas enviado. Importação e classificação ficam bloqueadas até enviar o plano do cliente.
+                Nenhum plano de contas enviado. Importação e classificação ficam bloqueadas até
+                enviar o plano do cliente.
               </div>
             )}
           </div>
@@ -263,11 +294,17 @@ function PlanoContasPage() {
 
         {/* Upload */}
         <section>
-          <div className="aurora-cap mb-2 px-1" style={{ color: "var(--green)", letterSpacing: "2.5px" }}>
+          <div
+            className="aurora-cap mb-2 px-1"
+            style={{ color: "var(--green)", letterSpacing: "2.5px" }}
+          >
             {activeUpload ? "Adicionar contas ao plano" : "Enviar plano"}
           </div>
           <div
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => {
               e.preventDefault();
@@ -277,21 +314,27 @@ function PlanoContasPage() {
             }}
             onClick={() => inputRef.current?.click()}
             className="aurora-card p-8 text-center cursor-pointer"
-            style={{ borderStyle: "dashed", background: dragOver ? "rgba(74,103,65,0.06)" : undefined }}
+            style={{
+              borderStyle: "dashed",
+              background: dragOver ? "rgba(74,103,65,0.06)" : undefined,
+            }}
           >
             <input
               ref={inputRef}
               type="file"
               accept=".xlsx,.xls,.csv"
               className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleFile(f);
+              }}
             />
             <div className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
               {parsing
                 ? "Lendo plano de contas…"
                 : file
-                ? file.name
-                : "Arraste o arquivo aqui ou clique para selecionar (XLSX ou CSV)"}
+                  ? file.name
+                  : "Arraste o arquivo aqui ou clique para selecionar (XLSX ou CSV)"}
             </div>
           </div>
         </section>
@@ -303,9 +346,16 @@ function PlanoContasPage() {
               <div className="aurora-cap" style={{ color: "var(--navy)", letterSpacing: "2.5px" }}>
                 Prévia — {preview.length} contas
               </div>
-              <div className="flex flex-wrap gap-2 text-[10px] uppercase" style={{ letterSpacing: "1px" }}>
+              <div
+                className="flex flex-wrap gap-2 text-[10px] uppercase"
+                style={{ letterSpacing: "1px" }}
+              >
                 {orderedGroups.map((g) => (
-                  <span key={g} className="px-2.5 py-1" style={{ background: "rgba(0,0,0,0.05)", color: "var(--muted-foreground)" }}>
+                  <span
+                    key={g}
+                    className="px-2.5 py-1"
+                    style={{ background: "rgba(0,0,0,0.05)", color: "var(--muted-foreground)" }}
+                  >
                     {g}: {summary[g] ?? grouped[g].length}
                   </span>
                 ))}
@@ -314,7 +364,13 @@ function PlanoContasPage() {
                 onClick={commit}
                 disabled={committing}
                 className="text-[10px] uppercase px-5 py-2 ml-auto disabled:opacity-40"
-                style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500 , borderRadius: 999 }}
+                style={{
+                  background: "var(--green)",
+                  color: "#fff",
+                  letterSpacing: "2px",
+                  fontWeight: 500,
+                  borderRadius: 999,
+                }}
               >
                 {committing ? "Aplicando…" : "Adicionar contas ao plano"}
               </button>
@@ -322,16 +378,33 @@ function PlanoContasPage() {
 
             {orderedGroups.map((g) => (
               <div key={g} className="mb-5">
-                <div className="aurora-cap mb-2 px-1" style={{ color: "var(--green)", letterSpacing: "2px" }}>{g}</div>
+                <div
+                  className="aurora-cap mb-2 px-1"
+                  style={{ color: "var(--green)", letterSpacing: "2px" }}
+                >
+                  {g}
+                </div>
                 <div className="aurora-card p-0 overflow-hidden">
                   <table className="w-full">
                     <tbody>
                       {grouped[g].map((a, idx) => (
-                        <tr key={a.full_name} style={{ borderTop: idx > 0 ? "1px solid var(--line)" : undefined }}>
-                          <td className="px-6 py-2.5 text-[12px]" style={{ width: 90, color: "var(--muted-foreground)", fontVariantNumeric: "tabular-nums" }}>
+                        <tr
+                          key={a.full_name}
+                          style={{ borderTop: idx > 0 ? "1px solid var(--line)" : undefined }}
+                        >
+                          <td
+                            className="px-6 py-2.5 text-[12px]"
+                            style={{
+                              width: 90,
+                              color: "var(--muted-foreground)",
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
                             {a.code}
                           </td>
-                          <td className="px-2 py-2.5 text-[13px]" style={{ fontWeight: 500 }}>{a.name}</td>
+                          <td className="px-2 py-2.5 text-[13px]" style={{ fontWeight: 500 }}>
+                            {a.name}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -345,33 +418,57 @@ function PlanoContasPage() {
         {/* Histórico */}
         {uploads.length > 0 && (
           <section>
-            <div className="aurora-cap mb-2 px-1" style={{ color: "var(--green)", letterSpacing: "2.5px" }}>
+            <div
+              className="aurora-cap mb-2 px-1"
+              style={{ color: "var(--green)", letterSpacing: "2.5px" }}
+            >
               Histórico
             </div>
             <div className="aurora-card p-0 overflow-hidden">
               <table className="w-full">
                 <tbody>
                   {uploads.map((u, idx) => (
-                    <tr key={u.id} style={{ borderTop: idx > 0 ? "1px solid var(--line)" : undefined }}>
+                    <tr
+                      key={u.id}
+                      style={{ borderTop: idx > 0 ? "1px solid var(--line)" : undefined }}
+                    >
                       <td className="px-6 py-3 text-[13px]" style={{ fontWeight: 500 }}>
                         {u.filename}
                         {u.is_active && (
-                          <span className="ml-2 text-[9px] uppercase px-2 py-0.5" style={{ background: "rgba(74,103,65,0.12)", color: "var(--green)", letterSpacing: "1.5px" }}>
+                          <span
+                            className="ml-2 text-[9px] uppercase px-2 py-0.5"
+                            style={{
+                              background: "rgba(74,103,65,0.12)",
+                              color: "var(--green)",
+                              letterSpacing: "1.5px",
+                            }}
+                          >
                             Vigente
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                      <td
+                        className="px-6 py-3 text-[12px]"
+                        style={{ color: "var(--muted-foreground)" }}
+                      >
                         {u.accounts_count} contas
                       </td>
-                      <td className="px-6 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                      <td
+                        className="px-6 py-3 text-[12px]"
+                        style={{ color: "var(--muted-foreground)" }}
+                      >
                         {fmtDate(u.created_at)}
                       </td>
                       <td className="px-6 py-3 text-right">
                         <button
                           onClick={() => download(u)}
                           className="text-[10px] uppercase px-3 py-1"
-                          style={{ border: "1px solid var(--line)", color: "var(--navy)", letterSpacing: "1.5px" , borderRadius: 12 }}
+                          style={{
+                            border: "1px solid var(--line)",
+                            color: "var(--navy)",
+                            letterSpacing: "1.5px",
+                            borderRadius: 12,
+                          }}
                         >
                           Baixar
                         </button>

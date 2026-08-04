@@ -79,7 +79,14 @@ export function DashboardPreview() {
                   marginBottom: 4,
                 }}
               />
-              <span style={{ fontSize: 8, letterSpacing: "1px", textTransform: "uppercase", fontWeight: 500 }}>
+              <span
+                style={{
+                  fontSize: 8,
+                  letterSpacing: "1px",
+                  textTransform: "uppercase",
+                  fontWeight: 500,
+                }}
+              >
                 {it.label}
               </span>
             </div>
@@ -100,7 +107,10 @@ export function DashboardPreview() {
             <div className="aurora-serif text-[14px]" style={{ fontWeight: 500 }}>
               Dashboard <span style={{ color: "var(--muted-foreground)" }}>· Abril 2026</span>
             </div>
-            <div className="flex items-center gap-2.5 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+            <div
+              className="flex items-center gap-2.5 text-[10px]"
+              style={{ color: "var(--muted-foreground)" }}
+            >
               <span
                 className="rounded-full w-7 h-7 inline-flex items-center justify-center text-[10px]"
                 style={{
@@ -146,7 +156,12 @@ export function DashboardPreview() {
               </div>
               <div
                 className="aurora-serif aurora-pulse"
-                style={{ fontSize: 38, lineHeight: 1, color: "var(--navy)", letterSpacing: "-1.5px" }}
+                style={{
+                  fontSize: 38,
+                  lineHeight: 1,
+                  color: "var(--navy)",
+                  letterSpacing: "-1.5px",
+                }}
               >
                 R$ 184.230
               </div>
@@ -205,7 +220,14 @@ export function DashboardPreview() {
                     <stop offset="100%" stopColor="#6D92A6" />
                   </linearGradient>
                 </defs>
-                <circle cx="18" cy="18" r="14" fill="none" stroke="var(--linen)" strokeWidth="3.5" />
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="14"
+                  fill="none"
+                  stroke="var(--linen)"
+                  strokeWidth="3.5"
+                />
                 <circle
                   cx="18"
                   cy="18"
@@ -230,12 +252,20 @@ export function DashboardPreview() {
                   transform="rotate(-90 18 18)"
                 />
               </svg>
-              <div className="mt-3 flex flex-col gap-1 text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+              <div
+                className="mt-3 flex flex-col gap-1 text-[9px]"
+                style={{ color: "var(--muted-foreground)" }}
+              >
                 <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--green)" }} /> Receita
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: "var(--green)" }}
+                  />{" "}
+                  Receita
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--tan)" }} /> Despesa
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--tan)" }} />{" "}
+                  Despesa
                 </span>
               </div>
             </div>
@@ -284,11 +314,22 @@ export function DashboardPreview() {
                     [140, 18],
                     [200, 8],
                   ].map(([x, y]) => (
-                    <circle key={`${x},${y}`} cx={x} cy={y} r="2.5" fill="#fff" stroke="var(--green)" strokeWidth="1.5" />
+                    <circle
+                      key={`${x},${y}`}
+                      cx={x}
+                      cy={y}
+                      r="2.5"
+                      fill="#fff"
+                      stroke="var(--green)"
+                      strokeWidth="1.5"
+                    />
                   ))}
                 </svg>
               </div>
-              <div className="flex justify-between mt-2 text-[9px]" style={{ color: "var(--muted-foreground)" }}>
+              <div
+                className="flex justify-between mt-2 text-[9px]"
+                style={{ color: "var(--muted-foreground)" }}
+              >
                 {["sem 1", "sem 2", "sem 3", "sem 4"].map((s) => (
                   <span key={s}>{s}</span>
                 ))}

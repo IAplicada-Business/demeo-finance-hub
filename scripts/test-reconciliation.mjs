@@ -45,7 +45,9 @@ const { data: client } = await sb
   .maybeSingle();
 
 if (!client) {
-  console.log(JSON.stringify({ ok: false, error: `Cliente não encontrado: ${clientName}` }, null, 2));
+  console.log(
+    JSON.stringify({ ok: false, error: `Cliente não encontrado: ${clientName}` }, null, 2),
+  );
   process.exit(1);
 }
 
@@ -108,14 +110,20 @@ try {
 
   step(
     "4. Links bidirecionais",
-    payAfter?.matched_transaction_id === txId && txAfter?.payable_id === payableId && !!payAfter?.paid_at,
-    { payAfter, txAfter }
+    payAfter?.matched_transaction_id === txId &&
+      txAfter?.payable_id === payableId &&
+      !!payAfter?.paid_at,
+    { payAfter, txAfter },
   );
 
   const { error: unrecErr } = await sb.rpc("unreconcile_payable", { p_payable_id: payableId });
   step("5. unreconcile_payable", !unrecErr, unrecErr?.message);
 
-  const { data: payOpen } = await sb.from("payables").select("paid_at, matched_transaction_id").eq("id", payableId).single();
+  const { data: payOpen } = await sb
+    .from("payables")
+    .select("paid_at, matched_transaction_id")
+    .eq("id", payableId)
+    .single();
   step("6. Payable volta aberto", !payOpen?.paid_at && !payOpen?.matched_transaction_id, payOpen);
 
   const { data: manualTxId, error: manualErr } = await sb.rpc("create_manual_payment", {
@@ -128,8 +136,16 @@ try {
   step("8. undo_manual_payment", !undoErr, undoErr?.message);
 } finally {
   if (payableId) {
-    try { await sb.rpc("undo_manual_payment", { p_payable_id: payableId }); } catch { /* cleanup */ }
-    try { await sb.rpc("unreconcile_payable", { p_payable_id: payableId }); } catch { /* cleanup */ }
+    try {
+      await sb.rpc("undo_manual_payment", { p_payable_id: payableId });
+    } catch {
+      /* cleanup */
+    }
+    try {
+      await sb.rpc("unreconcile_payable", { p_payable_id: payableId });
+    } catch {
+      /* cleanup */
+    }
     if (txId) await sb.from("transactions").delete().eq("id", txId);
     await sb.from("payables").delete().eq("id", payableId);
   }
@@ -148,7 +164,7 @@ console.log(
       steps,
     },
     null,
-    2
-  )
+    2,
+  ),
 );
 process.exit(failed.length > 0 ? 1 : 0);

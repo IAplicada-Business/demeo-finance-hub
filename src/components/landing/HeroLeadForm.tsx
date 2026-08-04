@@ -112,7 +112,10 @@ export function HeroLeadForm() {
             A Claudia te chama em até 1 dia útil.
           </em>
         </h3>
-        <p className="mt-4" style={{ fontSize: 14, color: "rgba(255,255,255,0.88)", lineHeight: 1.6 }}>
+        <p
+          className="mt-4"
+          style={{ fontSize: 14, color: "rgba(255,255,255,0.88)", lineHeight: 1.6 }}
+        >
           Sem pressão, sem cobrança no primeiro papo.
         </p>
       </div>
@@ -266,7 +269,10 @@ export function HeroLeadForm() {
           {errMsg}
         </p>
       )}
-      <p className="mt-3 text-center" style={{ fontSize: 11, color: "rgba(255,255,255,0.85)", lineHeight: 1.5 }}>
+      <p
+        className="mt-3 text-center"
+        style={{ fontSize: 11, color: "rgba(255,255,255,0.85)", lineHeight: 1.5 }}
+      >
         Resposta em até 1 dia útil. Sem pressão, sem cobrança.
       </p>
     </form>

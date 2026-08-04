@@ -8,10 +8,10 @@ import { handlePreflight, jsonResponse } from "../_shared/cors.ts";
 import { serviceClient, userFromAuthHeader, isAdmin } from "../_shared/supabase.ts";
 
 const BodySchema = z.object({
-  client_id:    z.string().uuid(),
-  email:        z.string().email(),
+  client_id: z.string().uuid(),
+  email: z.string().email(),
   display_name: z.string().min(2).max(100),
-  portal_role:  z.enum(["owner", "financeiro"]).default("owner"),
+  portal_role: z.enum(["owner", "financeiro"]).default("owner"),
 });
 
 const N8N_INVITE_WEBHOOK = "https://iaplicada.app.n8n.cloud/webhook/aurora-invite-user";
@@ -25,11 +25,15 @@ Deno.serve(async (req: Request) => {
 
   const caller = await userFromAuthHeader(req);
   if (!caller) return jsonResponse({ error: "Não autenticado" }, 401, origin);
-  if (!(await isAdmin(caller.id))) return jsonResponse({ error: "Acesso restrito a administradores" }, 403, origin);
+  if (!(await isAdmin(caller.id)))
+    return jsonResponse({ error: "Acesso restrito a administradores" }, 403, origin);
 
   let body: z.infer<typeof BodySchema>;
-  try { body = BodySchema.parse(await req.json()); }
-  catch (e) { return jsonResponse({ error: String(e) }, 400, origin); }
+  try {
+    body = BodySchema.parse(await req.json());
+  } catch (e) {
+    return jsonResponse({ error: String(e) }, 400, origin);
+  }
 
   const { client_id, email, display_name, portal_role } = body;
   const sb = serviceClient();
@@ -45,7 +49,8 @@ Deno.serve(async (req: Request) => {
     .eq("client_id", client_id)
     .eq("email", email)
     .maybeSingle();
-  if (existing) return jsonResponse({ error: "Este e-mail já está vinculado a este cliente" }, 409, origin);
+  if (existing)
+    return jsonResponse({ error: "Este e-mail já está vinculado a este cliente" }, 409, origin);
 
   // Gerar link de convite (cria o usuário no Auth se não existir)
   let userId: string;
@@ -62,10 +67,14 @@ Deno.serve(async (req: Request) => {
 
   if (linkErr) {
     // Usuário já existe no Auth — buscar pelo e-mail e gerar link de acesso
-    if (linkErr.message?.toLowerCase().includes("already") || (linkErr as { status?: number }).status === 422) {
+    if (
+      linkErr.message?.toLowerCase().includes("already") ||
+      (linkErr as { status?: number }).status === 422
+    ) {
       const { data: users } = await sb.auth.admin.listUsers();
       const found = users?.users?.find((u) => u.email === email);
-      if (!found) return jsonResponse({ error: `Erro ao criar usuário: ${linkErr.message}` }, 500, origin);
+      if (!found)
+        return jsonResponse({ error: `Erro ao criar usuário: ${linkErr.message}` }, 500, origin);
       userId = found.id;
       // Gerar link de recuperação para usuário existente (mesmo fluxo de configurar senha)
       const { data: recoveryData } = await sb.auth.admin.generateLink({
@@ -83,20 +92,26 @@ Deno.serve(async (req: Request) => {
   }
 
   // Vincular ao cliente
-  const { error: mapErr } = await sb.from("user_client_mapping").upsert({
-    user_id:      userId,
-    client_id,
-    portal_role,
-    email,
-    display_name,
-  }, { onConflict: "user_id" });
+  const { error: mapErr } = await sb.from("user_client_mapping").upsert(
+    {
+      user_id: userId,
+      client_id,
+      portal_role,
+      email,
+      display_name,
+    },
+    { onConflict: "user_id" },
+  );
 
-  if (mapErr) return jsonResponse({ error: `Erro ao vincular usuário: ${mapErr.message}` }, 500, origin);
+  if (mapErr)
+    return jsonResponse({ error: `Erro ao vincular usuário: ${mapErr.message}` }, 500, origin);
 
   // Atualizar user_metadata com client_id para o JWT claim
-  await sb.auth.admin.updateUserById(userId, {
-    user_metadata: { display_name, client_id },
-  }).catch(() => null);
+  await sb.auth.admin
+    .updateUserById(userId, {
+      user_metadata: { display_name, client_id },
+    })
+    .catch(() => null);
 
   // Disparar e-mail de convite via n8n — awaited para garantir envio antes de retornar
   if (inviteUrl) {

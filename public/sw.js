@@ -31,6 +31,6 @@ self.addEventListener("notificationclick", (event) => {
         if (client.url.includes(target) && "focus" in client) return client.focus();
       }
       if (clients.openWindow) return clients.openWindow(target);
-    })
+    }),
   );
 });

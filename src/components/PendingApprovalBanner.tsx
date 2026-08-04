@@ -32,7 +32,8 @@ export function PendingApprovalBanner({ clientId, clientName }: PendingApprovalB
       <div className="flex-1 min-w-0">
         <p>
           <strong style={{ fontWeight: 600 }}>
-            {total} lançamento{total !== 1 ? "s" : ""}{scope}
+            {total} lançamento{total !== 1 ? "s" : ""}
+            {scope}
           </strong>{" "}
           aguardam revisão/aprovação. DFC, Livro Diário e Relatórios ficam zerados até aprovar em{" "}
           <Link to="/admin/pendentes" className="aurora-link">
@@ -40,7 +41,10 @@ export function PendingApprovalBanner({ clientId, clientName }: PendingApprovalB
           </Link>
           .
           {classified > 0 && pending > 0 && (
-            <> ({classified} classificado{classified !== 1 ? "s" : ""}, {pending} sem categoria)</>
+            <>
+              {" "}
+              ({classified} classificado{classified !== 1 ? "s" : ""}, {pending} sem categoria)
+            </>
           )}
         </p>
         <div className="flex flex-wrap gap-3 mt-3">
@@ -59,7 +63,11 @@ export function PendingApprovalBanner({ clientId, clientName }: PendingApprovalB
           <Link
             to="/admin/importar"
             className="text-[10px] uppercase px-3 py-1.5 transition-opacity hover:opacity-70"
-            style={{ border: "1px solid var(--line)", letterSpacing: "1.5px", color: "var(--muted-foreground)" }}
+            style={{
+              border: "1px solid var(--line)",
+              letterSpacing: "1.5px",
+              color: "var(--muted-foreground)",
+            }}
           >
             Importar
           </Link>
@@ -68,7 +76,11 @@ export function PendingApprovalBanner({ clientId, clientName }: PendingApprovalB
               to="/admin/dfc"
               search={{ clientId, tab: "extratos" } as never}
               className="text-[10px] uppercase px-3 py-1.5 transition-opacity hover:opacity-70"
-              style={{ border: "1px solid var(--line)", letterSpacing: "1.5px", color: "var(--muted-foreground)" }}
+              style={{
+                border: "1px solid var(--line)",
+                letterSpacing: "1.5px",
+                color: "var(--muted-foreground)",
+              }}
             >
               Histórico de extratos
             </Link>

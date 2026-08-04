@@ -24,7 +24,6 @@ interface ClientBank {
   bank_name: string;
 }
 
-
 interface ClientRow {
   id: string;
   name: string;
@@ -55,7 +54,7 @@ const BANCOS_SUGERIDOS = [
 
 const STATUS_OPTIONS = ["Em andamento", "Pendente", "Fechado"] as const;
 const FILTROS = ["Todos", ...STATUS_OPTIONS] as const;
-type Filtro = typeof FILTROS[number];
+type Filtro = (typeof FILTROS)[number];
 
 // ─── página principal ─────────────────────────────────────────────────────────
 
@@ -68,7 +67,11 @@ function ClientesPage() {
   const uploadPeriod = uploadPeriodFromIsoMonth(closingPeriod);
   const qc = useQueryClient();
 
-  const { data: clientes = [], isLoading, error } = useQuery({
+  const {
+    data: clientes = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["clients"],
     queryFn: async (): Promise<ClientRow[]> => {
       const { data, error } = await supabase()
@@ -116,11 +119,24 @@ function ClientesPage() {
   const closedSet = useMemo(() => new Set(closingsData.map((c) => c.client_id)), [closingsData]);
 
   async function handleCloseMonth(clientId: string) {
-    const { error } = await supabase().from("monthly_closings").upsert(
-      { client_id: clientId, period: closingPeriod, step1_done: true, step2_done: true, step3_done: true, step4_done: true, completed_at: new Date().toISOString() },
-      { onConflict: "client_id,period" }
-    );
-    if (error) { toast.error("Erro ao fechar mês: " + error.message); return; }
+    const { error } = await supabase()
+      .from("monthly_closings")
+      .upsert(
+        {
+          client_id: clientId,
+          period: closingPeriod,
+          step1_done: true,
+          step2_done: true,
+          step3_done: true,
+          step4_done: true,
+          completed_at: new Date().toISOString(),
+        },
+        { onConflict: "client_id,period" },
+      );
+    if (error) {
+      toast.error("Erro ao fechar mês: " + error.message);
+      return;
+    }
     const sync = await syncClientStatusFromClosing(clientId, true);
     if (!sync.ok) toast.error("Mês fechado, mas status do cliente não atualizou: " + sync.error);
     qc.invalidateQueries({ queryKey: ["monthly-closings", closingPeriod] });
@@ -133,7 +149,10 @@ function ClientesPage() {
       .update({ completed_at: null, updated_at: new Date().toISOString() })
       .eq("client_id", clientId)
       .eq("period", closingPeriod);
-    if (error) { toast.error("Erro ao reabrir mês: " + error.message); return; }
+    if (error) {
+      toast.error("Erro ao reabrir mês: " + error.message);
+      return;
+    }
     const sync = await syncClientStatusFromClosing(clientId, false);
     if (!sync.ok) toast.error("Reaberto, mas status do cliente não atualizou: " + sync.error);
     qc.invalidateQueries({ queryKey: ["monthly-closings", closingPeriod] });
@@ -155,7 +174,13 @@ function ClientesPage() {
           <button
             onClick={() => setNovoOpen(true)}
             className="inline-flex items-center gap-2 px-5 py-3 text-[10px] uppercase transition-opacity hover:opacity-80"
-            style={{ background: "var(--green)", color: "#fff", letterSpacing: "2.5px", fontWeight: 500 , borderRadius: 999 }}
+            style={{
+              background: "var(--green)",
+              color: "#fff",
+              letterSpacing: "2.5px",
+              fontWeight: 500,
+              borderRadius: 999,
+            }}
           >
             + Novo cliente
           </button>
@@ -185,7 +210,10 @@ function ClientesPage() {
 
         {/* Tabela */}
         <div className="aurora-card p-0 overflow-hidden">
-          <header className="px-6 py-4 flex items-center justify-between" style={{ background: "var(--offwhite)", borderBottom: "1px solid var(--line)" }}>
+          <header
+            className="px-6 py-4 flex items-center justify-between"
+            style={{ background: "var(--offwhite)", borderBottom: "1px solid var(--line)" }}
+          >
             <div>
               <div className="aurora-cap mb-0.5">Carteira</div>
               <div className="aurora-serif text-[20px]">
@@ -194,7 +222,10 @@ function ClientesPage() {
                   {lista.length === 1 ? "cliente" : "clientes"}
                 </em>
                 {filtro !== "Todos" && (
-                  <span className="text-[14px]" style={{ color: "var(--muted-foreground)" }}> · {filtro}</span>
+                  <span className="text-[14px]" style={{ color: "var(--muted-foreground)" }}>
+                    {" "}
+                    · {filtro}
+                  </span>
                 )}
               </div>
             </div>
@@ -203,99 +234,148 @@ function ClientesPage() {
             <thead>
               <tr style={{ background: "var(--offwhite)" }}>
                 {["Empresa", "Bancos", "Fechamento", "Status", "Último extrato", ""].map((h) => (
-                  <th key={h} className="text-left px-6 py-3 text-[11px] uppercase" style={{ fontWeight: 600, letterSpacing: "2px", color: "var(--muted-foreground)" }}>{h}</th>
+                  <th
+                    key={h}
+                    className="text-left px-6 py-3 text-[11px] uppercase"
+                    style={{
+                      fontWeight: 600,
+                      letterSpacing: "2px",
+                      color: "var(--muted-foreground)",
+                    }}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                  <td
+                    colSpan={6}
+                    className="px-6 py-10 text-center text-[12px]"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
                     Carregando clientes…
                   </td>
                 </tr>
               )}
               {!isLoading && error && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--tan)" }}>
+                  <td
+                    colSpan={6}
+                    className="px-6 py-10 text-center text-[12px]"
+                    style={{ color: "var(--tan)" }}
+                  >
                     Erro ao carregar clientes. Verifique sua conexão.
                   </td>
                 </tr>
               )}
-              {!isLoading && !error && lista.map((c, idx) => (
-                <tr
-                  key={c.id}
-                  style={{
-                    background: idx % 2 === 0 ? "#fff" : "#FAFBFA",
-                    borderTop: "1px solid var(--line)",
-                  }}
-                >
-                  <td className="px-6 py-4">
-                    <Link
-                      to={"/admin/clientes/$clientId" as never}
-                      params={{ clientId: c.id } as never}
-                      className="text-[15px] aurora-link"
-                      style={{ fontWeight: 700 }}
-                    >
-                      {c.name}
-                    </Link>
-                    <div className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-                      {c.owner_name}
-                      {c.cnpj && ` · ${c.cnpj}`}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                    {c.client_banks.map((b) => b.bank_name).join(", ") || "—"}
-                  </td>
-                  <td className="px-6 py-4">
-                    <ClosingBadge
-                      closing={uploadByClient[c.id] ?? null}
-                      isClosed={closedSet.has(c.id)}
-                      onClose={() => handleCloseMonth(c.id)}
-                      onReopen={() => handleReopenMonth(c.id)}
-                    />
-                  </td>
-                  <td className="px-6 py-4">
-                    <StatusBadge status={c.status} />
-                  </td>
-                  <td className="px-6 py-4 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                    {formatDatePtBR(c.last_upload_at)}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center gap-4 justify-end">
+              {!isLoading &&
+                !error &&
+                lista.map((c, idx) => (
+                  <tr
+                    key={c.id}
+                    style={{
+                      background: idx % 2 === 0 ? "#fff" : "#FAFBFA",
+                      borderTop: "1px solid var(--line)",
+                    }}
+                  >
+                    <td className="px-6 py-4">
                       <Link
-                        to={"/admin/dfc" as never}
-                        search={{ clientId: c.id } as never}
-                        className="inline-flex items-center text-[10px] uppercase transition-opacity hover:opacity-80"
-                        style={{ border: "1px solid var(--green)", color: "var(--green)", letterSpacing: "1.5px", fontWeight: 500, padding: "4px 12px", borderRadius: "999px" }}
+                        to={"/admin/clientes/$clientId" as never}
+                        params={{ clientId: c.id } as never}
+                        className="text-[15px] aurora-link"
+                        style={{ fontWeight: 700 }}
                       >
-                        Ver Painel →
+                        {c.name}
                       </Link>
-                      <button
-                        onClick={() => setEditClient(c)}
-                        className="inline-flex items-center text-[10px] uppercase transition-opacity hover:opacity-80"
-                        style={{ border: "1px solid var(--line)", color: "var(--foreground)", letterSpacing: "1.5px", fontWeight: 500, padding: "4px 12px", borderRadius: "999px" }}
+                      <div
+                        className="text-[11px] mt-0.5"
+                        style={{ color: "var(--muted-foreground)" }}
                       >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => setDeleteClient(c)}
-                        className="text-[11px] transition-opacity hover:opacity-70"
-                        style={{ color: "var(--tan)" }}
-                      >
-                        Excluir
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {c.owner_name}
+                        {c.cnpj && ` · ${c.cnpj}`}
+                      </div>
+                    </td>
+                    <td
+                      className="px-6 py-4 text-[12px]"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
+                      {c.client_banks.map((b) => b.bank_name).join(", ") || "—"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <ClosingBadge
+                        closing={uploadByClient[c.id] ?? null}
+                        isClosed={closedSet.has(c.id)}
+                        onClose={() => handleCloseMonth(c.id)}
+                        onReopen={() => handleReopenMonth(c.id)}
+                      />
+                    </td>
+                    <td className="px-6 py-4">
+                      <StatusBadge status={c.status} />
+                    </td>
+                    <td
+                      className="px-6 py-4 text-[12px]"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
+                      {formatDatePtBR(c.last_upload_at)}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center gap-4 justify-end">
+                        <Link
+                          to={"/admin/dfc" as never}
+                          search={{ clientId: c.id } as never}
+                          className="inline-flex items-center text-[10px] uppercase transition-opacity hover:opacity-80"
+                          style={{
+                            border: "1px solid var(--green)",
+                            color: "var(--green)",
+                            letterSpacing: "1.5px",
+                            fontWeight: 500,
+                            padding: "4px 12px",
+                            borderRadius: "999px",
+                          }}
+                        >
+                          Ver Painel →
+                        </Link>
+                        <button
+                          onClick={() => setEditClient(c)}
+                          className="inline-flex items-center text-[10px] uppercase transition-opacity hover:opacity-80"
+                          style={{
+                            border: "1px solid var(--line)",
+                            color: "var(--foreground)",
+                            letterSpacing: "1.5px",
+                            fontWeight: 500,
+                            padding: "4px 12px",
+                            borderRadius: "999px",
+                          }}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => setDeleteClient(c)}
+                          className="text-[11px] transition-opacity hover:opacity-70"
+                          style={{ color: "var(--tan)" }}
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               {!isLoading && !error && lista.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center" style={{ color: "var(--muted-foreground)" }}>
-                    <div className="text-[24px] mb-2" style={{ opacity: 0.3 }}>◷</div>
+                  <td
+                    colSpan={6}
+                    className="px-6 py-12 text-center"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
+                    <div className="text-[24px] mb-2" style={{ opacity: 0.3 }}>
+                      ◷
+                    </div>
                     <div className="text-[12px]">
                       {filtro === "Todos"
-                        ? "Nenhum cliente cadastrado ainda. Clique em \"+ Novo cliente\" para começar."
+                        ? 'Nenhum cliente cadastrado ainda. Clique em "+ Novo cliente" para começar.'
                         : `Nenhum cliente com status "${filtro}".`}
                     </div>
                   </td>
@@ -307,7 +387,10 @@ function ClientesPage() {
 
         {/* Contador */}
         {!isLoading && clientes.length > 0 && (
-          <div className="mt-4 text-[10px] uppercase" style={{ letterSpacing: "2px", color: "var(--muted-foreground)" }}>
+          <div
+            className="mt-4 text-[10px] uppercase"
+            style={{ letterSpacing: "2px", color: "var(--muted-foreground)" }}
+          >
             {lista.length} de {clientes.length} {clientes.length === 1 ? "cliente" : "clientes"}
           </div>
         )}
@@ -315,7 +398,9 @@ function ClientesPage() {
 
       {novoOpen && <NovoClienteModal onClose={() => setNovoOpen(false)} />}
       {editClient && <EditarClienteModal client={editClient} onClose={() => setEditClient(null)} />}
-      {deleteClient && <ExcluirClienteModal client={deleteClient} onClose={() => setDeleteClient(null)} />}
+      {deleteClient && (
+        <ExcluirClienteModal client={deleteClient} onClose={() => setDeleteClient(null)} />
+      )}
     </AdminLayout>
   );
 }
@@ -338,7 +423,13 @@ function NovoClienteModal({ onClose }: { onClose: () => void }) {
       const day = closingDay ? Number(closingDay) : null;
       const { data: client, error: clientErr } = await supabase()
         .from("clients")
-        .insert({ name: nome.trim(), owner_name: responsavel.trim(), cnpj: cnpj.trim() || null, monthly_closing_day: day, segment: segment || null })
+        .insert({
+          name: nome.trim(),
+          owner_name: responsavel.trim(),
+          cnpj: cnpj.trim() || null,
+          monthly_closing_day: day,
+          segment: segment || null,
+        })
         .select("id")
         .single();
 
@@ -408,7 +499,22 @@ function NovoClienteModal({ onClose }: { onClose: () => void }) {
 
 // ─── modal editar cliente ─────────────────────────────────────────────────────
 
-function EditarClienteModal({ client, onClose }: { client: { id: string; name: string; owner_name: string; cnpj: string | null; status: string; segment: string | null; monthly_closing_day: number | null; client_banks: { bank_name: string }[] }; onClose: () => void }) {
+function EditarClienteModal({
+  client,
+  onClose,
+}: {
+  client: {
+    id: string;
+    name: string;
+    owner_name: string;
+    cnpj: string | null;
+    status: string;
+    segment: string | null;
+    monthly_closing_day: number | null;
+    client_banks: { bank_name: string }[];
+  };
+  onClose: () => void;
+}) {
   const qc = useQueryClient();
 
   const [nome, setNome] = useState(client.name);
@@ -423,12 +529,12 @@ function EditarClienteModal({ client, onClose }: { client: { id: string; name: s
   const mutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase().rpc("update_client_with_banks", {
-        p_client_id:  client.id,
-        p_name:       nome.trim(),
+        p_client_id: client.id,
+        p_name: nome.trim(),
         p_owner_name: responsavel.trim(),
-        p_cnpj:       cnpj.trim() || null,
-        p_status:     status,
-        p_banks:      bancos,
+        p_cnpj: cnpj.trim() || null,
+        p_status: status,
+        p_banks: bancos,
       });
       if (error) throw error;
       const day = closingDay ? Number(closingDay) : null;
@@ -496,14 +602,19 @@ function EditarClienteModal({ client, onClose }: { client: { id: string; name: s
                 background: status === s ? "var(--green)" : "transparent",
                 color: status === s ? "#fff" : "var(--muted-foreground)",
                 border: "1px solid " + (status === s ? "var(--green)" : "var(--line)"),
-              borderRadius: 12 }}
+                borderRadius: 12,
+              }}
             >
               {s}
             </button>
           ))}
         </div>
-        <p className="text-[11px] mt-2" style={{ color: "var(--muted-foreground)", lineHeight: 1.45 }}>
-          Ao concluir o fechamento mensal o status passa a Fechado; ao reabrir, volta para Em andamento. Você ainda pode ajustar manualmente.
+        <p
+          className="text-[11px] mt-2"
+          style={{ color: "var(--muted-foreground)", lineHeight: 1.45 }}
+        >
+          Ao concluir o fechamento mensal o status passa a Fechado; ao reabrir, volta para Em
+          andamento. Você ainda pode ajustar manualmente.
         </p>
       </Field>
 
@@ -514,7 +625,6 @@ function EditarClienteModal({ client, onClose }: { client: { id: string; name: s
         addBanco={addBanco}
         removeBanco={removeBanco}
       />
-
     </ClienteModal>
   );
 }
@@ -563,17 +673,30 @@ function ClienteModal({
           }
         `}</style>
 
-        <div className="flex items-center justify-between px-8 py-6" style={{ borderBottom: "1px solid var(--line)" }}>
+        <div
+          className="flex items-center justify-between px-8 py-6"
+          style={{ borderBottom: "1px solid var(--line)" }}
+        >
           <div>
-            <div className="aurora-cap mb-1" style={{ color: "var(--sage)" }}>{cap}</div>
-            <h2 className="aurora-serif" style={{ fontSize: 22, fontWeight: 400, letterSpacing: "-0.5px" }}>
+            <div className="aurora-cap mb-1" style={{ color: "var(--sage)" }}>
+              {cap}
+            </div>
+            <h2
+              className="aurora-serif"
+              style={{ fontSize: 22, fontWeight: 400, letterSpacing: "-0.5px" }}
+            >
               {title}
             </h2>
           </div>
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center"
-            style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", fontSize: 16, borderRadius: 12 }}
+            style={{
+              border: "1px solid var(--line)",
+              color: "var(--muted-foreground)",
+              fontSize: 16,
+              borderRadius: 12,
+            }}
             aria-label="Fechar"
           >
             ×
@@ -594,7 +717,8 @@ function ClienteModal({
                 letterSpacing: "2.5px",
                 fontWeight: 500,
                 opacity: isPending ? 0.6 : 1,
-              borderRadius: 999 }}
+                borderRadius: 999,
+              }}
             >
               {submitLabel}
             </button>
@@ -602,7 +726,13 @@ function ClienteModal({
               type="button"
               onClick={onClose}
               className="px-5 py-3.5 text-[11px] uppercase"
-              style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", letterSpacing: "2px", fontWeight: 500 , borderRadius: 12 }}
+              style={{
+                border: "1px solid var(--line)",
+                color: "var(--muted-foreground)",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 12,
+              }}
             >
               Cancelar
             </button>
@@ -618,7 +748,14 @@ function ClienteModal({
 function NomeField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <Field label="Nome da empresa" required>
-      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder="Ex: Padaria São Jorge" required style={inputStyle} />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Ex: Padaria São Jorge"
+        required
+        style={inputStyle}
+      />
     </Field>
   );
 }
@@ -626,7 +763,14 @@ function NomeField({ value, onChange }: { value: string; onChange: (v: string) =
 function ResponsavelField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <Field label="Responsável / Sócio" required>
-      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder="Ex: Marcos Pereira" required style={inputStyle} />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Ex: Marcos Pereira"
+        required
+        style={inputStyle}
+      />
     </Field>
   );
 }
@@ -634,7 +778,13 @@ function ResponsavelField({ value, onChange }: { value: string; onChange: (v: st
 function CnpjField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <Field label="CNPJ" hint="opcional">
-      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder="00.000.000/0001-00" style={inputStyle} />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="00.000.000/0001-00"
+        style={inputStyle}
+      />
     </Field>
   );
 }
@@ -644,7 +794,11 @@ function SegmentField({ value, onChange }: { value: string; onChange: (v: string
     <Field label="Segmento de atuação" hint="opcional">
       <select value={value} onChange={(e) => onChange(e.target.value)} style={inputStyle}>
         <option value="">Selecionar segmento</option>
-        {SEGMENT_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+        {SEGMENT_OPTIONS.map((s) => (
+          <option key={s} value={s}>
+            {s}
+          </option>
+        ))}
       </select>
     </Field>
   );
@@ -686,36 +840,57 @@ function BancosField({
           type="text"
           value={bancosInput}
           onChange={(e) => setBancosInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addBanco(bancosInput); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addBanco(bancosInput);
+            }
+          }}
           placeholder="Digite ou selecione"
           list="bancos-list"
           style={{ ...inputStyle, flex: 1 }}
         />
         <datalist id="bancos-list">
-          {BANCOS_SUGERIDOS.map((b) => <option key={b} value={b} />)}
+          {BANCOS_SUGERIDOS.map((b) => (
+            <option key={b} value={b} />
+          ))}
         </datalist>
         <button
           type="button"
           onClick={() => addBanco(bancosInput)}
           className="px-4 text-[11px] uppercase"
-          style={{ background: "var(--offwhite)", border: "1px solid var(--line)", color: "var(--foreground)", letterSpacing: "1.5px", fontWeight: 500, flexShrink: 0 , borderRadius: 12 }}
+          style={{
+            background: "var(--offwhite)",
+            border: "1px solid var(--line)",
+            color: "var(--foreground)",
+            letterSpacing: "1.5px",
+            fontWeight: 500,
+            flexShrink: 0,
+            borderRadius: 12,
+          }}
         >
           + Add
         </button>
       </div>
 
       <div className="flex gap-1.5 flex-wrap mt-2">
-        {BANCOS_SUGERIDOS.filter((b) => !bancos.includes(b)).slice(0, 6).map((b) => (
-          <button
-            key={b}
-            type="button"
-            onClick={() => addBanco(b)}
-            className="text-[10px] px-2.5 py-1 transition-colors hover:opacity-70"
-            style={{ border: "1px dashed var(--line)", color: "var(--muted-foreground)", letterSpacing: "0.5px" }}
-          >
-            {b}
-          </button>
-        ))}
+        {BANCOS_SUGERIDOS.filter((b) => !bancos.includes(b))
+          .slice(0, 6)
+          .map((b) => (
+            <button
+              key={b}
+              type="button"
+              onClick={() => addBanco(b)}
+              className="text-[10px] px-2.5 py-1 transition-colors hover:opacity-70"
+              style={{
+                border: "1px dashed var(--line)",
+                color: "var(--muted-foreground)",
+                letterSpacing: "0.5px",
+              }}
+            >
+              {b}
+            </button>
+          ))}
       </div>
 
       {bancos.length > 0 && (
@@ -724,10 +899,21 @@ function BancosField({
             <span
               key={b}
               className="inline-flex items-center gap-1.5 text-[11px] px-3 py-1"
-              style={{ background: "rgba(143,166,136,0.12)", color: "var(--green)", fontWeight: 500 }}
+              style={{
+                background: "rgba(143,166,136,0.12)",
+                color: "var(--green)",
+                fontWeight: 500,
+              }}
             >
               {b}
-              <button type="button" onClick={() => removeBanco(b)} style={{ fontSize: 12, opacity: 0.6, lineHeight: 1 }} aria-label={`Remover ${b}`}>×</button>
+              <button
+                type="button"
+                onClick={() => removeBanco(b)}
+                style={{ fontSize: 12, opacity: 0.6, lineHeight: 1 }}
+                aria-label={`Remover ${b}`}
+              >
+                ×
+              </button>
             </span>
           ))}
         </div>
@@ -749,7 +935,17 @@ const inputStyle: React.CSSProperties = {
   lineHeight: 1.4,
 };
 
-function Field({ label, hint, required, children }: { label: string; hint?: string; required?: boolean; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  required,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
@@ -757,7 +953,14 @@ function Field({ label, hint, required, children }: { label: string; hint?: stri
           {label}
           {required && <span style={{ color: "var(--tan)", marginLeft: 2 }}>*</span>}
         </label>
-        {hint && <span className="text-[9px] uppercase" style={{ color: "var(--muted-foreground)", letterSpacing: "1.5px" }}>{hint}</span>}
+        {hint && (
+          <span
+            className="text-[9px] uppercase"
+            style={{ color: "var(--muted-foreground)", letterSpacing: "1.5px" }}
+          >
+            {hint}
+          </span>
+        )}
       </div>
       {children}
     </div>
@@ -792,21 +995,34 @@ function ExcluirClienteModal({ client, onClose }: { client: ClientRow; onClose: 
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.45)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <div className="aurora-modal w-full max-w-md bg-white" style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
-        <div className="px-6 py-5 flex items-start justify-between" style={{ background: "var(--offwhite)", borderBottom: "1px solid var(--line)" }}>
+      <div
+        className="aurora-modal w-full max-w-md bg-white"
+        style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}
+      >
+        <div
+          className="px-6 py-5 flex items-start justify-between"
+          style={{ background: "var(--offwhite)", borderBottom: "1px solid var(--line)" }}
+        >
           <div>
             <div className="aurora-cap mb-0.5">Confirmar exclusão</div>
             <div className="aurora-serif text-[20px]">{client.name}</div>
           </div>
-          <button onClick={onClose} className="text-[18px] leading-none mt-1 opacity-50 hover:opacity-100">×</button>
+          <button
+            onClick={onClose}
+            className="text-[18px] leading-none mt-1 opacity-50 hover:opacity-100"
+          >
+            ×
+          </button>
         </div>
 
         <div className="px-6 py-6 flex flex-col gap-5">
           <p className="text-[13px]" style={{ color: "var(--muted-foreground)", lineHeight: 1.6 }}>
-            Esta ação é permanente e não pode ser desfeita. Bancos vinculados serão removidos.
-            Se o cliente possuir lançamentos, a exclusão será bloqueada — use{" "}
+            Esta ação é permanente e não pode ser desfeita. Bancos vinculados serão removidos. Se o
+            cliente possuir lançamentos, a exclusão será bloqueada — use{" "}
             <strong>status "Fechado"</strong> para arquivá-lo.
           </p>
 
@@ -815,7 +1031,12 @@ function ExcluirClienteModal({ client, onClose }: { client: ClientRow; onClose: 
               type="button"
               onClick={onClose}
               className="text-[10px] uppercase px-5 py-3 transition-opacity"
-              style={{ border: "1px solid var(--line)", letterSpacing: "2px", fontWeight: 500 , borderRadius: 12 }}
+              style={{
+                border: "1px solid var(--line)",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 12,
+              }}
             >
               Cancelar
             </button>
@@ -824,7 +1045,12 @@ function ExcluirClienteModal({ client, onClose }: { client: ClientRow; onClose: 
               disabled={mutation.isPending}
               onClick={() => mutation.mutate()}
               className="text-[10px] uppercase px-6 py-3 transition-opacity disabled:opacity-50"
-              style={{ background: "var(--tan)", color: "#fff", letterSpacing: "2px", fontWeight: 500 }}
+              style={{
+                background: "var(--tan)",
+                color: "#fff",
+                letterSpacing: "2px",
+                fontWeight: 500,
+              }}
             >
               {mutation.isPending ? "Excluindo..." : "Confirmar exclusão"}
             </button>

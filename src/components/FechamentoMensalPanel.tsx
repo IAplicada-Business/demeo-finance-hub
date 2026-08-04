@@ -43,7 +43,11 @@ interface MonthlyClosing {
 type ChecklistLink =
   | { kind: "anchor"; label: string; anchor: string }
   | { kind: "tab"; label: string; tab: "extratos" | "contas" | "dre" | "dfc" | "detalhamento" }
-  | { kind: "route"; label: string; to: "/admin/importar" | "/admin/relatorios" | "/admin/pendentes" };
+  | {
+      kind: "route";
+      label: string;
+      to: "/admin/importar" | "/admin/relatorios" | "/admin/pendentes";
+    };
 
 const CHECKLIST_STEPS: {
   key: "step1_done" | "step2_done" | "step3_done" | "step4_done";
@@ -74,9 +78,7 @@ const CHECKLIST_STEPS: {
     key: "step3_done",
     label: "Apuração de Deduções",
     desc: "Subtrair descontos, cancelamentos e devoluções → Receita Operacional Líquida",
-    links: [
-      { kind: "anchor", label: "DFC Gerencial", anchor: "fechamento-dfc" },
-    ],
+    links: [{ kind: "anchor", label: "DFC Gerencial", anchor: "fechamento-dfc" }],
   },
   {
     key: "step4_done",
@@ -148,7 +150,9 @@ export function FechamentoMensalPanel({
         .maybeSingle(),
       supabase()
         .from("report_exports")
-        .select("id, client_id, client_name, type, period_label, start_date, end_date, exported_at, report_format")
+        .select(
+          "id, client_id, client_name, type, period_label, start_date, end_date, exported_at, report_format",
+        )
         .eq("client_id", clientId)
         .gte("start_date", start)
         .lte("start_date", end)
@@ -165,18 +169,26 @@ export function FechamentoMensalPanel({
         .select("name, group_name, type")
         .eq("client_id", clientId)
         .eq("is_active", true),
-    ]).then(([{ data: entriesData }, { data: closingData }, { data: reportsData }, { data: txData }, { data: catsData }]) => {
-      setEntries((entriesData ?? []) as RevenueEntry[]);
-      setClosing(closingData as MonthlyClosing | null);
-      setReportHistory((reportsData ?? []) as ReportExport[]);
-      setTxs((txData ?? []) as { amount: number; category: string | null }[]);
-      const map = new Map<string, CatInfo>();
-      for (const c of (catsData ?? []) as { name: string; group_name: string; type: string }[]) {
-        map.set(c.name, { group_name: c.group_name, type: c.type });
-      }
-      setCatMap(map);
-      setLoadingData(false);
-    });
+    ]).then(
+      ([
+        { data: entriesData },
+        { data: closingData },
+        { data: reportsData },
+        { data: txData },
+        { data: catsData },
+      ]) => {
+        setEntries((entriesData ?? []) as RevenueEntry[]);
+        setClosing(closingData as MonthlyClosing | null);
+        setReportHistory((reportsData ?? []) as ReportExport[]);
+        setTxs((txData ?? []) as { amount: number; category: string | null }[]);
+        const map = new Map<string, CatInfo>();
+        for (const c of (catsData ?? []) as { name: string; group_name: string; type: string }[]) {
+          map.set(c.name, { group_name: c.group_name, type: c.type });
+        }
+        setCatMap(map);
+        setLoadingData(false);
+      },
+    );
   }, [clientId, period, dbPeriod]);
 
   const allStepsDone = closing
@@ -184,7 +196,9 @@ export function FechamentoMensalPanel({
     : false;
   const isCompleted = !!closing?.completed_at;
 
-  async function toggleStep(stepKey: keyof Pick<MonthlyClosing, "step1_done" | "step2_done" | "step3_done" | "step4_done">) {
+  async function toggleStep(
+    stepKey: keyof Pick<MonthlyClosing, "step1_done" | "step2_done" | "step3_done" | "step4_done">,
+  ) {
     if (savingStep) return;
     // Fechamento concluído trava o checklist — precisa reabrir antes
     if (isCompleted) {
@@ -202,8 +216,11 @@ export function FechamentoMensalPanel({
         .eq("id", closing.id)
         .select("*")
         .single();
-      if (error) { toast.error("Erro ao salvar etapa: " + error.message); }
-      else { setClosing(data as MonthlyClosing); }
+      if (error) {
+        toast.error("Erro ao salvar etapa: " + error.message);
+      } else {
+        setClosing(data as MonthlyClosing);
+      }
     } else {
       const newRow = {
         client_id: clientId,
@@ -219,8 +236,11 @@ export function FechamentoMensalPanel({
         .insert(newRow)
         .select("*")
         .single();
-      if (error) { toast.error("Erro ao salvar etapa: " + error.message); }
-      else { setClosing(data as MonthlyClosing); }
+      if (error) {
+        toast.error("Erro ao salvar etapa: " + error.message);
+      } else {
+        setClosing(data as MonthlyClosing);
+      }
     }
     setSavingStep(null);
   }
@@ -239,7 +259,8 @@ export function FechamentoMensalPanel({
     else {
       setClosing(data as MonthlyClosing);
       const sync = await syncClientStatusFromClosing(clientId, true);
-      if (!sync.ok) toast.error("Fechamento ok, mas status do cliente não atualizou: " + sync.error);
+      if (!sync.ok)
+        toast.error("Fechamento ok, mas status do cliente não atualizou: " + sync.error);
       else toast.success("Fechamento concluído — status do cliente: Fechado");
     }
     setCompleting(false);
@@ -264,15 +285,13 @@ export function FechamentoMensalPanel({
     setCompleting(false);
   }
 
-  const dfcData = useMemo<DFCGerencialData>(
-    () => computeDFCGerencial(txs, catMap),
-    [txs, catMap]
-  );
+  const dfcData = useMemo<DFCGerencialData>(() => computeDFCGerencial(txs, catMap), [txs, catMap]);
 
   function toggleGroup(key: string) {
     setExpandedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }
@@ -294,7 +313,9 @@ export function FechamentoMensalPanel({
             style={{ border: "1px solid var(--line)" }}
           >
             {monthOptions(12).map((p) => (
-              <option key={p} value={p}>{p}</option>
+              <option key={p} value={p}>
+                {p}
+              </option>
             ))}
           </select>
           {monthlyClosingDay && (
@@ -309,9 +330,17 @@ export function FechamentoMensalPanel({
             <>
               <span
                 className="inline-flex items-center gap-2 text-[10px] uppercase px-3 py-1.5"
-                style={{ background: "rgba(74,103,65,0.10)", color: "var(--green)", letterSpacing: "1.5px", fontWeight: 700, borderRadius: 999 }}
+                style={{
+                  background: "rgba(74,103,65,0.10)",
+                  color: "var(--green)",
+                  letterSpacing: "1.5px",
+                  fontWeight: 700,
+                  borderRadius: 999,
+                }}
               >
-                <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--green)" }} />
+                <span
+                  style={{ width: 6, height: 6, borderRadius: 999, background: "var(--green)" }}
+                />
                 Concluído
               </span>
               <button
@@ -319,7 +348,13 @@ export function FechamentoMensalPanel({
                 onClick={reopenClosing}
                 disabled={completing}
                 className="text-[10px] uppercase px-3 py-1.5 transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", letterSpacing: "1.5px", fontWeight: 600, borderRadius: 999 }}
+                style={{
+                  border: "1px solid var(--line)",
+                  color: "var(--muted-foreground)",
+                  letterSpacing: "1.5px",
+                  fontWeight: 600,
+                  borderRadius: 999,
+                }}
               >
                 {completing ? "Reabrindo…" : "Reabrir"}
               </button>
@@ -327,7 +362,13 @@ export function FechamentoMensalPanel({
           ) : (
             <span
               className="inline-flex items-center gap-2 text-[10px] uppercase px-3 py-1.5"
-              style={{ background: "rgba(0,0,0,0.04)", color: "var(--muted-foreground)", letterSpacing: "1.5px", fontWeight: 700, borderRadius: 999 }}
+              style={{
+                background: "rgba(0,0,0,0.04)",
+                color: "var(--muted-foreground)",
+                letterSpacing: "1.5px",
+                fontWeight: 700,
+                borderRadius: 999,
+              }}
             >
               Em andamento
             </span>
@@ -339,7 +380,12 @@ export function FechamentoMensalPanel({
       <div className="aurora-card p-0 overflow-hidden">
         <div className="px-6 py-4" style={{ borderBottom: "1px solid var(--line)" }}>
           <div className="aurora-cap mb-1">Passo a passo</div>
-          <div className="aurora-serif text-[20px]">Checklist <em className="italic" style={{ color: "var(--green)" }}>de fechamento</em></div>
+          <div className="aurora-serif text-[20px]">
+            Checklist{" "}
+            <em className="italic" style={{ color: "var(--green)" }}>
+              de fechamento
+            </em>
+          </div>
         </div>
         <div className="grid md:grid-cols-2 gap-0">
           {CHECKLIST_STEPS.map((step, idx) => {
@@ -373,11 +419,20 @@ export function FechamentoMensalPanel({
                 >
                   {done && (
                     <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
-                      <path d="M1 4.5L4.5 8L11 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M1 4.5L4.5 8L11 1"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   )}
                   {isLoading && (
-                    <div className="w-3 h-3 rounded-full border-2 animate-spin" style={{ borderColor: "var(--green)", borderTopColor: "transparent" }} />
+                    <div
+                      className="w-3 h-3 rounded-full border-2 animate-spin"
+                      style={{ borderColor: "var(--green)", borderTopColor: "transparent" }}
+                    />
                   )}
                 </button>
                 <div className="flex flex-col gap-1.5 min-w-0">
@@ -388,10 +443,19 @@ export function FechamentoMensalPanel({
                     className="text-left disabled:cursor-not-allowed"
                     style={{ background: "none", border: "none", padding: 0 }}
                   >
-                    <div className="text-[12px]" style={{ fontWeight: done ? 700 : 500, color: done ? "var(--green)" : "var(--foreground)" }}>
+                    <div
+                      className="text-[12px]"
+                      style={{
+                        fontWeight: done ? 700 : 500,
+                        color: done ? "var(--green)" : "var(--foreground)",
+                      }}
+                    >
                       {idx + 1}. {step.label}
                     </div>
-                    <div className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)", lineHeight: 1.5 }}>
+                    <div
+                      className="text-[11px] mt-1"
+                      style={{ color: "var(--muted-foreground)", lineHeight: 1.5 }}
+                    >
                       {step.desc}
                     </div>
                   </button>
@@ -404,7 +468,16 @@ export function FechamentoMensalPanel({
                             type="button"
                             onClick={() => scrollToAnchor(link.anchor)}
                             className="text-[10px] uppercase"
-                            style={{ color: "var(--green)", letterSpacing: "1px", fontWeight: 600, background: "none", border: "none", padding: 0, textDecoration: "underline", cursor: "pointer" }}
+                            style={{
+                              color: "var(--green)",
+                              letterSpacing: "1px",
+                              fontWeight: 600,
+                              background: "none",
+                              border: "none",
+                              padding: 0,
+                              textDecoration: "underline",
+                              cursor: "pointer",
+                            }}
                           >
                             {link.label} →
                           </button>
@@ -417,7 +490,16 @@ export function FechamentoMensalPanel({
                             type="button"
                             onClick={() => onOpenTab?.(link.tab)}
                             className="text-[10px] uppercase"
-                            style={{ color: "var(--green)", letterSpacing: "1px", fontWeight: 600, background: "none", border: "none", padding: 0, textDecoration: "underline", cursor: "pointer" }}
+                            style={{
+                              color: "var(--green)",
+                              letterSpacing: "1px",
+                              fontWeight: 600,
+                              background: "none",
+                              border: "none",
+                              padding: 0,
+                              textDecoration: "underline",
+                              cursor: "pointer",
+                            }}
                           >
                             {link.label} →
                           </button>
@@ -427,9 +509,16 @@ export function FechamentoMensalPanel({
                         <Link
                           key={link.to + link.label}
                           to={link.to as never}
-                          search={(link.to === "/admin/importar" ? { clientId } : undefined) as never}
+                          search={
+                            (link.to === "/admin/importar" ? { clientId } : undefined) as never
+                          }
                           className="text-[10px] uppercase"
-                          style={{ color: "var(--green)", letterSpacing: "1px", fontWeight: 600, textDecoration: "underline" }}
+                          style={{
+                            color: "var(--green)",
+                            letterSpacing: "1px",
+                            fontWeight: 600,
+                            textDecoration: "underline",
+                          }}
                         >
                           {link.label} →
                         </Link>
@@ -441,13 +530,16 @@ export function FechamentoMensalPanel({
             );
           })}
         </div>
-        <div className="px-6 py-4 flex items-center justify-between gap-4" style={{ borderTop: "1px solid var(--line)", background: "var(--offwhite)" }}>
+        <div
+          className="px-6 py-4 flex items-center justify-between gap-4"
+          style={{ borderTop: "1px solid var(--line)", background: "var(--offwhite)" }}
+        >
           <div className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
             {isCompleted
               ? "Fechamento concluído para este período. Use Reabrir para editar as etapas."
               : allStepsDone
-              ? "Todas as etapas concluídas. Clique para registrar o fechamento."
-              : `${[closing?.step1_done, closing?.step2_done, closing?.step3_done, closing?.step4_done].filter(Boolean).length}/4 etapas concluídas`}
+                ? "Todas as etapas concluídas. Clique para registrar o fechamento."
+                : `${[closing?.step1_done, closing?.step2_done, closing?.step3_done, closing?.step4_done].filter(Boolean).length}/4 etapas concluídas`}
           </div>
           {isCompleted ? (
             <button
@@ -490,20 +582,38 @@ export function FechamentoMensalPanel({
         <div className="px-6 py-4" style={{ borderBottom: "1px solid var(--line)" }}>
           <div className="aurora-cap mb-1">Regime de Caixa</div>
           <div className="aurora-serif text-[20px]">
-            DFC <em className="italic" style={{ color: "var(--green)" }}>Gerencial</em>
+            DFC{" "}
+            <em className="italic" style={{ color: "var(--green)" }}>
+              Gerencial
+            </em>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px]">
             <thead>
               <tr style={{ background: "var(--offwhite)" }}>
-                <th className="text-left px-6 py-3 aurora-cap" style={{ fontWeight: 500 }}>Demonstrativo</th>
-                <th className="text-right px-6 py-3 aurora-cap" style={{ fontWeight: 500 }}>R$</th>
-                <th className="text-right px-6 py-3 aurora-cap" style={{ fontWeight: 500, width: 70 }}>AV%</th>
+                <th className="text-left px-6 py-3 aurora-cap" style={{ fontWeight: 500 }}>
+                  Demonstrativo
+                </th>
+                <th className="text-right px-6 py-3 aurora-cap" style={{ fontWeight: 500 }}>
+                  R$
+                </th>
+                <th
+                  className="text-right px-6 py-3 aurora-cap"
+                  style={{ fontWeight: 500, width: 70 }}
+                >
+                  AV%
+                </th>
               </tr>
             </thead>
             <tbody>
-              <DFCRow label="RECEITA BRUTA (vendas)" value={dfcData.receitaBruta} av={1} tone="green" bold />
+              <DFCRow
+                label="RECEITA BRUTA (vendas)"
+                value={dfcData.receitaBruta}
+                av={1}
+                tone="green"
+                bold
+              />
 
               <DFCGroupRow
                 label="(−) Custos Variáveis"
@@ -515,7 +625,14 @@ export function FechamentoMensalPanel({
                 lines={dfcData.cvLines}
                 onToggle={toggleGroup}
               />
-              <DFCRow label="(=) MARGEM DE CONTRIBUIÇÃO" value={dfcData.margemContribuicao} av={dfcData.receitaBruta} tone={dfcData.margemContribuicao >= 0 ? "navy" : "expense"} bold subtotal />
+              <DFCRow
+                label="(=) MARGEM DE CONTRIBUIÇÃO"
+                value={dfcData.margemContribuicao}
+                av={dfcData.receitaBruta}
+                tone={dfcData.margemContribuicao >= 0 ? "navy" : "expense"}
+                bold
+                subtotal
+              />
 
               <DFCGroupRow
                 label="(−) Despesas Fixas"
@@ -527,7 +644,14 @@ export function FechamentoMensalPanel({
                 lines={dfcData.dfLines}
                 onToggle={toggleGroup}
               />
-              <DFCRow label="(=) LOAI — Lucro Op. antes dos Investimentos" value={dfcData.loai} av={dfcData.receitaBruta} tone={dfcData.loai >= 0 ? "navy" : "expense"} bold subtotal />
+              <DFCRow
+                label="(=) LOAI — Lucro Op. antes dos Investimentos"
+                value={dfcData.loai}
+                av={dfcData.receitaBruta}
+                tone={dfcData.loai >= 0 ? "navy" : "expense"}
+                bold
+                subtotal
+              />
 
               <DFCGroupRow
                 label="(−) Investimentos"
@@ -539,14 +663,27 @@ export function FechamentoMensalPanel({
                 lines={dfcData.invLines}
                 onToggle={toggleGroup}
               />
-              <DFCRow label="(=) LUCRO OPERACIONAL" value={dfcData.lucroOperacional} av={dfcData.receitaBruta} tone={dfcData.lucroOperacional >= 0 ? "navy" : "expense"} bold subtotal />
+              <DFCRow
+                label="(=) LUCRO OPERACIONAL"
+                value={dfcData.lucroOperacional}
+                av={dfcData.receitaBruta}
+                tone={dfcData.lucroOperacional >= 0 ? "navy" : "expense"}
+                bold
+                subtotal
+              />
 
               {/* memo */}
               <tr style={{ borderTop: "1px solid var(--line)" }}>
-                <td className="px-6 py-2 text-[11px] italic" style={{ color: "var(--muted-foreground)", paddingLeft: 32 }}>
+                <td
+                  className="px-6 py-2 text-[11px] italic"
+                  style={{ color: "var(--muted-foreground)", paddingLeft: 32 }}
+                >
                   memo: Despesas Operacionais Totais (CV + DF + Inv)
                 </td>
-                <td className="px-6 py-2 text-right aurora-value text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <td
+                  className="px-6 py-2 text-right aurora-value text-[12px]"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
                   {brl(dfcData.custosVariaveis + dfcData.despesasFixas + dfcData.investimentos)}
                 </td>
                 <td />
@@ -572,18 +709,38 @@ export function FechamentoMensalPanel({
                 lines={dfcData.nopOutLines}
                 onToggle={toggleGroup}
               />
-              <DFCRow label="(=) RESULTADO NÃO OPERACIONAL" value={dfcData.resultadoNOP} av={dfcData.receitaBruta} tone={dfcData.resultadoNOP >= 0 ? "navy" : "expense"} bold subtotal />
+              <DFCRow
+                label="(=) RESULTADO NÃO OPERACIONAL"
+                value={dfcData.resultadoNOP}
+                av={dfcData.receitaBruta}
+                tone={dfcData.resultadoNOP >= 0 ? "navy" : "expense"}
+                bold
+                subtotal
+              />
 
               {/* Lucro Líquido */}
               <tr style={{ background: "var(--navy)", borderTop: "2px solid var(--navy)" }}>
                 <td className="px-6 py-3 text-[13px]" style={{ fontWeight: 700, color: "#fff" }}>
                   (=) LUCRO LÍQUIDO (Geração de Caixa)
                 </td>
-                <td className="px-6 py-3 text-right aurora-value text-[15px]" style={{ fontWeight: 700, color: dfcData.lucroLiquido >= 0 ? "#A8D5A2" : "#F4A57E" }}>
-                  {dfcData.lucroLiquido < 0 ? `(${brl(Math.abs(dfcData.lucroLiquido))})` : brl(dfcData.lucroLiquido)}
+                <td
+                  className="px-6 py-3 text-right aurora-value text-[15px]"
+                  style={{
+                    fontWeight: 700,
+                    color: dfcData.lucroLiquido >= 0 ? "#A8D5A2" : "#F4A57E",
+                  }}
+                >
+                  {dfcData.lucroLiquido < 0
+                    ? `(${brl(Math.abs(dfcData.lucroLiquido))})`
+                    : brl(dfcData.lucroLiquido)}
                 </td>
-                <td className="px-6 py-3 text-right text-[11px]" style={{ color: dfcData.lucroLiquido >= 0 ? "#A8D5A2" : "#F4A57E" }}>
-                  {dfcData.receitaBruta > 0 ? `${((dfcData.lucroLiquido / dfcData.receitaBruta) * 100).toFixed(1)}%` : "—"}
+                <td
+                  className="px-6 py-3 text-right text-[11px]"
+                  style={{ color: dfcData.lucroLiquido >= 0 ? "#A8D5A2" : "#F4A57E" }}
+                >
+                  {dfcData.receitaBruta > 0
+                    ? `${((dfcData.lucroLiquido / dfcData.receitaBruta) * 100).toFixed(1)}%`
+                    : "—"}
                 </td>
               </tr>
             </tbody>
@@ -591,12 +748,20 @@ export function FechamentoMensalPanel({
         </div>
         {loadingData && (
           <div className="flex items-center gap-3 px-6 py-4">
-            <div className="w-3 h-3 rounded-full border-2 animate-spin" style={{ borderColor: "var(--green)", borderTopColor: "transparent" }} />
-            <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>Carregando transações...</span>
+            <div
+              className="w-3 h-3 rounded-full border-2 animate-spin"
+              style={{ borderColor: "var(--green)", borderTopColor: "transparent" }}
+            />
+            <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+              Carregando transações...
+            </span>
           </div>
         )}
         {!loadingData && txs.length === 0 && (
-          <div className="px-6 py-6 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+          <div
+            className="px-6 py-6 text-center text-[12px]"
+            style={{ color: "var(--muted-foreground)" }}
+          >
             Nenhuma transação aprovada neste período.
           </div>
         )}
@@ -604,11 +769,17 @@ export function FechamentoMensalPanel({
 
       {/* Resumo Receitas Brutas — cadastro fica em Detalhamento */}
       <div className="aurora-card p-0 overflow-hidden">
-        <div className="px-6 py-4 flex items-center justify-between gap-4" style={{ borderBottom: "1px solid var(--line)" }}>
+        <div
+          className="px-6 py-4 flex items-center justify-between gap-4"
+          style={{ borderBottom: "1px solid var(--line)" }}
+        >
           <div>
             <div className="aurora-cap mb-1">Regime de Competência</div>
             <div className="aurora-serif text-[20px]">
-              Receitas <em className="italic" style={{ color: "var(--green)" }}>Brutas</em>
+              Receitas{" "}
+              <em className="italic" style={{ color: "var(--green)" }}>
+                Brutas
+              </em>
             </div>
             <div className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>
               Cadastro de NFs e impostos na aba Detalhamento.
@@ -618,7 +789,13 @@ export function FechamentoMensalPanel({
             type="button"
             onClick={() => onOpenTab?.("detalhamento")}
             className="inline-flex items-center gap-2 px-5 py-3 text-[10px] uppercase transition-opacity hover:opacity-80 shrink-0"
-            style={{ background: "var(--green)", color: "#fff", letterSpacing: "2.5px", fontWeight: 500, borderRadius: 999 }}
+            style={{
+              background: "var(--green)",
+              color: "#fff",
+              letterSpacing: "2.5px",
+              fontWeight: 500,
+              borderRadius: 999,
+            }}
           >
             Gerenciar no Detalhamento →
           </button>
@@ -627,7 +804,11 @@ export function FechamentoMensalPanel({
           {[
             { label: "Bruto", value: totalBruto, tone: "var(--green)" },
             { label: "Impostos", value: totalImpostos, tone: "var(--expense)", paren: true },
-            { label: "Líquido", value: totalLiquido, tone: totalLiquido >= 0 ? "var(--navy)" : "var(--expense)" },
+            {
+              label: "Líquido",
+              value: totalLiquido,
+              tone: totalLiquido >= 0 ? "var(--navy)" : "var(--expense)",
+            },
           ].map((stat, i) => (
             <div
               key={stat.label}
@@ -635,7 +816,10 @@ export function FechamentoMensalPanel({
               style={{ borderRight: i < 2 ? "1px solid var(--line)" : undefined }}
             >
               <div className="aurora-cap mb-1">{stat.label}</div>
-              <div className="aurora-value text-[18px]" style={{ fontWeight: 700, color: stat.tone }}>
+              <div
+                className="aurora-value text-[18px]"
+                style={{ fontWeight: 700, color: stat.tone }}
+              >
                 {stat.paren && stat.value > 0 ? `(${brl(stat.value)})` : brl(stat.value)}
               </div>
               <div className="text-[11px] mt-1" style={{ color: "var(--muted-foreground)" }}>
@@ -648,25 +832,42 @@ export function FechamentoMensalPanel({
 
       {/* Histórico de documentos gerados */}
       <div className="aurora-card p-0 overflow-hidden">
-        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid var(--line)" }}>
+        <div
+          className="px-6 py-4 flex items-center justify-between"
+          style={{ borderBottom: "1px solid var(--line)" }}
+        >
           <div>
             <div className="aurora-cap mb-1">Documentos</div>
             <div className="aurora-serif text-[20px]">
-              Histórico <em className="italic" style={{ color: "var(--green)" }}>gerados neste período</em>
+              Histórico{" "}
+              <em className="italic" style={{ color: "var(--green)" }}>
+                gerados neste período
+              </em>
             </div>
           </div>
           <Link
             to={"/admin/relatorios" as never}
             className="inline-flex items-center gap-2 px-5 py-3 text-[10px] uppercase transition-opacity hover:opacity-80"
-            style={{ border: "1px solid var(--green)", color: "var(--green)", letterSpacing: "2.5px", fontWeight: 500 }}
+            style={{
+              border: "1px solid var(--green)",
+              color: "var(--green)",
+              letterSpacing: "2.5px",
+              fontWeight: 500,
+            }}
           >
             + Gerar relatório
           </Link>
         </div>
         {loadingData ? null : reportHistory.length === 0 ? (
-          <div className="px-6 py-8 text-[12px] text-center" style={{ color: "var(--muted-foreground)" }}>
+          <div
+            className="px-6 py-8 text-[12px] text-center"
+            style={{ color: "var(--muted-foreground)" }}
+          >
             Nenhum documento gerado para este período.{" "}
-            <Link to={"/admin/relatorios" as never} style={{ color: "var(--green)", textDecoration: "underline" }}>
+            <Link
+              to={"/admin/relatorios" as never}
+              style={{ color: "var(--green)", textDecoration: "underline" }}
+            >
               Gerar agora →
             </Link>
           </div>
@@ -675,7 +876,11 @@ export function FechamentoMensalPanel({
             <thead>
               <tr style={{ background: "var(--offwhite)" }}>
                 {["Data de exportação", "Formato", "Período coberto", "Tipo", ""].map((h) => (
-                  <th key={h} className="text-left px-6 py-3 aurora-cap" style={{ fontWeight: 500 }}>
+                  <th
+                    key={h}
+                    className="text-left px-6 py-3 aurora-cap"
+                    style={{ fontWeight: 500 }}
+                  >
                     {h}
                   </th>
                 ))}
@@ -685,17 +890,29 @@ export function FechamentoMensalPanel({
               {reportHistory.map((r) => (
                 <tr key={r.id} style={{ borderTop: "1px solid var(--line)", background: "#fff" }}>
                   <td className="px-6 py-3 text-[12px]" style={{ whiteSpace: "nowrap" }}>
-                    {new Date(r.exported_at).toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {new Date(r.exported_at).toLocaleString("pt-BR", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </td>
                   <td className="px-6 py-3 text-[12px]">{r.report_format ?? "—"}</td>
-                  <td className="px-6 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>{r.period_label}</td>
+                  <td
+                    className="px-6 py-3 text-[12px]"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
+                    {r.period_label}
+                  </td>
                   <td className="px-6 py-3">
                     <span
                       className="inline-flex items-center text-[10px] uppercase px-2 py-1"
                       style={{
                         letterSpacing: "1px",
                         fontWeight: 600,
-                        background: r.type === "pdf" ? "rgba(27,57,77,0.10)" : "rgba(74,103,65,0.10)",
+                        background:
+                          r.type === "pdf" ? "rgba(27,57,77,0.10)" : "rgba(74,103,65,0.10)",
                         color: r.type === "pdf" ? "var(--navy)" : "var(--green)",
                       }}
                     >
@@ -706,7 +923,12 @@ export function FechamentoMensalPanel({
                     <Link
                       to={"/admin/relatorios" as never}
                       className="text-[10px] uppercase px-2 py-1 transition-opacity hover:opacity-70"
-                      style={{ color: "var(--muted-foreground)", border: "1px solid var(--line)", letterSpacing: "1px", whiteSpace: "nowrap" }}
+                      style={{
+                        color: "var(--muted-foreground)",
+                        border: "1px solid var(--line)",
+                        letterSpacing: "1px",
+                        whiteSpace: "nowrap",
+                      }}
                     >
                       Exportar novamente →
                     </Link>
@@ -731,20 +953,42 @@ function avPct(value: number, receitaBruta: number): string {
 }
 
 function DFCRow({
-  label, value, av, tone, bold, subtotal,
+  label,
+  value,
+  av,
+  tone,
+  bold,
+  subtotal,
 }: {
-  label: string; value: number; av: number | 1;
-  tone: DFCTone; bold?: boolean; subtotal?: boolean;
+  label: string;
+  value: number;
+  av: number | 1;
+  tone: DFCTone;
+  bold?: boolean;
+  subtotal?: boolean;
 }) {
-  const color = tone === "green" ? "var(--green)" : tone === "expense" ? "var(--expense)" : "var(--navy)";
+  const color =
+    tone === "green" ? "var(--green)" : tone === "expense" ? "var(--expense)" : "var(--navy)";
   const isExpense = tone === "expense";
   return (
     <tr style={{ borderTop: "1px solid var(--line)", background: subtotal ? "#FAFBFA" : "#fff" }}>
-      <td className="px-6 py-2.5 text-[12px]" style={{ fontWeight: bold ? 700 : 400 }}>{label}</td>
-      <td className="px-6 py-2.5 text-right aurora-value" style={{ fontSize: bold ? 14 : 13, fontWeight: bold ? 700 : 400, color }}>
-        {isExpense && value > 0 ? `(${brl(value)})` : value < 0 ? `(${brl(Math.abs(value))})` : brl(value)}
+      <td className="px-6 py-2.5 text-[12px]" style={{ fontWeight: bold ? 700 : 400 }}>
+        {label}
       </td>
-      <td className="px-6 py-2.5 text-right text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+      <td
+        className="px-6 py-2.5 text-right aurora-value"
+        style={{ fontSize: bold ? 14 : 13, fontWeight: bold ? 700 : 400, color }}
+      >
+        {isExpense && value > 0
+          ? `(${brl(value)})`
+          : value < 0
+            ? `(${brl(Math.abs(value))})`
+            : brl(value)}
+      </td>
+      <td
+        className="px-6 py-2.5 text-right text-[11px]"
+        style={{ color: "var(--muted-foreground)" }}
+      >
         {typeof av === "number" && av !== 1 ? avPct(value, av) : av === 1 ? "100%" : "—"}
       </td>
     </tr>
@@ -752,45 +996,90 @@ function DFCRow({
 }
 
 function DFCGroupRow({
-  label, value, av, tone, groupKey, expanded, lines, onToggle,
+  label,
+  value,
+  av,
+  tone,
+  groupKey,
+  expanded,
+  lines,
+  onToggle,
 }: {
-  label: string; value: number; av: number; tone: DFCTone;
-  groupKey: string; expanded: boolean;
-  lines: DFCLine[]; onToggle: (key: string) => void;
+  label: string;
+  value: number;
+  av: number;
+  tone: DFCTone;
+  groupKey: string;
+  expanded: boolean;
+  lines: DFCLine[];
+  onToggle: (key: string) => void;
 }) {
-  const color = tone === "green" ? "var(--green)" : tone === "expense" ? "var(--expense)" : "var(--navy)";
+  const color =
+    tone === "green" ? "var(--green)" : tone === "expense" ? "var(--expense)" : "var(--navy)";
   const isExpense = tone === "expense";
   const hasLines = lines.length > 0;
   return (
     <>
       <tr
-        style={{ borderTop: "1px solid var(--line)", background: "var(--offwhite)", cursor: hasLines ? "pointer" : "default" }}
+        style={{
+          borderTop: "1px solid var(--line)",
+          background: "var(--offwhite)",
+          cursor: hasLines ? "pointer" : "default",
+        }}
         onClick={() => hasLines && onToggle(groupKey)}
       >
-        <td className="px-6 py-2.5 text-[11px] uppercase flex items-center gap-2" style={{ letterSpacing: "1.5px", fontWeight: 700, color }}>
+        <td
+          className="px-6 py-2.5 text-[11px] uppercase flex items-center gap-2"
+          style={{ letterSpacing: "1.5px", fontWeight: 700, color }}
+        >
           {label}
           {hasLines && (
-            <span style={{ fontSize: 10, opacity: 0.7, transform: expanded ? "rotate(180deg)" : "none", display: "inline-block", transition: "transform 0.15s" }}>▼</span>
+            <span
+              style={{
+                fontSize: 10,
+                opacity: 0.7,
+                transform: expanded ? "rotate(180deg)" : "none",
+                display: "inline-block",
+                transition: "transform 0.15s",
+              }}
+            >
+              ▼
+            </span>
           )}
         </td>
-        <td className="px-6 py-2.5 text-right aurora-value text-[13px]" style={{ fontWeight: 700, color }}>
+        <td
+          className="px-6 py-2.5 text-right aurora-value text-[13px]"
+          style={{ fontWeight: 700, color }}
+        >
           {isExpense && value > 0 ? `(${brl(value)})` : brl(value)}
         </td>
-        <td className="px-6 py-2.5 text-right text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+        <td
+          className="px-6 py-2.5 text-right text-[11px]"
+          style={{ color: "var(--muted-foreground)" }}
+        >
           {avPct(value, av)}
         </td>
       </tr>
-      {expanded && lines.map((l) => (
-        <tr key={l.cat} style={{ borderTop: "1px solid var(--line)", background: "#fff" }}>
-          <td className="px-6 py-2 text-[12px]" style={{ paddingLeft: 40, color: "var(--foreground)" }}>{l.cat}</td>
-          <td className="px-6 py-2 text-right aurora-value text-[12px]" style={{ color }}>
-            {isExpense ? `(${brl(l.total)})` : brl(l.total)}
-          </td>
-          <td className="px-6 py-2 text-right text-[11px]" style={{ color: "var(--muted-foreground)" }}>
-            {avPct(l.total, av)}
-          </td>
-        </tr>
-      ))}
+      {expanded &&
+        lines.map((l) => (
+          <tr key={l.cat} style={{ borderTop: "1px solid var(--line)", background: "#fff" }}>
+            <td
+              className="px-6 py-2 text-[12px]"
+              style={{ paddingLeft: 40, color: "var(--foreground)" }}
+            >
+              {l.cat}
+            </td>
+            <td className="px-6 py-2 text-right aurora-value text-[12px]" style={{ color }}>
+              {isExpense ? `(${brl(l.total)})` : brl(l.total)}
+            </td>
+            <td
+              className="px-6 py-2 text-right text-[11px]"
+              style={{ color: "var(--muted-foreground)" }}
+            >
+              {avPct(l.total, av)}
+            </td>
+          </tr>
+        ))}
     </>
   );
 }

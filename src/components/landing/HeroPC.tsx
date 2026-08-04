@@ -10,13 +10,13 @@ const FOREST = "#284C2B";
 
 export function HeroPC() {
   return (
-    <section
-      id="hero"
-      className="relative flex flex-col"
-      style={{ minHeight: "100vh" }}
-    >
+    <section id="hero" className="relative flex flex-col" style={{ minHeight: "100vh" }}>
       {/* Fundo: ícone flat (barras) bem discreto */}
-      <div aria-hidden className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none overflow-hidden"
+        style={{ zIndex: 0 }}
+      >
         <div
           style={{
             position: "absolute",
@@ -85,10 +85,7 @@ export function HeroPC() {
       </div>
 
       {/* Conteúdo centralizado verticalmente sob o menu */}
-      <div
-        className="relative z-10 flex-1 flex items-center"
-        style={{ paddingTop: 88 }}
-      >
+      <div className="relative z-10 flex-1 flex items-center" style={{ paddingTop: 88 }}>
         <div className="w-full max-w-[1320px] mx-auto px-6 lg:px-14 py-12 lg:py-16">
           <div className="grid lg:grid-cols-[1.05fr_1fr] gap-12 lg:gap-16 items-center">
             <div>
@@ -115,8 +112,8 @@ export function HeroPC() {
                   color: "rgba(28,45,69,0.78)",
                 }}
               >
-                Cuidamos do financeiro de ponta a ponta — extratos, DFC, projeção
-                e leitura clara para a próxima decisão.
+                Cuidamos do financeiro de ponta a ponta — extratos, DFC, projeção e leitura clara
+                para a próxima decisão.
               </p>
 
               <div className="mt-9 flex flex-wrap items-center gap-4 reveal-ctas">

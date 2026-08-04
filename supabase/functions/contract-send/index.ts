@@ -44,23 +44,27 @@ async function handleRequest(req: Request, origin: string | null): Promise<Respo
     .single();
 
   if (!contract) return jsonResponse({ error: "Contrato não encontrado" }, 404, origin);
-  if (!contract.client_email) return jsonResponse({ error: "Contrato sem e-mail do cliente" }, 422, origin);
-  if (!contract.pdf_url) return jsonResponse({ error: "PDF do contrato ainda não gerado" }, 422, origin);
-  if (contract.status === "signed") return jsonResponse({ error: "Contrato já assinado" }, 409, origin);
+  if (!contract.client_email)
+    return jsonResponse({ error: "Contrato sem e-mail do cliente" }, 422, origin);
+  if (!contract.pdf_url)
+    return jsonResponse({ error: "PDF do contrato ainda não gerado" }, 422, origin);
+  if (contract.status === "signed")
+    return jsonResponse({ error: "Contrato já assinado" }, 409, origin);
 
-  const webhookUrl = Deno.env.get("N8N_CONTRACT_WEBHOOK")
-    ?? "https://iaplicada.app.n8n.cloud/webhook/aurora-contract-send";
+  const webhookUrl =
+    Deno.env.get("N8N_CONTRACT_WEBHOOK") ??
+    "https://iaplicada.app.n8n.cloud/webhook/aurora-contract-send";
 
   try {
     const r = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        client_name:      contract.client_name,
-        client_email:     contract.client_email,
-        contract_number:  contract.number,
-        pdf_url:          contract.pdf_url,
-        total_monthly:    Number(contract.total_monthly),
+        client_name: contract.client_name,
+        client_email: contract.client_email,
+        contract_number: contract.number,
+        pdf_url: contract.pdf_url,
+        total_monthly: Number(contract.total_monthly),
       }),
     });
     if (!r.ok) {
@@ -73,10 +77,7 @@ async function handleRequest(req: Request, origin: string | null): Promise<Respo
     return jsonResponse({ error: "Falha ao enviar e-mail" }, 502, origin);
   }
 
-  await sb
-    .from("contracts")
-    .update({ status: "sent" })
-    .eq("id", contract.id);
+  await sb.from("contracts").update({ status: "sent" }).eq("id", contract.id);
 
   return jsonResponse({ ok: true, sent_to: contract.client_email }, 200, origin);
 }

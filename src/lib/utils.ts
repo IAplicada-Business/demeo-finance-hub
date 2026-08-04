@@ -111,10 +111,7 @@ export function exportToCSV(rows: Record<string, unknown>[], filename: string): 
       ? `"${s.replace(/"/g, '""')}"`
       : s;
   };
-  const lines = [
-    headers.join(","),
-    ...rows.map((r) => headers.map((h) => escape(r[h])).join(",")),
-  ];
+  const lines = [headers.join(","), ...rows.map((r) => headers.map((h) => escape(r[h])).join(","))];
   const bom = "﻿";
   const blob = new Blob([bom + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);

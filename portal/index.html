@@ -1,818 +1,2249 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aurora × IAplicada · Portal de Acompanhamento</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,500;1,600&family=Spectral:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#f7f6f0; --bg-2:#eef1e4; --card:#ffffff; --card-soft:#f1f4e9;
-    --sage:#e3e8d0; --sage-line:#cdd6ad; --line:#e5e3d6;
-    --ink:#1e2216; --ink-soft:#4b4f3f; --muted:#7a7c6c;
-    --olive:#6f7f3d; --olive-d:#566627; --label:#71823b;
-    --panel:#2f3a1c; --panel-ink:#f3f4ea;
-    --red:#b0472b; --amber:#b88a26;
-    --radius:5px; --maxw:1180px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
-  body{background:var(--bg);color:var(--ink);font-family:'Spectral',Georgia,serif;font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;}
-  .label{font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:.18em;font-size:11px;font-weight:600;color:var(--label);}
-  .serif{font-family:'Playfair Display',Georgia,serif;}
-  .it{font-style:italic;color:var(--olive);}
-  h1,h2,h3,h4{font-family:'Playfair Display',Georgia,serif;font-weight:700;line-height:1.12;letter-spacing:-.01em;}
-  a{color:var(--olive-d);}
-  header.topbar{position:sticky;top:0;z-index:50;background:rgba(247,246,240,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);}
-  .topbar-in{max-width:var(--maxw);margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
-  .brand{display:flex;align-items:baseline;gap:9px;}
-  .brand .word{font-family:'Playfair Display',serif;font-weight:800;font-size:21px;color:var(--ink);}
-  .brand .word b{color:var(--olive-d);}
-  .brand .ctx{font-family:'Inter',sans-serif;font-weight:600;letter-spacing:.12em;font-size:11px;text-transform:uppercase;color:var(--muted);}
-  .badge{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--olive);border-radius:30px;padding:6px 13px;white-space:nowrap;}
-  .topbar .upd{font-family:'Inter',sans-serif;font-size:10.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
-  body.home .view{display:none !important;}
-  body:not(.home) .hero,body:not(.home) .entradas{display:none !important;}
-  body:not(.home) .compact-nav{display:flex !important;}
-  .compact-nav{display:none;position:sticky;top:54px;z-index:40;background:rgba(247,246,240,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:12px 24px;}
-  .compact-nav .inner{max-width:var(--maxw);margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-  .compact-nav .back{display:inline-flex;align-items:center;gap:7px;background:transparent;border:1px solid var(--line);border-radius:30px;padding:7px 14px;font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink-soft);cursor:pointer;}
-  .compact-nav .back:hover{border-color:var(--olive);color:var(--ink);}
-  .compact-nav .chips{display:flex;gap:8px;flex-wrap:wrap;}
-  .compact-nav .chip{padding:7px 14px;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:30px;background:var(--card);cursor:pointer;}
-  .compact-nav .chip:hover{color:var(--ink);border-color:var(--olive);}
-  .compact-nav .chip.active{background:var(--olive);color:#fff;border-color:var(--olive);}
-  body.home .hero{padding:80px 24px 18px;}
-  body.home .entradas{margin-bottom:80px;}
-  .hero{max-width:var(--maxw);margin:0 auto;padding:54px 24px 26px;}
-  .hero .kicker{margin-bottom:18px;}
-  .hero h1{font-size:clamp(38px,6vw,74px);}
-  .hero p.lede{margin-top:18px;max-width:730px;font-size:19px;color:var(--ink-soft);}
-  .entradas{max-width:var(--maxw);margin:30px auto 0;padding:0 24px;display:flex;gap:14px;flex-wrap:wrap;}
-  .entrada-btn{flex:1 1 320px;cursor:pointer;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;transition:.18s;display:flex;flex-direction:column;gap:6px;}
-  .entrada-btn:hover{border-color:var(--olive);transform:translateY(-1px);}
-  .entrada-btn .num{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.2em;color:var(--label);}
-  .entrada-btn h2{font-size:26px;}
-  .entrada-btn p{font-size:14.5px;color:var(--muted);font-family:'Inter',sans-serif;line-height:1.45;}
-  .tabs{max-width:var(--maxw);margin:26px auto 0;padding:0 24px;display:flex;gap:8px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
-  .tab{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:12px 16px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;}
-  .tab:hover{color:var(--ink);}
-  .tab.active{color:var(--olive-d);border-bottom-color:var(--olive-d);}
-  main{max-width:var(--maxw);margin:0 auto;padding:8px 24px 80px;}
-  .view{display:none;}
-  .view.active{display:block;}
-  .pane{display:none;animation:fade .25s ease;}
-  .pane.active{display:block;}
-  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-  section.block{padding:34px 0;border-bottom:1px solid var(--line);}
-  section.block:last-child{border-bottom:none;}
-  .sec-kicker{margin-bottom:12px;}
-  .sec-title{font-size:clamp(26px,3.4vw,38px);margin-bottom:6px;}
-  .sec-sub{color:var(--ink-soft);max-width:780px;margin-bottom:8px;}
-  .grid{display:grid;gap:14px;}
-  .g2{grid-template-columns:repeat(2,1fr);}
-  .g3{grid-template-columns:repeat(3,1fr);}
-  @media(max-width:860px){.g2,.g3{grid-template-columns:1fr;}}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;}
-  .card.soft{background:var(--card-soft);border-color:var(--sage-line);}
-  .card.accent{border-left:3px solid var(--olive);}
-  .card h4{font-size:19px;margin-bottom:6px;}
-  .card .label{margin-bottom:8px;display:block;}
-  .card p{font-family:'Inter',sans-serif;font-size:14px;color:var(--ink-soft);line-height:1.55;}
-  .card ul{list-style:none;margin-top:10px;}
-  .card ul li{font-family:'Inter',sans-serif;font-size:13.5px;color:var(--ink-soft);padding-left:18px;position:relative;margin:7px 0;}
-  .card ul li::before{content:"›";position:absolute;left:0;color:var(--olive);font-weight:700;}
-  .panel{background:var(--panel);color:var(--panel-ink);border-radius:var(--radius);padding:26px 28px;}
-  .panel .label{color:#aebd7e;}
-  .panel h3,.panel h4{color:var(--panel-ink);}
-  .panel p{font-family:'Inter',sans-serif;font-size:14px;color:#d3d6c4;line-height:1.6;}
-  .panel .it{color:#aebd7e;}
-  .pill{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:30px;display:inline-block;}
-  .pill.now{background:var(--olive);color:#fff;}
-  .pill.doing{background:var(--sage);color:var(--olive-d);border:1px solid var(--sage-line);}
-  .pill.next{background:transparent;color:var(--muted);border:1px solid var(--line);}
-  .pill.done{background:#dbe2c2;color:#455020;}
-  .pill.back{background:#efe7d2;color:#7a6320;border:1px solid #ddd0a8;}
-  .pill.warn{background:#fce5c2;color:#7d4d10;}
-  .tbl{width:100%;border-collapse:collapse;font-family:'Inter',sans-serif;font-size:13.5px;}
-  .tbl th{text-align:left;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--olive-d);font-weight:600;padding:10px 12px;border-bottom:2px solid var(--olive);}
-  .tbl td{padding:12px;border-bottom:1px solid var(--line);color:var(--ink-soft);vertical-align:top;}
-  .tbl tr:last-child td{border-bottom:none;}
-  .tbl td strong{color:var(--ink);font-weight:600;}
-  .phases{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-  @media(max-width:860px){.phases{grid-template-columns:1fr;}}
-  .phase{border:1px solid var(--line);border-radius:var(--radius);padding:18px;background:var(--card-soft);}
-  .phase.cur{background:var(--panel);}
-  .phase.cur .ph-h,.phase.cur .ph-d{color:var(--panel-ink);}
-  .phase.cur .ph-k{color:#aebd7e;}
-  .ph-k{font-family:'Inter',sans-serif;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--label);font-weight:600;}
-  .ph-h{font-size:18px;margin:8px 0 4px;}
-  .ph-sub{font-family:'Inter',sans-serif;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
-  .ph-d{font-family:'Inter',sans-serif;font-size:13px;color:var(--ink-soft);line-height:1.5;}
-  .pdetail{border:1px solid var(--line);border-left:4px solid var(--olive);border-radius:var(--radius);background:var(--card);padding:22px 24px;margin-bottom:14px;}
-  .pdetail.cur{background:var(--card-soft);border-color:var(--sage-line);}
-  .pdetail .head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
-  .pdetail .head h3{font-size:24px;}
-  .pdetail .when{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
-  .pdetail .obj{font-family:'Inter',sans-serif;font-size:14px;color:var(--muted);margin-bottom:12px;}
-  .pdetail ul{list-style:none;}
-  .pdetail ul li{font-family:'Inter',sans-serif;font-size:14px;color:var(--ink-soft);padding-left:20px;position:relative;margin:8px 0;line-height:1.5;}
-  .pdetail ul li::before{content:"";position:absolute;left:2px;top:8px;width:8px;height:8px;border-radius:50%;background:var(--olive);}
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-  @media(max-width:860px){.stats{grid-template-columns:repeat(2,1fr);}}
-  .stat{border:1px solid var(--sage-line);border-radius:var(--radius);padding:16px 18px;background:var(--card-soft);}
-  .stat .v{font-family:'Playfair Display',serif;font-size:30px;color:var(--olive-d);line-height:1;}
-  .stat .k{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-top:8px;}
-  .pipe-row{display:flex;gap:14px;align-items:stretch;margin-bottom:10px;}
-  .pipe-step{flex:1;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--olive);border-radius:var(--radius);padding:14px 16px;}
-  .pipe-step .label{margin-bottom:5px;display:block;}
-  .pipe-step h4{font-size:16px;margin-bottom:4px;}
-  .pipe-step p{font-family:'Inter',sans-serif;font-size:12.5px;color:var(--muted);line-height:1.45;}
-  .pipe-arrow{align-self:center;color:var(--olive);font-size:22px;flex:0 0 auto;}
-  @media(max-width:860px){.pipe-row{flex-direction:column;}.pipe-arrow{transform:rotate(90deg);}}
-  .note{font-family:'Inter',sans-serif;font-size:12.5px;color:var(--muted);margin-top:14px;border-left:2px solid var(--olive);padding-left:12px;}
-  .etapa{border:1px solid var(--line);border-left:3px solid var(--olive);border-radius:var(--radius);background:var(--card);padding:16px 20px;margin-bottom:10px;}
-  .etapa .e-num{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;}
-  .etapa h5{font-family:'Playfair Display',serif;font-size:17px;margin:6px 0 8px;line-height:1.25;}
-  .etapa p{font-family:'Inter',sans-serif;font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin:6px 0;}
-  .etapa .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
-  .etapa .meta .m-chip{font-family:'Inter',sans-serif;font-size:11.5px;color:var(--ink-soft);background:var(--card-soft);border:1px solid var(--sage-line);border-radius:30px;padding:4px 10px;}
-  .etapa .meta .m-chip b{color:var(--olive-d);font-weight:600;}
-  .warn-box{background:#fef9eb;border:1px solid #ead9a4;border-left:3px solid var(--amber);padding:16px 18px;border-radius:var(--radius);margin:14px 0;}
-  .warn-box .w-label{font-family:'Inter',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7d4d10;font-weight:700;margin-bottom:6px;}
-  .warn-box p{font-family:'Inter',sans-serif;font-size:13.5px;color:var(--ink-soft);line-height:1.55;}
-  .access{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-  @media(max-width:860px){.access{grid-template-columns:1fr;}}
-  .access .it-card{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--olive);border-radius:var(--radius);padding:15px 18px;font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);}
-  .access .it-card span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;font-weight:600;}
-  .n8n-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;margin-bottom:12px;}
-  .n8n-card .head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
-  .n8n-card .dot{width:8px;height:8px;border-radius:50%;background:var(--olive);flex-shrink:0;}
-  .n8n-card .wf-name{font-family:'Playfair Display',serif;font-size:18px;flex:1;}
-  .n8n-card .wf-id{font-family:'Inter',sans-serif;font-size:11px;color:var(--muted);letter-spacing:.08em;}
-  .n8n-card .step{font-family:'Inter',sans-serif;font-size:13.5px;color:var(--ink-soft);padding-left:18px;position:relative;margin:8px 0;line-height:1.5;}
-  .n8n-card .step::before{content:"›";position:absolute;left:0;color:var(--olive);font-weight:700;}
-  .tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
-  @media(max-width:860px){.tech-grid{grid-template-columns:1fr;}}
-  .tech-card{background:var(--card-soft);border:1px solid var(--sage-line);border-radius:var(--radius);padding:16px 18px;}
-  .tech-card .tc-label{font-family:'Inter',sans-serif;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--label);font-weight:600;margin-bottom:6px;}
-  .tech-card h4{font-size:17px;margin-bottom:4px;}
-  .tech-card p{font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);line-height:1.5;}
-  footer{max-width:var(--maxw);margin:0 auto;padding:30px 24px 60px;border-top:1px solid var(--line);color:var(--muted);font-family:'Inter',sans-serif;font-size:12px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;}
-  /* ── As-Is / To-Be ── */
-  .proc-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:20px;}
-  .proc-pills{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-top:6px;}
-  .proc-pill{font-family:'Inter',sans-serif;font-size:11.5px;color:var(--ink-soft);background:var(--card-soft);border:1px solid var(--sage-line);border-radius:30px;padding:5px 12px;}
-  .proc-pill b{color:var(--olive-d);}
-  .metrics-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:6px 0 22px;}
-  @media(max-width:680px){.metrics-strip{grid-template-columns:repeat(2,1fr);}}
-  .metric-box{background:var(--card-soft);border:1px solid var(--sage-line);border-radius:var(--radius);padding:16px 14px;text-align:center;}
-  .metric-box .mb-val{font-family:'Playfair Display',serif;font-size:28px;color:var(--olive-d);line-height:1;margin-bottom:6px;}
-  .metric-box .mb-lab{font-family:'Inter',sans-serif;font-size:11px;color:var(--muted);line-height:1.4;text-transform:uppercase;letter-spacing:.06em;}
-  .flow-compare{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:4px;}
-  @media(max-width:860px){.flow-compare{grid-template-columns:1fr;}}
-  .flow-col{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;}
-  .flow-col.as-is{border-top:3px solid var(--amber);}
-  .flow-col.to-be{border-top:3px solid var(--olive);}
-  .fc-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line);}
-  .fc-badge{font-family:'Inter',sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:4px 10px;border-radius:30px;}
-  .fc-badge.as-is{background:#fce5c2;color:#7d4d10;}
-  .fc-badge.to-be{background:#dbe2c2;color:#455020;}
-  .fc-head-title{font-family:'Playfair Display',serif;font-size:16px;color:var(--ink);}
-  .flow-step{display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);}
-  .flow-step:last-child{border-bottom:none;}
-  .fs-num{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--muted);flex-shrink:0;width:22px;margin-top:3px;}
-  .fs-body{flex:1;}
-  .fs-label{font-family:'Playfair Display',serif;font-size:14.5px;font-weight:700;line-height:1.2;margin-bottom:2px;}
-  .fs-meta{font-family:'Inter',sans-serif;font-size:12px;color:var(--muted);line-height:1.45;}
-  .flow-step.bottleneck .fs-num,.flow-step.bottleneck .fs-label{color:var(--red);}
-  .flow-step.bottleneck .fs-meta{color:#b0472b;}
-  .flow-step.improved .fs-num,.flow-step.improved .fs-label{color:var(--olive-d);}
-  .fc-footer{font-family:'Inter',sans-serif;font-size:11.5px;font-weight:600;text-align:center;padding:10px 0 2px;color:var(--muted);}
-  .fc-footer.as-is{color:var(--red);}
-  .fc-footer.to-be{color:var(--olive-d);}
-  .insight-box{background:#f1f4e9;border:1px solid var(--sage-line);border-left:3px solid var(--olive);border-radius:var(--radius);padding:16px 20px;margin:20px 0;}
-  .ib-label{font-family:'Inter',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--olive-d);font-weight:700;margin-bottom:8px;}
-  .insight-box p{font-family:'Inter',sans-serif;font-size:14px;color:var(--ink-soft);line-height:1.65;}
-  .pain-list{margin-top:12px;}
-  .pain-item{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);}
-  .pain-item:last-child{border-bottom:none;}
-  .pi-num{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;color:var(--red);flex-shrink:0;width:20px;margin-top:2px;}
-  .pi-body{font-family:'Inter',sans-serif;font-size:14px;color:var(--ink-soft);line-height:1.5;}
-  .pi-body strong{color:var(--ink);display:block;margin-bottom:2px;}
-  .actors-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;}
-  @media(max-width:680px){.actors-grid{grid-template-columns:1fr;}}
-  .actor-card{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--olive);border-radius:var(--radius);padding:14px 16px;}
-  .ac-role{font-family:'Inter',sans-serif;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--label);font-weight:600;margin-bottom:6px;}
-  .actor-card h4{font-size:17px;margin-bottom:6px;}
-  .actor-card p{font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);line-height:1.5;}
-</style>
-</head>
-<body class="home">
-
-<!-- TOPBAR -->
-<header class="topbar"><div class="topbar-in">
-  <div class="brand">
-    <span class="word">IA<b>plicada</b></span>
-    <span class="ctx">· Aurora · Portal</span>
-  </div>
-  <div style="display:flex;align-items:center;gap:14px;">
-    <span class="badge">M1–M6 em Produção</span>
-    <span class="upd">Atualizado 24 jun 2026</span>
-  </div>
-</div></header>
-
-<!-- COMPACT NAV -->
-<nav class="compact-nav"><div class="inner">
-  <button class="back" onclick="goHome()" type="button"><span>&larr;</span> Voltar à navegação</button>
-  <div class="chips">
-    <button class="chip" data-view="projeto" type="button">Projeto</button>
-    <button class="chip" data-view="fluxo" type="button">Fluxo Operacional</button>
-  </div>
-</div></nav>
-
-<!-- HERO -->
-<section class="hero">
-  <div class="kicker label">M1–M6 em produção · 24 jun 2026 · escopo base concluído</div>
-  <h1 class="serif">Portal de Acompanhamento<br><span class="it">Aurora × IAplicada.</span></h1>
-  <p class="lede">Um único lugar para acompanhar o projeto de gestão financeira inteligente. Do extrato do cliente ao relatório DFC/DRE — com transparência de escopo, módulos entregues e evolução em construção.</p>
-</section>
-
-<!-- ENTRADAS -->
-<div class="entradas">
-  <button class="entrada-btn" data-view="projeto">
-    <span class="num">ENTRADA 01</span>
-    <h2 class="serif">Projeto</h2>
-    <p>Módulos entregues, marcos, roadmap de evolução e próximos passos estratégicos.</p>
-  </button>
-  <button class="entrada-btn" data-view="fluxo">
-    <span class="num">ENTRADA 02</span>
-    <h2 class="serif">Fluxo Operacional</h2>
-    <p>Pipeline do extrato financeiro, automações n8n, arquitetura técnica e mapeamento As-Is/To-Be dos processos.</p>
-  </button>
-</div>
-
-
-<!-- VIEW: PROJETO -->
-<div class="view" id="view-projeto">
-  <div class="tabs">
-    <div class="tab active" data-pane="visao">Visão Geral</div>
-    <div class="tab" data-pane="proximos">Próximos Passos</div>
-    <div class="tab" data-pane="comunicacao">Comunicação</div>
-  </div>
-  <main>
-
-    <div class="pane active" id="pane-visao">
-      <section class="block">
-        <div class="sec-kicker label">Onde estamos · jun 2026</div>
-        <h2 class="sec-title serif">Escopo base entregue e <span class="it">em produção.</span></h2>
-        <p class="sec-sub">Todos os seis módulos do escopo contratado foram desenvolvidos e estão em operação. A plataforma processa extratos, classifica transações com IA, gera relatórios DFC/DRE, oferece cockpit centralizado, portal próprio para cada cliente e funil comercial completo com propostas automáticas.</p>
-        <div class="stats" style="margin-top:22px;">
-          <div class="stat"><div class="v">M1–M6</div><div class="k">módulos em produção</div></div>
-          <div class="stat"><div class="v">24/06</div><div class="k">conclusão do escopo</div></div>
-          <div class="stat"><div class="v">3</div><div class="k">automações ativas</div></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aurora × IAplicada · Portal de Acompanhamento</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,800;1,500;1,600&family=Spectral:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #f7f6f0;
+        --bg-2: #eef1e4;
+        --card: #ffffff;
+        --card-soft: #f1f4e9;
+        --sage: #e3e8d0;
+        --sage-line: #cdd6ad;
+        --line: #e5e3d6;
+        --ink: #1e2216;
+        --ink-soft: #4b4f3f;
+        --muted: #7a7c6c;
+        --olive: #6f7f3d;
+        --olive-d: #566627;
+        --label: #71823b;
+        --panel: #2f3a1c;
+        --panel-ink: #f3f4ea;
+        --red: #b0472b;
+        --amber: #b88a26;
+        --radius: 5px;
+        --maxw: 1180px;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Spectral", Georgia, serif;
+        font-size: 17px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+      .label {
+        font-family: "Inter", sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--label);
+      }
+      .serif {
+        font-family: "Playfair Display", Georgia, serif;
+      }
+      .it {
+        font-style: italic;
+        color: var(--olive);
+      }
+      h1,
+      h2,
+      h3,
+      h4 {
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 700;
+        line-height: 1.12;
+        letter-spacing: -0.01em;
+      }
+      a {
+        color: var(--olive-d);
+      }
+      header.topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(247, 246, 240, 0.92);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--line);
+      }
+      .topbar-in {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+      }
+      .brand .word {
+        font-family: "Playfair Display", serif;
+        font-weight: 800;
+        font-size: 21px;
+        color: var(--ink);
+      }
+      .brand .word b {
+        color: var(--olive-d);
+      }
+      .brand .ctx {
+        font-family: "Inter", sans-serif;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .badge {
+        font-family: "Inter", sans-serif;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #fff;
+        background: var(--olive);
+        border-radius: 30px;
+        padding: 6px 13px;
+        white-space: nowrap;
+      }
+      .topbar .upd {
+        font-family: "Inter", sans-serif;
+        font-size: 10.5px;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+      body.home .view {
+        display: none !important;
+      }
+      body:not(.home) .hero,
+      body:not(.home) .entradas {
+        display: none !important;
+      }
+      body:not(.home) .compact-nav {
+        display: flex !important;
+      }
+      .compact-nav {
+        display: none;
+        position: sticky;
+        top: 54px;
+        z-index: 40;
+        background: rgba(247, 246, 240, 0.96);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--line);
+        padding: 12px 24px;
+      }
+      .compact-nav .inner {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .compact-nav .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        padding: 7px 14px;
+        font-family: "Inter", sans-serif;
+        font-size: 12.5px;
+        color: var(--ink-soft);
+        cursor: pointer;
+      }
+      .compact-nav .back:hover {
+        border-color: var(--olive);
+        color: var(--ink);
+      }
+      .compact-nav .chips {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .compact-nav .chip {
+        padding: 7px 14px;
+        font-family: "Inter", sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 30px;
+        background: var(--card);
+        cursor: pointer;
+      }
+      .compact-nav .chip:hover {
+        color: var(--ink);
+        border-color: var(--olive);
+      }
+      .compact-nav .chip.active {
+        background: var(--olive);
+        color: #fff;
+        border-color: var(--olive);
+      }
+      body.home .hero {
+        padding: 80px 24px 18px;
+      }
+      body.home .entradas {
+        margin-bottom: 80px;
+      }
+      .hero {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 54px 24px 26px;
+      }
+      .hero .kicker {
+        margin-bottom: 18px;
+      }
+      .hero h1 {
+        font-size: clamp(38px, 6vw, 74px);
+      }
+      .hero p.lede {
+        margin-top: 18px;
+        max-width: 730px;
+        font-size: 19px;
+        color: var(--ink-soft);
+      }
+      .entradas {
+        max-width: var(--maxw);
+        margin: 30px auto 0;
+        padding: 0 24px;
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .entrada-btn {
+        flex: 1 1 320px;
+        cursor: pointer;
+        text-align: left;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 20px 22px;
+        transition: 0.18s;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .entrada-btn:hover {
+        border-color: var(--olive);
+        transform: translateY(-1px);
+      }
+      .entrada-btn .num {
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        color: var(--label);
+      }
+      .entrada-btn h2 {
+        font-size: 26px;
+      }
+      .entrada-btn p {
+        font-size: 14.5px;
+        color: var(--muted);
+        font-family: "Inter", sans-serif;
+        line-height: 1.45;
+      }
+      .tabs {
+        max-width: var(--maxw);
+        margin: 26px auto 0;
+        padding: 0 24px;
+        display: flex;
+        gap: 8px;
+        border-bottom: 1px solid var(--line);
+        flex-wrap: wrap;
+      }
+      .tab {
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 12px 16px;
+        cursor: pointer;
+        color: var(--muted);
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+      }
+      .tab:hover {
+        color: var(--ink);
+      }
+      .tab.active {
+        color: var(--olive-d);
+        border-bottom-color: var(--olive-d);
+      }
+      main {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 8px 24px 80px;
+      }
+      .view {
+        display: none;
+      }
+      .view.active {
+        display: block;
+      }
+      .pane {
+        display: none;
+        animation: fade 0.25s ease;
+      }
+      .pane.active {
+        display: block;
+      }
+      @keyframes fade {
+        from {
+          opacity: 0;
+          transform: translateY(4px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      section.block {
+        padding: 34px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      section.block:last-child {
+        border-bottom: none;
+      }
+      .sec-kicker {
+        margin-bottom: 12px;
+      }
+      .sec-title {
+        font-size: clamp(26px, 3.4vw, 38px);
+        margin-bottom: 6px;
+      }
+      .sec-sub {
+        color: var(--ink-soft);
+        max-width: 780px;
+        margin-bottom: 8px;
+      }
+      .grid {
+        display: grid;
+        gap: 14px;
+      }
+      .g2 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .g3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      @media (max-width: 860px) {
+        .g2,
+        .g3 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 20px 22px;
+      }
+      .card.soft {
+        background: var(--card-soft);
+        border-color: var(--sage-line);
+      }
+      .card.accent {
+        border-left: 3px solid var(--olive);
+      }
+      .card h4 {
+        font-size: 19px;
+        margin-bottom: 6px;
+      }
+      .card .label {
+        margin-bottom: 8px;
+        display: block;
+      }
+      .card p {
+        font-family: "Inter", sans-serif;
+        font-size: 14px;
+        color: var(--ink-soft);
+        line-height: 1.55;
+      }
+      .card ul {
+        list-style: none;
+        margin-top: 10px;
+      }
+      .card ul li {
+        font-family: "Inter", sans-serif;
+        font-size: 13.5px;
+        color: var(--ink-soft);
+        padding-left: 18px;
+        position: relative;
+        margin: 7px 0;
+      }
+      .card ul li::before {
+        content: "›";
+        position: absolute;
+        left: 0;
+        color: var(--olive);
+        font-weight: 700;
+      }
+      .panel {
+        background: var(--panel);
+        color: var(--panel-ink);
+        border-radius: var(--radius);
+        padding: 26px 28px;
+      }
+      .panel .label {
+        color: #aebd7e;
+      }
+      .panel h3,
+      .panel h4 {
+        color: var(--panel-ink);
+      }
+      .panel p {
+        font-family: "Inter", sans-serif;
+        font-size: 14px;
+        color: #d3d6c4;
+        line-height: 1.6;
+      }
+      .panel .it {
+        color: #aebd7e;
+      }
+      .pill {
+        font-family: "Inter", sans-serif;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 4px 9px;
+        border-radius: 30px;
+        display: inline-block;
+      }
+      .pill.now {
+        background: var(--olive);
+        color: #fff;
+      }
+      .pill.doing {
+        background: var(--sage);
+        color: var(--olive-d);
+        border: 1px solid var(--sage-line);
+      }
+      .pill.next {
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid var(--line);
+      }
+      .pill.done {
+        background: #dbe2c2;
+        color: #455020;
+      }
+      .pill.back {
+        background: #efe7d2;
+        color: #7a6320;
+        border: 1px solid #ddd0a8;
+      }
+      .pill.warn {
+        background: #fce5c2;
+        color: #7d4d10;
+      }
+      .tbl {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: "Inter", sans-serif;
+        font-size: 13.5px;
+      }
+      .tbl th {
+        text-align: left;
+        font-size: 10.5px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--olive-d);
+        font-weight: 600;
+        padding: 10px 12px;
+        border-bottom: 2px solid var(--olive);
+      }
+      .tbl td {
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+        color: var(--ink-soft);
+        vertical-align: top;
+      }
+      .tbl tr:last-child td {
+        border-bottom: none;
+      }
+      .tbl td strong {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .phases {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+      @media (max-width: 860px) {
+        .phases {
+          grid-template-columns: 1fr;
+        }
+      }
+      .phase {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 18px;
+        background: var(--card-soft);
+      }
+      .phase.cur {
+        background: var(--panel);
+      }
+      .phase.cur .ph-h,
+      .phase.cur .ph-d {
+        color: var(--panel-ink);
+      }
+      .phase.cur .ph-k {
+        color: #aebd7e;
+      }
+      .ph-k {
+        font-family: "Inter", sans-serif;
+        font-size: 10.5px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--label);
+        font-weight: 600;
+      }
+      .ph-h {
+        font-size: 18px;
+        margin: 8px 0 4px;
+      }
+      .ph-sub {
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 8px;
+      }
+      .ph-d {
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+        color: var(--ink-soft);
+        line-height: 1.5;
+      }
+      .pdetail {
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--olive);
+        border-radius: var(--radius);
+        background: var(--card);
+        padding: 22px 24px;
+        margin-bottom: 14px;
+      }
+      .pdetail.cur {
+        background: var(--card-soft);
+        border-color: var(--sage-line);
+      }
+      .pdetail .head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+      }
+      .pdetail .head h3 {
+        font-size: 24px;
+      }
+      .pdetail .when {
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .pdetail .obj {
+        font-family: "Inter", sans-serif;
+        font-size: 14px;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+      .pdetail ul {
+        list-style: none;
+      }
+      .pdetail ul li {
+        font-family: "Inter", sans-serif;
+        font-size: 14px;
+        color: var(--ink-soft);
+        padding-left: 20px;
+        position: relative;
+        margin: 8px 0;
+        line-height: 1.5;
+      }
+      .pdetail ul li::before {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 8px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--olive);
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+      @media (max-width: 860px) {
+        .stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      .stat {
+        border: 1px solid var(--sage-line);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+        background: var(--card-soft);
+      }
+      .stat .v {
+        font-family: "Playfair Display", serif;
+        font-size: 30px;
+        color: var(--olive-d);
+        line-height: 1;
+      }
+      .stat .k {
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-top: 8px;
+      }
+      .pipe-row {
+        display: flex;
+        gap: 14px;
+        align-items: stretch;
+        margin-bottom: 10px;
+      }
+      .pipe-step {
+        flex: 1;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--olive);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+      }
+      .pipe-step .label {
+        margin-bottom: 5px;
+        display: block;
+      }
+      .pipe-step h4 {
+        font-size: 16px;
+        margin-bottom: 4px;
+      }
+      .pipe-step p {
+        font-family: "Inter", sans-serif;
+        font-size: 12.5px;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      .pipe-arrow {
+        align-self: center;
+        color: var(--olive);
+        font-size: 22px;
+        flex: 0 0 auto;
+      }
+      @media (max-width: 860px) {
+        .pipe-row {
+          flex-direction: column;
+        }
+        .pipe-arrow {
+          transform: rotate(90deg);
+        }
+      }
+      .note {
+        font-family: "Inter", sans-serif;
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-top: 14px;
+        border-left: 2px solid var(--olive);
+        padding-left: 12px;
+      }
+      .etapa {
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--olive);
+        border-radius: var(--radius);
+        background: var(--card);
+        padding: 16px 20px;
+        margin-bottom: 10px;
+      }
+      .etapa .e-num {
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .etapa h5 {
+        font-family: "Playfair Display", serif;
+        font-size: 17px;
+        margin: 6px 0 8px;
+        line-height: 1.25;
+      }
+      .etapa p {
+        font-family: "Inter", sans-serif;
+        font-size: 13.5px;
+        color: var(--ink-soft);
+        line-height: 1.55;
+        margin: 6px 0;
+      }
+      .etapa .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .etapa .meta .m-chip {
+        font-family: "Inter", sans-serif;
+        font-size: 11.5px;
+        color: var(--ink-soft);
+        background: var(--card-soft);
+        border: 1px solid var(--sage-line);
+        border-radius: 30px;
+        padding: 4px 10px;
+      }
+      .etapa .meta .m-chip b {
+        color: var(--olive-d);
+        font-weight: 600;
+      }
+      .warn-box {
+        background: #fef9eb;
+        border: 1px solid #ead9a4;
+        border-left: 3px solid var(--amber);
+        padding: 16px 18px;
+        border-radius: var(--radius);
+        margin: 14px 0;
+      }
+      .warn-box .w-label {
+        font-family: "Inter", sans-serif;
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #7d4d10;
+        font-weight: 700;
+        margin-bottom: 6px;
+      }
+      .warn-box p {
+        font-family: "Inter", sans-serif;
+        font-size: 13.5px;
+        color: var(--ink-soft);
+        line-height: 1.55;
+      }
+      .access {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      @media (max-width: 860px) {
+        .access {
+          grid-template-columns: 1fr;
+        }
+      }
+      .access .it-card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--olive);
+        border-radius: var(--radius);
+        padding: 15px 18px;
+        font-family: "Inter", sans-serif;
+        font-size: 14px;
+        color: var(--ink);
+      }
+      .access .it-card span {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 5px;
+        font-weight: 600;
+      }
+      .n8n-card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 20px 22px;
+        margin-bottom: 12px;
+      }
+      .n8n-card .head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .n8n-card .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--olive);
+        flex-shrink: 0;
+      }
+      .n8n-card .wf-name {
+        font-family: "Playfair Display", serif;
+        font-size: 18px;
+        flex: 1;
+      }
+      .n8n-card .wf-id {
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        color: var(--muted);
+        letter-spacing: 0.08em;
+      }
+      .n8n-card .step {
+        font-family: "Inter", sans-serif;
+        font-size: 13.5px;
+        color: var(--ink-soft);
+        padding-left: 18px;
+        position: relative;
+        margin: 8px 0;
+        line-height: 1.5;
+      }
+      .n8n-card .step::before {
+        content: "›";
+        position: absolute;
+        left: 0;
+        color: var(--olive);
+        font-weight: 700;
+      }
+      .tech-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      @media (max-width: 860px) {
+        .tech-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .tech-card {
+        background: var(--card-soft);
+        border: 1px solid var(--sage-line);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+      }
+      .tech-card .tc-label {
+        font-family: "Inter", sans-serif;
+        font-size: 10.5px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--label);
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .tech-card h4 {
+        font-size: 17px;
+        margin-bottom: 4px;
+      }
+      .tech-card p {
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      footer {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 30px 24px 60px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-family: "Inter", sans-serif;
+        font-size: 12px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      /* ── As-Is / To-Be ── */
+      .proc-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 16px;
+        margin-bottom: 20px;
+      }
+      .proc-pills {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        margin-top: 6px;
+      }
+      .proc-pill {
+        font-family: "Inter", sans-serif;
+        font-size: 11.5px;
+        color: var(--ink-soft);
+        background: var(--card-soft);
+        border: 1px solid var(--sage-line);
+        border-radius: 30px;
+        padding: 5px 12px;
+      }
+      .proc-pill b {
+        color: var(--olive-d);
+      }
+      .metrics-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin: 6px 0 22px;
+      }
+      @media (max-width: 680px) {
+        .metrics-strip {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      .metric-box {
+        background: var(--card-soft);
+        border: 1px solid var(--sage-line);
+        border-radius: var(--radius);
+        padding: 16px 14px;
+        text-align: center;
+      }
+      .metric-box .mb-val {
+        font-family: "Playfair Display", serif;
+        font-size: 28px;
+        color: var(--olive-d);
+        line-height: 1;
+        margin-bottom: 6px;
+      }
+      .metric-box .mb-lab {
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.4;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .flow-compare {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-top: 4px;
+      }
+      @media (max-width: 860px) {
+        .flow-compare {
+          grid-template-columns: 1fr;
+        }
+      }
+      .flow-col {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+      }
+      .flow-col.as-is {
+        border-top: 3px solid var(--amber);
+      }
+      .flow-col.to-be {
+        border-top: 3px solid var(--olive);
+      }
+      .fc-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      .fc-badge {
+        font-family: "Inter", sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 30px;
+      }
+      .fc-badge.as-is {
+        background: #fce5c2;
+        color: #7d4d10;
+      }
+      .fc-badge.to-be {
+        background: #dbe2c2;
+        color: #455020;
+      }
+      .fc-head-title {
+        font-family: "Playfair Display", serif;
+        font-size: 16px;
+        color: var(--ink);
+      }
+      .flow-step {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .flow-step:last-child {
+        border-bottom: none;
+      }
+      .fs-num {
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        flex-shrink: 0;
+        width: 22px;
+        margin-top: 3px;
+      }
+      .fs-body {
+        flex: 1;
+      }
+      .fs-label {
+        font-family: "Playfair Display", serif;
+        font-size: 14.5px;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 2px;
+      }
+      .fs-meta {
+        font-family: "Inter", sans-serif;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      .flow-step.bottleneck .fs-num,
+      .flow-step.bottleneck .fs-label {
+        color: var(--red);
+      }
+      .flow-step.bottleneck .fs-meta {
+        color: #b0472b;
+      }
+      .flow-step.improved .fs-num,
+      .flow-step.improved .fs-label {
+        color: var(--olive-d);
+      }
+      .fc-footer {
+        font-family: "Inter", sans-serif;
+        font-size: 11.5px;
+        font-weight: 600;
+        text-align: center;
+        padding: 10px 0 2px;
+        color: var(--muted);
+      }
+      .fc-footer.as-is {
+        color: var(--red);
+      }
+      .fc-footer.to-be {
+        color: var(--olive-d);
+      }
+      .insight-box {
+        background: #f1f4e9;
+        border: 1px solid var(--sage-line);
+        border-left: 3px solid var(--olive);
+        border-radius: var(--radius);
+        padding: 16px 20px;
+        margin: 20px 0;
+      }
+      .ib-label {
+        font-family: "Inter", sans-serif;
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--olive-d);
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .insight-box p {
+        font-family: "Inter", sans-serif;
+        font-size: 14px;
+        color: var(--ink-soft);
+        line-height: 1.65;
+      }
+      .pain-list {
+        margin-top: 12px;
+      }
+      .pain-item {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .pain-item:last-child {
+        border-bottom: none;
+      }
+      .pi-num {
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--red);
+        flex-shrink: 0;
+        width: 20px;
+        margin-top: 2px;
+      }
+      .pi-body {
+        font-family: "Inter", sans-serif;
+        font-size: 14px;
+        color: var(--ink-soft);
+        line-height: 1.5;
+      }
+      .pi-body strong {
+        color: var(--ink);
+        display: block;
+        margin-bottom: 2px;
+      }
+      .actors-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 14px;
+      }
+      @media (max-width: 680px) {
+        .actors-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .actor-card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--olive);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+      }
+      .ac-role {
+        font-family: "Inter", sans-serif;
+        font-size: 10.5px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--label);
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .actor-card h4 {
+        font-size: 17px;
+        margin-bottom: 6px;
+      }
+      .actor-card p {
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body class="home">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-in">
+        <div class="brand">
+          <span class="word">IA<b>plicada</b></span>
+          <span class="ctx">· Aurora · Portal</span>
         </div>
-      </section>
-
-      <section class="block">
-        <div class="sec-kicker label">Marcos de entrega</div>
-        <h2 class="sec-title serif">Do piloto ao <span class="it">MVP consolidado.</span></h2>
-        <table class="tbl" style="margin-top:16px;">
-          <thead><tr><th>Marco</th><th>Detalhe</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr><td><strong>M1 · Importação Inteligente de Extratos</strong></td><td>PDF, CSV, imagem ou planilha — qualquer banco, qualquer formato. IA estrutura data, valor e tipo de cada lançamento</td><td><span class="pill done">Concluído</span></td></tr>
-            <tr><td><strong>M2 · Motor de Classificação Multi-cliente</strong></td><td>Regras por cliente, aprendizado contínuo e fila de pendentes — processo nunca trava por nome desconhecido</td><td><span class="pill done">Concluído</span></td></tr>
-            <tr><td><strong>M3 · DFC Automática + Dashboard por Cliente</strong></td><td>DFC gerada automaticamente, projeção 30/60/90 dias e exportação PDF/Excel pronta para a reunião</td><td><span class="pill done">Concluído</span></td></tr>
-            <tr><td><strong>M4 · Painel Multi-cliente — Cockpit da Claudia</strong></td><td>Status de fechamento, pendências e alertas de saúde financeira de todos os clientes em uma tela</td><td><span class="pill done">Concluído</span></td></tr>
-            <tr><td><strong>Segurança avançada + Manutenção automática</strong></td><td>Isolamento total de dados por cliente, aprovação segura e limpeza semanal automática de regras</td><td><span class="pill done">Concluído</span></td></tr>
-            <tr><td><strong>Projeção DFC por padrão de recorrência</strong></td><td>Despesas fixas projetadas com base no histórico real de recorrências identificadas automaticamente</td><td><span class="pill done">Concluído</span></td></tr>
-            <tr><td><strong>M5 · Portal do Cliente — Login Próprio</strong></td><td>Login individual por empresa, sub-roles owner/financeiro, DFC/DRE em tempo real, controle de acesso por cliente</td><td><span class="pill done">Concluído</span></td></tr>
-            <tr><td><strong>M6 · Funil de Captação + Pipeline Comercial</strong></td><td>Pipeline completo lead → proposta → contrato, envio automático por e-mail via n8n, contratos com 17 cláusulas</td><td><span class="pill done">Concluído</span></td></tr>
-          </tbody>
-        </table>
-      </section>
-
-      <section class="block">
-        <div class="sec-kicker label">Escopo por módulo</div>
-        <h2 class="sec-title serif">O que foi <span class="it">construído.</span></h2>
-
-        <div class="pdetail">
-          <div class="head"><h3>M1 · Importação Inteligente de Extratos</h3><span class="when">Entregue 10 jun 2026</span></div>
-          <p class="obj">Fim do processo manual no IAMPA. Upload do extrato → sistema organiza tudo.</p>
-          <ul>
-            <li>PDF, CSV, imagem ou planilha — qualquer banco, qualquer formato</li>
-            <li>Múltiplas contas por cliente (ex: Nubank + BB do mesmo cliente)</li>
-            <li>IA estrutura automaticamente: data, valor, descrição e tipo de cada lançamento</li>
-            <li>Interface de lançamento manual para clientes que usam dinheiro em espécie</li>
-            <li>Histórico mantido — sistema aprende padrões entre meses</li>
-          </ul>
+        <div style="display: flex; align-items: center; gap: 14px">
+          <span class="badge">M1–M6 em Produção</span>
+          <span class="upd">Atualizado 24 jun 2026</span>
         </div>
+      </div>
+    </header>
 
-        <div class="pdetail">
-          <div class="head"><h3>M2 · Motor de Classificação Multi-cliente</h3><span class="when">Entregue 10 jun 2026</span></div>
-          <p class="obj">Nome estranho não paralisa o fechamento. Claudia valida só o que é novo.</p>
-          <ul>
-            <li>Plano de contas individual por cliente</li>
-            <li>Regras configuráveis: fornecedor X → categoria Y → grupo Z</li>
-            <li>Aprendizado contínuo — classifica automaticamente nas próximas importações</li>
-            <li>Aprovação de recorrências: fixos do mês anterior precisam ser confirmados</li>
-            <li>Fila de pendentes — processo nunca trava por nome desconhecido</li>
-          </ul>
+    <!-- COMPACT NAV -->
+    <nav class="compact-nav">
+      <div class="inner">
+        <button class="back" onclick="goHome()" type="button">
+          <span>&larr;</span> Voltar à navegação
+        </button>
+        <div class="chips">
+          <button class="chip" data-view="projeto" type="button">Projeto</button>
+          <button class="chip" data-view="fluxo" type="button">Fluxo Operacional</button>
         </div>
+      </div>
+    </nav>
 
-        <div class="pdetail">
-          <div class="head"><h3>M3 · DFC Automática + Dashboard por Cliente</h3><span class="when">Entregue 18 jun 2026</span></div>
-          <p class="obj">Claudia chega na reunião com o relatório já gerado. Cliente não é mais surpreendido.</p>
-          <ul>
-            <li>DFC gerada automaticamente dos lançamentos classificados</li>
-            <li>Contas a pagar/receber, gastos fixos/variáveis por categoria</li>
-            <li>Projeção de 30, 60 e 90 dias com base em recorrências e histórico real</li>
-            <li>Gestão de parcelamentos no cartão — cada parcela aparece no mês certo</li>
-            <li>Exportação PDF e Excel pronta para a reunião de fechamento</li>
-          </ul>
-        </div>
+    <!-- HERO -->
+    <section class="hero">
+      <div class="kicker label">M1–M6 em produção · 24 jun 2026 · escopo base concluído</div>
+      <h1 class="serif">
+        Portal de Acompanhamento<br /><span class="it">Aurora × IAplicada.</span>
+      </h1>
+      <p class="lede">
+        Um único lugar para acompanhar o projeto de gestão financeira inteligente. Do extrato do
+        cliente ao relatório DFC/DRE — com transparência de escopo, módulos entregues e evolução em
+        construção.
+      </p>
+    </section>
 
-        <div class="pdetail">
-          <div class="head"><h3>M4 · Painel Multi-cliente — Cockpit da Claudia</h3><span class="when">Entregue 18 jun 2026</span></div>
-          <p class="obj">Com 20–30 clientes é impossível controlar sem painel. Este é o cockpit da Claudia.</p>
-          <ul>
-            <li>Status de fechamento de cada cliente: pendente / em andamento / fechado</li>
-            <li>Lista de pendências de todos os clientes em uma tela</li>
-            <li>Histórico completo por cliente — todos os meses anteriores</li>
-            <li>Alertas de saúde financeira por cliente com orientação de ação</li>
-            <li>Indicador de saúde calculado pela margem real comparada ao referencial do setor</li>
-          </ul>
-        </div>
-
-        <div class="pdetail">
-          <div class="head"><h3>M5 · Portal do Cliente — Login Próprio</h3><span class="when">Entregue 23 jun 2026</span></div>
-          <p class="obj">Cada empresário acessa o próprio financeiro com login individual — sem depender de relatório enviado pela Claudia.</p>
-          <ul>
-            <li>Login individual por empresa — cada cliente vê só o próprio financeiro</li>
-            <li>Sub-roles: dono da empresa (owner) e equipe financeira (financeiro)</li>
-            <li>DFC e DRE disponíveis em tempo real, sem aguardar envio de relatório</li>
-            <li>Claudia define o que cada cliente pode visualizar (portal_features por cliente)</li>
-            <li>Download de relatórios diretamente pelo portal — PDF e Excel em 1 clique</li>
-          </ul>
-        </div>
-
-        <div class="pdetail">
-          <div class="head"><h3>M6 · Funil de Captação + Pipeline Comercial</h3><span class="when">Entregue 22 jun 2026</span></div>
-          <p class="obj">Sair da dependência de indicações: funil completo do lead ao contrato assinado.</p>
-          <ul>
-            <li>Pipeline completo: lead → diagnóstico → proposta → fechamento</li>
-            <li>Drawer de deal com avanço de etapa e histórico de atividades por negócio</li>
-            <li>Proposta enviada automaticamente por e-mail via n8n ao avançar de etapa</li>
-            <li>Contratos gerados com 17 cláusulas reais e logo Aurora, enviados pelo sistema</li>
-            <li>Expiração automática de propostas abertas há mais de 30 dias</li>
-          </ul>
-        </div>
-      </section>
+    <!-- ENTRADAS -->
+    <div class="entradas">
+      <button class="entrada-btn" data-view="projeto">
+        <span class="num">ENTRADA 01</span>
+        <h2 class="serif">Projeto</h2>
+        <p>Módulos entregues, marcos, roadmap de evolução e próximos passos estratégicos.</p>
+      </button>
+      <button class="entrada-btn" data-view="fluxo">
+        <span class="num">ENTRADA 02</span>
+        <h2 class="serif">Fluxo Operacional</h2>
+        <p>
+          Pipeline do extrato financeiro, automações n8n, arquitetura técnica e mapeamento
+          As-Is/To-Be dos processos.
+        </p>
+      </button>
     </div>
 
-    <div class="pane" id="pane-proximos">
-      <section class="block">
-        <div class="sec-kicker label">Escopo contratado · concluído</div>
-        <h2 class="sec-title serif">Todos os módulos <span class="it">entregues.</span></h2>
-        <p class="sec-sub">M1 a M6 estão entregues e em produção. O escopo base contratado foi concluído em 24/06/2026. Os próximos passos são expansões do sistema além do escopo original.</p>
+    <!-- VIEW: PROJETO -->
+    <div class="view" id="view-projeto">
+      <div class="tabs">
+        <div class="tab active" data-pane="visao">Visão Geral</div>
+        <div class="tab" data-pane="proximos">Próximos Passos</div>
+        <div class="tab" data-pane="comunicacao">Comunicação</div>
+      </div>
+      <main>
+        <div class="pane active" id="pane-visao">
+          <section class="block">
+            <div class="sec-kicker label">Onde estamos · jun 2026</div>
+            <h2 class="sec-title serif">
+              Escopo base entregue e <span class="it">em produção.</span>
+            </h2>
+            <p class="sec-sub">
+              Todos os seis módulos do escopo contratado foram desenvolvidos e estão em operação. A
+              plataforma processa extratos, classifica transações com IA, gera relatórios DFC/DRE,
+              oferece cockpit centralizado, portal próprio para cada cliente e funil comercial
+              completo com propostas automáticas.
+            </p>
+            <div class="stats" style="margin-top: 22px">
+              <div class="stat">
+                <div class="v">M1–M6</div>
+                <div class="k">módulos em produção</div>
+              </div>
+              <div class="stat">
+                <div class="v">24/06</div>
+                <div class="k">conclusão do escopo</div>
+              </div>
+              <div class="stat">
+                <div class="v">3</div>
+                <div class="k">automações ativas</div>
+              </div>
+            </div>
+          </section>
 
-        <div class="pdetail" style="margin-top:20px;">
-          <div class="head"><h3>M5 · Portal do Cliente — Login Próprio</h3><span class="pill done">Concluído · 23 jun</span></div>
-          <p class="obj">Cada empresário acessa o próprio financeiro com login individual — sem depender de relatório enviado pela Claudia.</p>
-          <ul>
-            <li>Login individual por empresa — cada cliente vê só o próprio financeiro</li>
-            <li>Sub-roles: dono da empresa (owner) e equipe financeira (financeiro)</li>
-            <li>DFC e DRE disponíveis em tempo real, sem aguardar envio de relatório</li>
-            <li>Claudia define o que cada cliente pode visualizar (portal_features por cliente)</li>
-            <li>Download de relatórios diretamente pelo portal — PDF e Excel em 1 clique</li>
-          </ul>
+          <section class="block">
+            <div class="sec-kicker label">Marcos de entrega</div>
+            <h2 class="sec-title serif">Do piloto ao <span class="it">MVP consolidado.</span></h2>
+            <table class="tbl" style="margin-top: 16px">
+              <thead>
+                <tr>
+                  <th>Marco</th>
+                  <th>Detalhe</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>M1 · Importação Inteligente de Extratos</strong></td>
+                  <td>
+                    PDF, CSV, imagem ou planilha — qualquer banco, qualquer formato. IA estrutura
+                    data, valor e tipo de cada lançamento
+                  </td>
+                  <td><span class="pill done">Concluído</span></td>
+                </tr>
+                <tr>
+                  <td><strong>M2 · Motor de Classificação Multi-cliente</strong></td>
+                  <td>
+                    Regras por cliente, aprendizado contínuo e fila de pendentes — processo nunca
+                    trava por nome desconhecido
+                  </td>
+                  <td><span class="pill done">Concluído</span></td>
+                </tr>
+                <tr>
+                  <td><strong>M3 · DFC Automática + Dashboard por Cliente</strong></td>
+                  <td>
+                    DFC gerada automaticamente, projeção 30/60/90 dias e exportação PDF/Excel pronta
+                    para a reunião
+                  </td>
+                  <td><span class="pill done">Concluído</span></td>
+                </tr>
+                <tr>
+                  <td><strong>M4 · Painel Multi-cliente — Cockpit da Claudia</strong></td>
+                  <td>
+                    Status de fechamento, pendências e alertas de saúde financeira de todos os
+                    clientes em uma tela
+                  </td>
+                  <td><span class="pill done">Concluído</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Segurança avançada + Manutenção automática</strong></td>
+                  <td>
+                    Isolamento total de dados por cliente, aprovação segura e limpeza semanal
+                    automática de regras
+                  </td>
+                  <td><span class="pill done">Concluído</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Projeção DFC por padrão de recorrência</strong></td>
+                  <td>
+                    Despesas fixas projetadas com base no histórico real de recorrências
+                    identificadas automaticamente
+                  </td>
+                  <td><span class="pill done">Concluído</span></td>
+                </tr>
+                <tr>
+                  <td><strong>M5 · Portal do Cliente — Login Próprio</strong></td>
+                  <td>
+                    Login individual por empresa, sub-roles owner/financeiro, DFC/DRE em tempo real,
+                    controle de acesso por cliente
+                  </td>
+                  <td><span class="pill done">Concluído</span></td>
+                </tr>
+                <tr>
+                  <td><strong>M6 · Funil de Captação + Pipeline Comercial</strong></td>
+                  <td>
+                    Pipeline completo lead → proposta → contrato, envio automático por e-mail via
+                    n8n, contratos com 17 cláusulas
+                  </td>
+                  <td><span class="pill done">Concluído</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="block">
+            <div class="sec-kicker label">Escopo por módulo</div>
+            <h2 class="sec-title serif">O que foi <span class="it">construído.</span></h2>
+
+            <div class="pdetail">
+              <div class="head">
+                <h3>M1 · Importação Inteligente de Extratos</h3>
+                <span class="when">Entregue 10 jun 2026</span>
+              </div>
+              <p class="obj">
+                Fim do processo manual no IAMPA. Upload do extrato → sistema organiza tudo.
+              </p>
+              <ul>
+                <li>PDF, CSV, imagem ou planilha — qualquer banco, qualquer formato</li>
+                <li>Múltiplas contas por cliente (ex: Nubank + BB do mesmo cliente)</li>
+                <li>
+                  IA estrutura automaticamente: data, valor, descrição e tipo de cada lançamento
+                </li>
+                <li>Interface de lançamento manual para clientes que usam dinheiro em espécie</li>
+                <li>Histórico mantido — sistema aprende padrões entre meses</li>
+              </ul>
+            </div>
+
+            <div class="pdetail">
+              <div class="head">
+                <h3>M2 · Motor de Classificação Multi-cliente</h3>
+                <span class="when">Entregue 10 jun 2026</span>
+              </div>
+              <p class="obj">
+                Nome estranho não paralisa o fechamento. Claudia valida só o que é novo.
+              </p>
+              <ul>
+                <li>Plano de contas individual por cliente</li>
+                <li>Regras configuráveis: fornecedor X → categoria Y → grupo Z</li>
+                <li>Aprendizado contínuo — classifica automaticamente nas próximas importações</li>
+                <li>Aprovação de recorrências: fixos do mês anterior precisam ser confirmados</li>
+                <li>Fila de pendentes — processo nunca trava por nome desconhecido</li>
+              </ul>
+            </div>
+
+            <div class="pdetail">
+              <div class="head">
+                <h3>M3 · DFC Automática + Dashboard por Cliente</h3>
+                <span class="when">Entregue 18 jun 2026</span>
+              </div>
+              <p class="obj">
+                Claudia chega na reunião com o relatório já gerado. Cliente não é mais surpreendido.
+              </p>
+              <ul>
+                <li>DFC gerada automaticamente dos lançamentos classificados</li>
+                <li>Contas a pagar/receber, gastos fixos/variáveis por categoria</li>
+                <li>Projeção de 30, 60 e 90 dias com base em recorrências e histórico real</li>
+                <li>Gestão de parcelamentos no cartão — cada parcela aparece no mês certo</li>
+                <li>Exportação PDF e Excel pronta para a reunião de fechamento</li>
+              </ul>
+            </div>
+
+            <div class="pdetail">
+              <div class="head">
+                <h3>M4 · Painel Multi-cliente — Cockpit da Claudia</h3>
+                <span class="when">Entregue 18 jun 2026</span>
+              </div>
+              <p class="obj">
+                Com 20–30 clientes é impossível controlar sem painel. Este é o cockpit da Claudia.
+              </p>
+              <ul>
+                <li>Status de fechamento de cada cliente: pendente / em andamento / fechado</li>
+                <li>Lista de pendências de todos os clientes em uma tela</li>
+                <li>Histórico completo por cliente — todos os meses anteriores</li>
+                <li>Alertas de saúde financeira por cliente com orientação de ação</li>
+                <li>
+                  Indicador de saúde calculado pela margem real comparada ao referencial do setor
+                </li>
+              </ul>
+            </div>
+
+            <div class="pdetail">
+              <div class="head">
+                <h3>M5 · Portal do Cliente — Login Próprio</h3>
+                <span class="when">Entregue 23 jun 2026</span>
+              </div>
+              <p class="obj">
+                Cada empresário acessa o próprio financeiro com login individual — sem depender de
+                relatório enviado pela Claudia.
+              </p>
+              <ul>
+                <li>Login individual por empresa — cada cliente vê só o próprio financeiro</li>
+                <li>Sub-roles: dono da empresa (owner) e equipe financeira (financeiro)</li>
+                <li>DFC e DRE disponíveis em tempo real, sem aguardar envio de relatório</li>
+                <li>
+                  Claudia define o que cada cliente pode visualizar (portal_features por cliente)
+                </li>
+                <li>Download de relatórios diretamente pelo portal — PDF e Excel em 1 clique</li>
+              </ul>
+            </div>
+
+            <div class="pdetail">
+              <div class="head">
+                <h3>M6 · Funil de Captação + Pipeline Comercial</h3>
+                <span class="when">Entregue 22 jun 2026</span>
+              </div>
+              <p class="obj">
+                Sair da dependência de indicações: funil completo do lead ao contrato assinado.
+              </p>
+              <ul>
+                <li>Pipeline completo: lead → diagnóstico → proposta → fechamento</li>
+                <li>Drawer de deal com avanço de etapa e histórico de atividades por negócio</li>
+                <li>Proposta enviada automaticamente por e-mail via n8n ao avançar de etapa</li>
+                <li>
+                  Contratos gerados com 17 cláusulas reais e logo Aurora, enviados pelo sistema
+                </li>
+                <li>Expiração automática de propostas abertas há mais de 30 dias</li>
+              </ul>
+            </div>
+          </section>
         </div>
 
-        <div class="pdetail">
-          <div class="head"><h3>M6 · Funil de Captação + Pipeline Comercial</h3><span class="pill done">Concluído · 22 jun</span></div>
-          <p class="obj">Sair da dependência de indicações: funil completo do lead ao contrato assinado.</p>
-          <ul>
-            <li>Pipeline completo: lead → diagnóstico → proposta → fechamento</li>
-            <li>Drawer de deal com avanço de etapa e histórico de atividades por negócio</li>
-            <li>Proposta enviada automaticamente por e-mail via n8n ao avançar de etapa</li>
-            <li>Contratos gerados com 17 cláusulas reais e logo Aurora, enviados pelo sistema</li>
-            <li>Expiração automática de propostas abertas há mais de 30 dias</li>
-          </ul>
-        </div>
-      </section>
+        <div class="pane" id="pane-proximos">
+          <section class="block">
+            <div class="sec-kicker label">Escopo contratado · concluído</div>
+            <h2 class="sec-title serif">Todos os módulos <span class="it">entregues.</span></h2>
+            <p class="sec-sub">
+              M1 a M6 estão entregues e em produção. O escopo base contratado foi concluído em
+              24/06/2026. Os próximos passos são expansões do sistema além do escopo original.
+            </p>
 
-      <section class="block">
-        <div class="sec-kicker label">Fase 2 · Módulos futuros · Não incluídos no contrato atual</div>
-        <h2 class="sec-title serif">Oportunidades <span class="it">de evolução.</span></h2>
-        <p class="sec-sub">Melhorias e módulos adicionais disponíveis como aditivo após a entrega do escopo base.</p>
-        <table class="tbl" style="margin-top:20px;">
-          <thead><tr><th>Módulo</th><th>O que faz</th><th>Impacto</th></tr></thead>
-          <tbody>
-            <tr><td><strong>Agente IA</strong></td><td>Analisa a carteira completa e gera alertas de oportunidade e risco por cliente automaticamente<br><span style="font-size:12px;color:var(--muted);">Incluso gratuitamente na indicação de um cliente</span></td><td><span class="pill now">Alto</span></td></tr>
-            <tr><td><strong>Diagnóstico por IA na proposta</strong></td><td>Gera diagnóstico financeiro automático no momento da proposta — maior diferencial na venda</td><td><span class="pill now">Alto</span></td></tr>
-            <tr><td><strong>Alertas proativos por cliente</strong></td><td>Notificações automáticas quando um cliente apresenta variação financeira relevante</td><td><span class="pill now">Alto</span></td></tr>
-            <tr><td><strong>Indicadores avançados de saúde</strong></td><td>Liquidez, margem operacional e giro — complementa o indicador de saúde atual</td><td><span class="pill doing">Médio</span></td></tr>
-            <tr><td><strong>Benchmarking por setor</strong></td><td>Compara a margem do cliente com o referencial do setor de forma anônima</td><td><span class="pill now">Alto</span></td></tr>
-          </tbody>
-        </table>
-      </section>
+            <div class="pdetail" style="margin-top: 20px">
+              <div class="head">
+                <h3>M5 · Portal do Cliente — Login Próprio</h3>
+                <span class="pill done">Concluído · 23 jun</span>
+              </div>
+              <p class="obj">
+                Cada empresário acessa o próprio financeiro com login individual — sem depender de
+                relatório enviado pela Claudia.
+              </p>
+              <ul>
+                <li>Login individual por empresa — cada cliente vê só o próprio financeiro</li>
+                <li>Sub-roles: dono da empresa (owner) e equipe financeira (financeiro)</li>
+                <li>DFC e DRE disponíveis em tempo real, sem aguardar envio de relatório</li>
+                <li>
+                  Claudia define o que cada cliente pode visualizar (portal_features por cliente)
+                </li>
+                <li>Download de relatórios diretamente pelo portal — PDF e Excel em 1 clique</li>
+              </ul>
+            </div>
+
+            <div class="pdetail">
+              <div class="head">
+                <h3>M6 · Funil de Captação + Pipeline Comercial</h3>
+                <span class="pill done">Concluído · 22 jun</span>
+              </div>
+              <p class="obj">
+                Sair da dependência de indicações: funil completo do lead ao contrato assinado.
+              </p>
+              <ul>
+                <li>Pipeline completo: lead → diagnóstico → proposta → fechamento</li>
+                <li>Drawer de deal com avanço de etapa e histórico de atividades por negócio</li>
+                <li>Proposta enviada automaticamente por e-mail via n8n ao avançar de etapa</li>
+                <li>
+                  Contratos gerados com 17 cláusulas reais e logo Aurora, enviados pelo sistema
+                </li>
+                <li>Expiração automática de propostas abertas há mais de 30 dias</li>
+              </ul>
+            </div>
+          </section>
+
+          <section class="block">
+            <div class="sec-kicker label">
+              Fase 2 · Módulos futuros · Não incluídos no contrato atual
+            </div>
+            <h2 class="sec-title serif">Oportunidades <span class="it">de evolução.</span></h2>
+            <p class="sec-sub">
+              Melhorias e módulos adicionais disponíveis como aditivo após a entrega do escopo base.
+            </p>
+            <table class="tbl" style="margin-top: 20px">
+              <thead>
+                <tr>
+                  <th>Módulo</th>
+                  <th>O que faz</th>
+                  <th>Impacto</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Agente IA</strong></td>
+                  <td>
+                    Analisa a carteira completa e gera alertas de oportunidade e risco por cliente
+                    automaticamente<br /><span style="font-size: 12px; color: var(--muted)"
+                      >Incluso gratuitamente na indicação de um cliente</span
+                    >
+                  </td>
+                  <td><span class="pill now">Alto</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Diagnóstico por IA na proposta</strong></td>
+                  <td>
+                    Gera diagnóstico financeiro automático no momento da proposta — maior
+                    diferencial na venda
+                  </td>
+                  <td><span class="pill now">Alto</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Alertas proativos por cliente</strong></td>
+                  <td>
+                    Notificações automáticas quando um cliente apresenta variação financeira
+                    relevante
+                  </td>
+                  <td><span class="pill now">Alto</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Indicadores avançados de saúde</strong></td>
+                  <td>
+                    Liquidez, margem operacional e giro — complementa o indicador de saúde atual
+                  </td>
+                  <td><span class="pill doing">Médio</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Benchmarking por setor</strong></td>
+                  <td>Compara a margem do cliente com o referencial do setor de forma anônima</td>
+                  <td><span class="pill now">Alto</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+
+        <div class="pane" id="pane-comunicacao">
+          <section class="block">
+            <div class="sec-kicker label">Rituais de acompanhamento</div>
+            <h2 class="sec-title serif">Transparência <span class="it">em cada entrega.</span></h2>
+            <table class="tbl" style="margin-top: 16px">
+              <thead>
+                <tr>
+                  <th>Ritual</th>
+                  <th>Quando</th>
+                  <th>Como funciona</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Status de sprint</strong></td>
+                  <td>A cada entrega</td>
+                  <td>
+                    Resumo escrito com o que foi entregue, PR mergeado, link e próximos passos
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Review de funcionalidade</strong></td>
+                  <td>A cada nova feature</td>
+                  <td>Demonstração no ambiente de produção com validação da Claudia</td>
+                </tr>
+                <tr>
+                  <td><strong>Canal direto</strong></td>
+                  <td>Ad hoc · sempre disponível</td>
+                  <td>WhatsApp · <a href="mailto:tech@iaplicada.com">tech@iaplicada.com</a></td>
+                </tr>
+                <tr>
+                  <td><strong>Portal de acompanhamento</strong></td>
+                  <td>Sempre disponível</td>
+                  <td>Este portal — atualizado a cada sprint</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="block">
+            <div class="sec-kicker label">Acessos ao sistema</div>
+            <h2 class="sec-title serif">Onde <span class="it">tudo está.</span></h2>
+            <div class="access" style="margin-top: 16px; grid-template-columns: repeat(2, 1fr)">
+              <div class="it-card">
+                <span>Plataforma Aurora</span
+                ><a href="https://demeo-finance-hub.lovable.app" target="_blank"
+                  >demeo-finance-hub.lovable.app</a
+                >
+              </div>
+              <div class="it-card">
+                <span>Contato IAplicada</span
+                ><a href="mailto:tech@iaplicada.com">tech@iaplicada.com</a>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
     </div>
 
-    <div class="pane" id="pane-comunicacao">
-      <section class="block">
-        <div class="sec-kicker label">Rituais de acompanhamento</div>
-        <h2 class="sec-title serif">Transparência <span class="it">em cada entrega.</span></h2>
-        <table class="tbl" style="margin-top:16px;">
-          <thead><tr><th>Ritual</th><th>Quando</th><th>Como funciona</th></tr></thead>
-          <tbody>
-            <tr><td><strong>Status de sprint</strong></td><td>A cada entrega</td><td>Resumo escrito com o que foi entregue, PR mergeado, link e próximos passos</td></tr>
-            <tr><td><strong>Review de funcionalidade</strong></td><td>A cada nova feature</td><td>Demonstração no ambiente de produção com validação da Claudia</td></tr>
-            <tr><td><strong>Canal direto</strong></td><td>Ad hoc · sempre disponível</td><td>WhatsApp · <a href="mailto:tech@iaplicada.com">tech@iaplicada.com</a></td></tr>
-            <tr><td><strong>Portal de acompanhamento</strong></td><td>Sempre disponível</td><td>Este portal — atualizado a cada sprint</td></tr>
-          </tbody>
-        </table>
-      </section>
+    <!-- VIEW: FLUXO OPERACIONAL -->
+    <div class="view" id="view-fluxo">
+      <div class="tabs">
+        <div class="tab active" data-pane="pipeline">Pipeline</div>
+        <div class="tab" data-pane="arquitetura">Arquitetura</div>
+        <div class="tab" data-pane="asistobe">As-Is / To-Be</div>
+      </div>
+      <main>
+        <div class="pane active" id="pane-pipeline">
+          <section class="block">
+            <div
+              style="
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 16px;
+                flex-wrap: wrap;
+                border-bottom: 1px solid var(--line);
+                padding-bottom: 16px;
+                margin-bottom: 18px;
+              "
+            >
+              <div>
+                <div class="label" style="margin-bottom: 8px">
+                  PROC-001 · Importação e Classificação de Extrato
+                </div>
+                <h2 class="sec-title serif" style="margin-bottom: 4px">Pipeline financeiro</h2>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start">
+                <span
+                  style="
+                    font-family: &quot;Inter&quot;, sans-serif;
+                    font-size: 11.5px;
+                    color: var(--ink-soft);
+                    background: var(--card-soft);
+                    border: 1px solid var(--sage-line);
+                    border-radius: 30px;
+                    padding: 5px 12px;
+                  "
+                  ><b style="color: var(--olive-d)">Entradas:</b> Excel · CSV · PDF</span
+                >
+                <span
+                  style="
+                    font-family: &quot;Inter&quot;, sans-serif;
+                    font-size: 11.5px;
+                    color: var(--ink-soft);
+                    background: var(--card-soft);
+                    border: 1px solid var(--sage-line);
+                    border-radius: 30px;
+                    padding: 5px 12px;
+                  "
+                  ><b style="color: var(--olive-d)">Saídas:</b> DFC · DRE · Gerencial</span
+                >
+              </div>
+            </div>
 
-      <section class="block">
-        <div class="sec-kicker label">Acessos ao sistema</div>
-        <h2 class="sec-title serif">Onde <span class="it">tudo está.</span></h2>
-        <div class="access" style="margin-top:16px;grid-template-columns:repeat(2,1fr);">
-          <div class="it-card"><span>Plataforma Aurora</span><a href="https://demeo-finance-hub.lovable.app" target="_blank">demeo-finance-hub.lovable.app</a></div>
-          <div class="it-card"><span>Contato IAplicada</span><a href="mailto:tech@iaplicada.com">tech@iaplicada.com</a></div>
+            <div class="pipe-row">
+              <div class="pipe-step">
+                <span class="label">01 · Cliente</span>
+                <h4>Upload do arquivo</h4>
+                <p>
+                  Cliente acessa o portal e envia o extrato financeiro no formato Excel, CSV ou PDF.
+                </p>
+              </div>
+              <div class="pipe-arrow">→</div>
+              <div class="pipe-step">
+                <span class="label">02 · Sistema</span>
+                <h4>Validação e armazenamento</h4>
+                <p>
+                  O sistema valida o arquivo, armazena com segurança e aciona as automações em
+                  segundo plano.
+                </p>
+              </div>
+              <div class="pipe-arrow">→</div>
+              <div class="pipe-step">
+                <span class="label">03 · IA + Regras</span>
+                <h4>Classificação automática</h4>
+                <p>
+                  Regras pré-configuradas têm prioridade. A inteligência artificial classifica o que
+                  as regras não cobrem. Resultado: 100% dos lançamentos classificados
+                  automaticamente.
+                </p>
+              </div>
+            </div>
+
+            <div class="pipe-row" style="margin-top: 10px">
+              <div class="pipe-step">
+                <span class="label">04 · Automação</span>
+                <h4>Notificação automática</h4>
+                <p>
+                  Notificação enviada quando há lançamentos pendentes de revisão. Resumo diário às
+                  09h (segunda a sexta) consolida os casos do dia.
+                </p>
+              </div>
+              <div class="pipe-arrow">→</div>
+              <div class="pipe-step">
+                <span class="label">05 · Claudia</span>
+                <h4>Revisão e aprovação</h4>
+                <p>
+                  Lançamentos pendentes são revisados e aprovados em lote. Aprovação segura — sem
+                  risco de aprovação parcial.
+                </p>
+              </div>
+              <div class="pipe-arrow">→</div>
+              <div class="pipe-step">
+                <span class="label">06 · Sistema</span>
+                <h4>Relatórios e portal</h4>
+                <p>
+                  DFC, DRE, Completo e Gerencial gerados automaticamente e disponíveis no portal com
+                  isolamento total por cliente.
+                </p>
+              </div>
+            </div>
+
+            <p class="note">
+              A aprovação em lote é atômica — ou tudo é aprovado de uma vez, ou nada muda. Cada
+              cliente acessa apenas os seus próprios dados. As automações operam em segundo plano e
+              não interferem na velocidade do sistema.
+            </p>
+          </section>
+
+          <section class="block">
+            <div class="sec-kicker label">Automações · n8n · iaplicada.app.n8n.cloud</div>
+            <h2 class="sec-title serif">Três workflows <span class="it">em operação.</span></h2>
+
+            <div class="n8n-card" style="margin-top: 16px">
+              <div class="head">
+                <div class="dot"></div>
+                <div class="wf-name">Aurora · Pipeline de Extrato</div>
+                <span class="pill now" style="margin-left: auto">Ativo</span>
+              </div>
+              <div class="step">
+                <strong>Tempo real:</strong> a cada importação, verifica se há lançamentos pendentes
+                e envia notificação imediata quando necessário.
+              </div>
+              <div class="step">
+                <strong>Agendado:</strong> todos os dias úteis às 09h, consolida e envia um resumo
+                dos pendentes do dia por cliente.
+              </div>
+            </div>
+
+            <div class="n8n-card">
+              <div class="head">
+                <div class="dot"></div>
+                <div class="wf-name">Aurora · Alerta de Erros</div>
+                <span class="pill now" style="margin-left: auto">Ativo</span>
+              </div>
+              <div class="step">
+                <strong>Erros de automação:</strong> qualquer falha nas automações gera alerta
+                imediato com detalhes do que ocorreu.
+              </div>
+              <div class="step">
+                <strong>Erros de sistema:</strong> problemas no sistema também geram alerta
+                unificado pelo mesmo canal.
+              </div>
+            </div>
+
+            <div class="n8n-card">
+              <div class="head">
+                <div class="dot"></div>
+                <div class="wf-name">Aurora · Higiene Semanal de Regras</div>
+                <span class="pill now" style="margin-left: auto">Ativo</span>
+              </div>
+              <div class="step">
+                <strong>Toda segunda-feira às 09h:</strong> verifica e desativa automaticamente
+                regras de classificação que ficaram sem uso por mais de 180 dias.
+              </div>
+              <div class="step">
+                Mantém a base de regras enxuta e garante que a classificação continue precisa ao
+                longo do tempo.
+              </div>
+            </div>
+          </section>
         </div>
-      </section>
+
+        <div class="pane" id="pane-arquitetura">
+          <section class="block">
+            <div class="sec-kicker label">Stack técnica</div>
+            <h2 class="sec-title serif">
+              Cada camada com <span class="it">responsabilidade única.</span>
+            </h2>
+            <div class="tech-grid" style="margin-top: 18px">
+              <div class="tech-card">
+                <div class="tc-label">Interface</div>
+                <h4>Lovable · React</h4>
+                <p>
+                  Telas do sistema geradas via Lovable. Publicação automática a cada atualização
+                  aprovada.
+                </p>
+              </div>
+              <div class="tech-card">
+                <div class="tc-label">Lógica do sistema</div>
+                <h4>Supabase Functions</h4>
+                <p>
+                  Cada operação tem sua própria função dedicada: importação, classificação,
+                  relatórios e manutenção.
+                </p>
+              </div>
+              <div class="tech-card">
+                <div class="tc-label">Banco de dados</div>
+                <h4>Supabase · PostgreSQL</h4>
+                <p>
+                  Isolamento total por cliente. Cada usuário acessa apenas seus próprios dados —
+                  garantido em todas as camadas.
+                </p>
+              </div>
+              <div class="tech-card">
+                <div class="tc-label">Inteligência Artificial</div>
+                <h4>Claude IA · IAplicada</h4>
+                <p>
+                  Classificação automática de lançamentos. 100% dos itens classificados na primeira
+                  passagem.
+                </p>
+              </div>
+              <div class="tech-card">
+                <div class="tc-label">Automações</div>
+                <h4>n8n · IAplicada</h4>
+                <p>
+                  3 automações ativas: Pipeline de Extrato, Alerta de Erros e Higiene Semanal de
+                  Regras.
+                </p>
+              </div>
+              <div class="tech-card">
+                <div class="tc-label">Publicação</div>
+                <h4>Lovable Cloud · Automático</h4>
+                <p>
+                  Toda atualização aprovada vai automaticamente para produção. Sem processos manuais
+                  de publicação.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section class="block">
+            <div class="sec-kicker label">Segurança e isolamento de dados</div>
+            <h2 class="sec-title serif">Proteção em <span class="it">todas as camadas.</span></h2>
+            <div class="grid g2" style="margin-top: 16px">
+              <div class="card accent">
+                <span class="label">Isolamento por cliente</span>
+                <h4>Dados 100% separados</h4>
+                <p>
+                  Cada cliente acessa apenas os seus próprios dados. O isolamento é garantido em
+                  todas as camadas do sistema — não é configuração, é arquitetura.
+                </p>
+              </div>
+              <div class="card accent">
+                <span class="label">Aprovação segura</span>
+                <h4>Tudo ou nada</h4>
+                <p>
+                  A aprovação em lote é atômica: ou todos os lançamentos são aprovados de uma vez,
+                  ou nenhum muda. Sem risco de aprovação parcial ou inconsistência.
+                </p>
+              </div>
+              <div class="card accent">
+                <span class="label">Dados preservados</span>
+                <h4>Clientes nunca deletados</h4>
+                <p>
+                  Clientes removidos ficam arquivados, não apagados. Histórico financeiro sempre
+                  acessível, sem perda de dados.
+                </p>
+              </div>
+              <div class="card accent">
+                <span class="label">Performance</span>
+                <h4>90 dias por padrão</h4>
+                <p>
+                  A visualização padrão cobre os últimos 90 dias. O histórico completo está
+                  disponível com um clique — sem lentidão no uso cotidiano.
+                </p>
+              </div>
+              <div class="card accent">
+                <span class="label">Manutenção automática</span>
+                <h4>Regras sempre atualizadas</h4>
+                <p>
+                  Todo início de semana, o sistema identifica e desativa regras de classificação que
+                  ficaram sem uso — a base se mantém enxuta e precisa sozinha.
+                </p>
+              </div>
+              <div class="card accent">
+                <span class="label">Acesso controlado</span>
+                <h4>Consultas sempre seguras</h4>
+                <p>
+                  Toda consulta ao banco respeita os limites de acesso do usuário conectado,
+                  independente de como é feita. Segurança que não depende de boa vontade do código.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="pane" id="pane-asistobe">
+          <section class="block">
+            <!-- Cabeçalho do processo -->
+            <div class="proc-header">
+              <div>
+                <div class="label" style="margin-bottom: 8px">
+                  PROC-002 · Gestão Financeira do Cliente
+                </div>
+                <h2 class="sec-title serif" style="margin-bottom: 4px">
+                  As-Is <span class="it">vs.</span> To-Be
+                </h2>
+              </div>
+              <div class="proc-pills">
+                <span class="proc-pill"><b>Área:</b> BPO Financeiro</span>
+                <span class="proc-pill"><b>Mapeado em:</b> Jun 2026</span>
+                <span class="proc-pill"><b>Etapas AS-IS:</b> 8</span>
+                <span class="proc-pill"><b>Etapas TO-BE:</b> 8</span>
+              </div>
+            </div>
+
+            <!-- Métricas -->
+            <div class="metrics-strip">
+              <div class="metric-box">
+                <div class="mb-val">~80 min</div>
+                <div class="mb-lab">economizados por cliente / mês</div>
+              </div>
+              <div class="metric-box">
+                <div class="mb-val">100%</div>
+                <div class="mb-lab">lançamentos classificados automaticamente</div>
+              </div>
+              <div class="metric-box">
+                <div class="mb-val">0</div>
+                <div class="mb-lab">planilhas manuais no processo</div>
+              </div>
+              <div class="metric-box">
+                <div class="mb-val">3</div>
+                <div class="mb-lab">automações ativas em operação</div>
+              </div>
+            </div>
+
+            <!-- Comparação side-by-side -->
+            <div class="flow-compare">
+              <!-- AS-IS -->
+              <div class="flow-col as-is">
+                <div class="fc-head">
+                  <span class="fc-badge as-is">AS-IS · antes da Aurora</span>
+                  <span class="fc-head-title">Como era</span>
+                </div>
+                <div class="flow-step">
+                  <span class="fs-num">01</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Cliente envia extrato por e-mail ou WhatsApp</div>
+                    <div class="fs-meta">
+                      Arquivo sem padrão de formato · depende do cliente lembrar de enviar
+                    </div>
+                  </div>
+                </div>
+                <div class="flow-step">
+                  <span class="fs-num">02</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Claudia baixa e converte o arquivo</div>
+                    <div class="fs-meta">
+                      ~10 min por cliente / mês · formatos inconsistentes a cada envio
+                    </div>
+                  </div>
+                </div>
+                <div class="flow-step">
+                  <span class="fs-num">03</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Lança transações na planilha uma a uma</div>
+                    <div class="fs-meta">
+                      ~20–30 min · cada linha inserida manualmente · alto risco de erro
+                    </div>
+                  </div>
+                </div>
+                <div class="flow-step bottleneck">
+                  <span class="fs-num">04</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Categoriza cada transação manualmente ← gargalo</div>
+                    <div class="fs-meta">
+                      ~15–25 min · decisão repetida todo mês para cada cliente
+                    </div>
+                  </div>
+                </div>
+                <div class="flow-step">
+                  <span class="fs-num">05</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Consolida planilha DFC / DRE</div>
+                    <div class="fs-meta">
+                      ~10 min · montar fórmulas e revisar totais manualmente
+                    </div>
+                  </div>
+                </div>
+                <div class="flow-step">
+                  <span class="fs-num">06</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Exporta e formata o relatório</div>
+                    <div class="fs-meta">~5 min · salva PDF, ajusta layout, nomeia arquivo</div>
+                  </div>
+                </div>
+                <div class="flow-step">
+                  <span class="fs-num">07</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Envia relatório por e-mail ou WhatsApp</div>
+                    <div class="fs-meta">
+                      ~5 min · cliente recebe passivamente, sem acesso ao histórico
+                    </div>
+                  </div>
+                </div>
+                <div class="flow-step">
+                  <span class="fs-num">08</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Reunião — explicando os números</div>
+                    <div class="fs-meta">
+                      Tempo da reunião gasto explicando o que aconteceu, não o que fazer
+                    </div>
+                  </div>
+                </div>
+                <div class="fc-footer as-is">Total AS-IS · ~65–85 min por cliente / mês</div>
+              </div>
+
+              <!-- TO-BE -->
+              <div class="flow-col to-be">
+                <div class="fc-head">
+                  <span class="fc-badge to-be">TO-BE · com Aurora</span>
+                  <span class="fc-head-title">Como ficou</span>
+                </div>
+                <div class="flow-step improved">
+                  <span class="fs-num">01</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Cliente faz upload no portal — qualquer formato</div>
+                    <div class="fs-meta">
+                      PDF, Excel ou CSV · ~2 min · disponível 24h pelo login próprio
+                    </div>
+                  </div>
+                </div>
+                <div class="flow-step improved">
+                  <span class="fs-num">02</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Sistema valida e processa automaticamente</div>
+                    <div class="fs-meta">
+                      Estrutura data, valor e descrição de cada lançamento · instantâneo
+                    </div>
+                  </div>
+                </div>
+                <div class="flow-step improved">
+                  <span class="fs-num">03</span>
+                  <div class="fs-body">
+                    <div class="fs-label">IA + regras classificam 100% dos lançamentos</div>
+                    <div class="fs-meta">
+                      Regras configuradas uma vez · IA cobre o restante · sem intervenção
+                    </div>
+                  </div>
+                </div>
+                <div class="flow-step improved">
+                  <span class="fs-num">04</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Claudia revisa apenas os pendentes</div>
+                    <div class="fs-meta">
+                      ~3–5 min · só casos novos ou ambíguos · aprovação em lote
+                    </div>
+                  </div>
+                </div>
+                <div class="flow-step improved">
+                  <span class="fs-num">05</span>
+                  <div class="fs-body">
+                    <div class="fs-label">DFC e DRE gerados automaticamente</div>
+                    <div class="fs-meta">
+                      Disponíveis imediatamente após aprovação · sem consolidação manual
+                    </div>
+                  </div>
+                </div>
+                <div class="flow-step improved">
+                  <span class="fs-num">06</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Cliente acessa o portal em tempo real</div>
+                    <div class="fs-meta">
+                      Login próprio · sem aguardar envio · histórico sempre disponível
+                    </div>
+                  </div>
+                </div>
+                <div class="flow-step improved">
+                  <span class="fs-num">07</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Relatório PDF gerado em 1 clique</div>
+                    <div class="fs-meta">
+                      Claudia gera quando quiser · sem formatar nada · pronto para reunião
+                    </div>
+                  </div>
+                </div>
+                <div class="flow-step improved">
+                  <span class="fs-num">08</span>
+                  <div class="fs-body">
+                    <div class="fs-label">Reunião — discutindo estratégia</div>
+                    <div class="fs-meta">
+                      Números visíveis com antecedência · conversa focada em decisão
+                    </div>
+                  </div>
+                </div>
+                <div class="fc-footer to-be">Total TO-BE · ~5–8 min por cliente / mês</div>
+              </div>
+            </div>
+
+            <!-- Insight-chave -->
+            <div class="insight-box" style="margin-top: 22px">
+              <div class="ib-label">Insight-chave da transformação</div>
+              <p>
+                O gargalo era a categorização manual — repetida todo mês, para cada cliente,
+                lançamento por lançamento. Com Aurora, Claudia configura as regras
+                <strong>uma vez</strong> e o sistema executa para sempre. Ela deixa de ser a
+                operadora e passa a ser a consultora.
+              </p>
+            </div>
+          </section>
+
+          <section class="block">
+            <div class="sec-kicker label">Dores do processo AS-IS</div>
+            <h2 class="sec-title serif">O que <span class="it">travava o processo.</span></h2>
+            <div class="pain-list">
+              <div class="pain-item">
+                <span class="pi-num">01</span>
+                <div class="pi-body">
+                  <strong>Processo manual e repetitivo</strong>Alto risco de erro por digitação ou
+                  categorização incorreta — o mesmo trabalho todo mês, sem aprendizado.
+                </div>
+              </div>
+              <div class="pain-item">
+                <span class="pi-num">02</span>
+                <div class="pi-body">
+                  <strong>Cliente sem visibilidade em tempo real</strong>Só recebia o relatório
+                  quando Claudia enviava — sem acesso ao próprio financeiro entre reuniões.
+                </div>
+              </div>
+              <div class="pain-item">
+                <span class="pi-num">03</span>
+                <div class="pi-body">
+                  <strong>Claudia como gargalo central</strong>Sem ela, nenhum fechamento acontecia.
+                  Dependência total de uma pessoa para manter o processo funcionando.
+                </div>
+              </div>
+              <div class="pain-item">
+                <span class="pi-num">04</span>
+                <div class="pi-body">
+                  <strong>Fechamento lento — recomeçar do zero todo mês</strong>Cada mês a planilha
+                  era montada do início. Sem histórico automatizado, sem comparação de períodos
+                  fácil.
+                </div>
+              </div>
+              <div class="pain-item">
+                <span class="pi-num">05</span>
+                <div class="pi-body">
+                  <strong>Relatório preparado às vésperas da reunião</strong>Sem tempo para análise
+                  prévia — cliente e Claudia chegavam na reunião sem ter digerido os números.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="block" style="border-bottom: none">
+            <div class="sec-kicker label">Atores · quem faz o quê</div>
+            <h2 class="sec-title serif">Papéis no <span class="it">novo processo.</span></h2>
+            <div class="actors-grid">
+              <div class="actor-card">
+                <div class="ac-role">Cliente</div>
+                <h4>Envia e acompanha</h4>
+                <p>
+                  Faz upload do extrato no portal e acessa DFC, DRE e relatórios com login próprio —
+                  quando quiser, sem aguardar.
+                </p>
+              </div>
+              <div class="actor-card">
+                <div class="ac-role">Aurora · sistema</div>
+                <h4>Processa e classifica</h4>
+                <p>
+                  Valida o arquivo, aplica regras e IA, gera DFC/DRE automaticamente e disponibiliza
+                  relatórios em tempo real.
+                </p>
+              </div>
+              <div class="actor-card">
+                <div class="ac-role">Claudia</div>
+                <h4>Revisa e orienta</h4>
+                <p>
+                  Aprova apenas os lançamentos pendentes, analisa os resultados e chega à reunião
+                  para orientar decisões — não para explicar números.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
     </div>
 
-  </main>
-</div>
+    <footer>
+      <span>IAplicada · IA · Automação · Consultoria — Portal de acompanhamento Aurora</span>
+      <span>M1–M6 em produção · Atualizado 24 jun 2026</span>
+    </footer>
 
-
-<!-- VIEW: FLUXO OPERACIONAL -->
-<div class="view" id="view-fluxo">
-  <div class="tabs">
-    <div class="tab active" data-pane="pipeline">Pipeline</div>
-    <div class="tab" data-pane="arquitetura">Arquitetura</div>
-    <div class="tab" data-pane="asistobe">As-Is / To-Be</div>
-  </div>
-  <main>
-
-    <div class="pane active" id="pane-pipeline">
-      <section class="block">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:18px;">
-          <div>
-            <div class="label" style="margin-bottom:8px;">PROC-001 · Importação e Classificação de Extrato</div>
-            <h2 class="sec-title serif" style="margin-bottom:4px;">Pipeline financeiro</h2>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;">
-            <span style="font-family:'Inter',sans-serif;font-size:11.5px;color:var(--ink-soft);background:var(--card-soft);border:1px solid var(--sage-line);border-radius:30px;padding:5px 12px;"><b style="color:var(--olive-d);">Entradas:</b> Excel · CSV · PDF</span>
-            <span style="font-family:'Inter',sans-serif;font-size:11.5px;color:var(--ink-soft);background:var(--card-soft);border:1px solid var(--sage-line);border-radius:30px;padding:5px 12px;"><b style="color:var(--olive-d);">Saídas:</b> DFC · DRE · Gerencial</span>
-          </div>
-        </div>
-
-        <div class="pipe-row">
-          <div class="pipe-step"><span class="label">01 · Cliente</span><h4>Upload do arquivo</h4><p>Cliente acessa o portal e envia o extrato financeiro no formato Excel, CSV ou PDF.</p></div>
-          <div class="pipe-arrow">→</div>
-          <div class="pipe-step"><span class="label">02 · Sistema</span><h4>Validação e armazenamento</h4><p>O sistema valida o arquivo, armazena com segurança e aciona as automações em segundo plano.</p></div>
-          <div class="pipe-arrow">→</div>
-          <div class="pipe-step"><span class="label">03 · IA + Regras</span><h4>Classificação automática</h4><p>Regras pré-configuradas têm prioridade. A inteligência artificial classifica o que as regras não cobrem. Resultado: 100% dos lançamentos classificados automaticamente.</p></div>
-        </div>
-
-        <div class="pipe-row" style="margin-top:10px;">
-          <div class="pipe-step"><span class="label">04 · Automação</span><h4>Notificação automática</h4><p>Notificação enviada quando há lançamentos pendentes de revisão. Resumo diário às 09h (segunda a sexta) consolida os casos do dia.</p></div>
-          <div class="pipe-arrow">→</div>
-          <div class="pipe-step"><span class="label">05 · Claudia</span><h4>Revisão e aprovação</h4><p>Lançamentos pendentes são revisados e aprovados em lote. Aprovação segura — sem risco de aprovação parcial.</p></div>
-          <div class="pipe-arrow">→</div>
-          <div class="pipe-step"><span class="label">06 · Sistema</span><h4>Relatórios e portal</h4><p>DFC, DRE, Completo e Gerencial gerados automaticamente e disponíveis no portal com isolamento total por cliente.</p></div>
-        </div>
-
-        <p class="note">A aprovação em lote é atômica — ou tudo é aprovado de uma vez, ou nada muda. Cada cliente acessa apenas os seus próprios dados. As automações operam em segundo plano e não interferem na velocidade do sistema.</p>
-      </section>
-
-      <section class="block">
-        <div class="sec-kicker label">Automações · n8n · iaplicada.app.n8n.cloud</div>
-        <h2 class="sec-title serif">Três workflows <span class="it">em operação.</span></h2>
-
-        <div class="n8n-card" style="margin-top:16px;">
-          <div class="head">
-            <div class="dot"></div>
-            <div class="wf-name">Aurora · Pipeline de Extrato</div>
-            <span class="pill now" style="margin-left:auto;">Ativo</span>
-          </div>
-          <div class="step"><strong>Tempo real:</strong> a cada importação, verifica se há lançamentos pendentes e envia notificação imediata quando necessário.</div>
-          <div class="step"><strong>Agendado:</strong> todos os dias úteis às 09h, consolida e envia um resumo dos pendentes do dia por cliente.</div>
-        </div>
-
-        <div class="n8n-card">
-          <div class="head">
-            <div class="dot"></div>
-            <div class="wf-name">Aurora · Alerta de Erros</div>
-            <span class="pill now" style="margin-left:auto;">Ativo</span>
-          </div>
-          <div class="step"><strong>Erros de automação:</strong> qualquer falha nas automações gera alerta imediato com detalhes do que ocorreu.</div>
-          <div class="step"><strong>Erros de sistema:</strong> problemas no sistema também geram alerta unificado pelo mesmo canal.</div>
-        </div>
-
-        <div class="n8n-card">
-          <div class="head">
-            <div class="dot"></div>
-            <div class="wf-name">Aurora · Higiene Semanal de Regras</div>
-            <span class="pill now" style="margin-left:auto;">Ativo</span>
-          </div>
-          <div class="step"><strong>Toda segunda-feira às 09h:</strong> verifica e desativa automaticamente regras de classificação que ficaram sem uso por mais de 180 dias.</div>
-          <div class="step">Mantém a base de regras enxuta e garante que a classificação continue precisa ao longo do tempo.</div>
-        </div>
-      </section>
-    </div>
-
-    <div class="pane" id="pane-arquitetura">
-      <section class="block">
-        <div class="sec-kicker label">Stack técnica</div>
-        <h2 class="sec-title serif">Cada camada com <span class="it">responsabilidade única.</span></h2>
-        <div class="tech-grid" style="margin-top:18px;">
-          <div class="tech-card"><div class="tc-label">Interface</div><h4>Lovable · React</h4><p>Telas do sistema geradas via Lovable. Publicação automática a cada atualização aprovada.</p></div>
-          <div class="tech-card"><div class="tc-label">Lógica do sistema</div><h4>Supabase Functions</h4><p>Cada operação tem sua própria função dedicada: importação, classificação, relatórios e manutenção.</p></div>
-          <div class="tech-card"><div class="tc-label">Banco de dados</div><h4>Supabase · PostgreSQL</h4><p>Isolamento total por cliente. Cada usuário acessa apenas seus próprios dados — garantido em todas as camadas.</p></div>
-          <div class="tech-card"><div class="tc-label">Inteligência Artificial</div><h4>Claude IA · IAplicada</h4><p>Classificação automática de lançamentos. 100% dos itens classificados na primeira passagem.</p></div>
-          <div class="tech-card"><div class="tc-label">Automações</div><h4>n8n · IAplicada</h4><p>3 automações ativas: Pipeline de Extrato, Alerta de Erros e Higiene Semanal de Regras.</p></div>
-          <div class="tech-card"><div class="tc-label">Publicação</div><h4>Lovable Cloud · Automático</h4><p>Toda atualização aprovada vai automaticamente para produção. Sem processos manuais de publicação.</p></div>
-        </div>
-      </section>
-
-      <section class="block">
-        <div class="sec-kicker label">Segurança e isolamento de dados</div>
-        <h2 class="sec-title serif">Proteção em <span class="it">todas as camadas.</span></h2>
-        <div class="grid g2" style="margin-top:16px;">
-          <div class="card accent"><span class="label">Isolamento por cliente</span><h4>Dados 100% separados</h4><p>Cada cliente acessa apenas os seus próprios dados. O isolamento é garantido em todas as camadas do sistema — não é configuração, é arquitetura.</p></div>
-          <div class="card accent"><span class="label">Aprovação segura</span><h4>Tudo ou nada</h4><p>A aprovação em lote é atômica: ou todos os lançamentos são aprovados de uma vez, ou nenhum muda. Sem risco de aprovação parcial ou inconsistência.</p></div>
-          <div class="card accent"><span class="label">Dados preservados</span><h4>Clientes nunca deletados</h4><p>Clientes removidos ficam arquivados, não apagados. Histórico financeiro sempre acessível, sem perda de dados.</p></div>
-          <div class="card accent"><span class="label">Performance</span><h4>90 dias por padrão</h4><p>A visualização padrão cobre os últimos 90 dias. O histórico completo está disponível com um clique — sem lentidão no uso cotidiano.</p></div>
-          <div class="card accent"><span class="label">Manutenção automática</span><h4>Regras sempre atualizadas</h4><p>Todo início de semana, o sistema identifica e desativa regras de classificação que ficaram sem uso — a base se mantém enxuta e precisa sozinha.</p></div>
-          <div class="card accent"><span class="label">Acesso controlado</span><h4>Consultas sempre seguras</h4><p>Toda consulta ao banco respeita os limites de acesso do usuário conectado, independente de como é feita. Segurança que não depende de boa vontade do código.</p></div>
-        </div>
-      </section>
-    </div>
-
-    <div class="pane" id="pane-asistobe">
-      <section class="block">
-        <!-- Cabeçalho do processo -->
-        <div class="proc-header">
-          <div>
-            <div class="label" style="margin-bottom:8px;">PROC-002 · Gestão Financeira do Cliente</div>
-            <h2 class="sec-title serif" style="margin-bottom:4px;">As-Is <span class="it">vs.</span> To-Be</h2>
-          </div>
-          <div class="proc-pills">
-            <span class="proc-pill"><b>Área:</b> BPO Financeiro</span>
-            <span class="proc-pill"><b>Mapeado em:</b> Jun 2026</span>
-            <span class="proc-pill"><b>Etapas AS-IS:</b> 8</span>
-            <span class="proc-pill"><b>Etapas TO-BE:</b> 8</span>
-          </div>
-        </div>
-
-        <!-- Métricas -->
-        <div class="metrics-strip">
-          <div class="metric-box"><div class="mb-val">~80 min</div><div class="mb-lab">economizados por cliente / mês</div></div>
-          <div class="metric-box"><div class="mb-val">100%</div><div class="mb-lab">lançamentos classificados automaticamente</div></div>
-          <div class="metric-box"><div class="mb-val">0</div><div class="mb-lab">planilhas manuais no processo</div></div>
-          <div class="metric-box"><div class="mb-val">3</div><div class="mb-lab">automações ativas em operação</div></div>
-        </div>
-
-        <!-- Comparação side-by-side -->
-        <div class="flow-compare">
-          <!-- AS-IS -->
-          <div class="flow-col as-is">
-            <div class="fc-head">
-              <span class="fc-badge as-is">AS-IS · antes da Aurora</span>
-              <span class="fc-head-title">Como era</span>
-            </div>
-            <div class="flow-step">
-              <span class="fs-num">01</span>
-              <div class="fs-body">
-                <div class="fs-label">Cliente envia extrato por e-mail ou WhatsApp</div>
-                <div class="fs-meta">Arquivo sem padrão de formato · depende do cliente lembrar de enviar</div>
-              </div>
-            </div>
-            <div class="flow-step">
-              <span class="fs-num">02</span>
-              <div class="fs-body">
-                <div class="fs-label">Claudia baixa e converte o arquivo</div>
-                <div class="fs-meta">~10 min por cliente / mês · formatos inconsistentes a cada envio</div>
-              </div>
-            </div>
-            <div class="flow-step">
-              <span class="fs-num">03</span>
-              <div class="fs-body">
-                <div class="fs-label">Lança transações na planilha uma a uma</div>
-                <div class="fs-meta">~20–30 min · cada linha inserida manualmente · alto risco de erro</div>
-              </div>
-            </div>
-            <div class="flow-step bottleneck">
-              <span class="fs-num">04</span>
-              <div class="fs-body">
-                <div class="fs-label">Categoriza cada transação manualmente ← gargalo</div>
-                <div class="fs-meta">~15–25 min · decisão repetida todo mês para cada cliente</div>
-              </div>
-            </div>
-            <div class="flow-step">
-              <span class="fs-num">05</span>
-              <div class="fs-body">
-                <div class="fs-label">Consolida planilha DFC / DRE</div>
-                <div class="fs-meta">~10 min · montar fórmulas e revisar totais manualmente</div>
-              </div>
-            </div>
-            <div class="flow-step">
-              <span class="fs-num">06</span>
-              <div class="fs-body">
-                <div class="fs-label">Exporta e formata o relatório</div>
-                <div class="fs-meta">~5 min · salva PDF, ajusta layout, nomeia arquivo</div>
-              </div>
-            </div>
-            <div class="flow-step">
-              <span class="fs-num">07</span>
-              <div class="fs-body">
-                <div class="fs-label">Envia relatório por e-mail ou WhatsApp</div>
-                <div class="fs-meta">~5 min · cliente recebe passivamente, sem acesso ao histórico</div>
-              </div>
-            </div>
-            <div class="flow-step">
-              <span class="fs-num">08</span>
-              <div class="fs-body">
-                <div class="fs-label">Reunião — explicando os números</div>
-                <div class="fs-meta">Tempo da reunião gasto explicando o que aconteceu, não o que fazer</div>
-              </div>
-            </div>
-            <div class="fc-footer as-is">Total AS-IS · ~65–85 min por cliente / mês</div>
-          </div>
-
-          <!-- TO-BE -->
-          <div class="flow-col to-be">
-            <div class="fc-head">
-              <span class="fc-badge to-be">TO-BE · com Aurora</span>
-              <span class="fc-head-title">Como ficou</span>
-            </div>
-            <div class="flow-step improved">
-              <span class="fs-num">01</span>
-              <div class="fs-body">
-                <div class="fs-label">Cliente faz upload no portal — qualquer formato</div>
-                <div class="fs-meta">PDF, Excel ou CSV · ~2 min · disponível 24h pelo login próprio</div>
-              </div>
-            </div>
-            <div class="flow-step improved">
-              <span class="fs-num">02</span>
-              <div class="fs-body">
-                <div class="fs-label">Sistema valida e processa automaticamente</div>
-                <div class="fs-meta">Estrutura data, valor e descrição de cada lançamento · instantâneo</div>
-              </div>
-            </div>
-            <div class="flow-step improved">
-              <span class="fs-num">03</span>
-              <div class="fs-body">
-                <div class="fs-label">IA + regras classificam 100% dos lançamentos</div>
-                <div class="fs-meta">Regras configuradas uma vez · IA cobre o restante · sem intervenção</div>
-              </div>
-            </div>
-            <div class="flow-step improved">
-              <span class="fs-num">04</span>
-              <div class="fs-body">
-                <div class="fs-label">Claudia revisa apenas os pendentes</div>
-                <div class="fs-meta">~3–5 min · só casos novos ou ambíguos · aprovação em lote</div>
-              </div>
-            </div>
-            <div class="flow-step improved">
-              <span class="fs-num">05</span>
-              <div class="fs-body">
-                <div class="fs-label">DFC e DRE gerados automaticamente</div>
-                <div class="fs-meta">Disponíveis imediatamente após aprovação · sem consolidação manual</div>
-              </div>
-            </div>
-            <div class="flow-step improved">
-              <span class="fs-num">06</span>
-              <div class="fs-body">
-                <div class="fs-label">Cliente acessa o portal em tempo real</div>
-                <div class="fs-meta">Login próprio · sem aguardar envio · histórico sempre disponível</div>
-              </div>
-            </div>
-            <div class="flow-step improved">
-              <span class="fs-num">07</span>
-              <div class="fs-body">
-                <div class="fs-label">Relatório PDF gerado em 1 clique</div>
-                <div class="fs-meta">Claudia gera quando quiser · sem formatar nada · pronto para reunião</div>
-              </div>
-            </div>
-            <div class="flow-step improved">
-              <span class="fs-num">08</span>
-              <div class="fs-body">
-                <div class="fs-label">Reunião — discutindo estratégia</div>
-                <div class="fs-meta">Números visíveis com antecedência · conversa focada em decisão</div>
-              </div>
-            </div>
-            <div class="fc-footer to-be">Total TO-BE · ~5–8 min por cliente / mês</div>
-          </div>
-        </div>
-
-        <!-- Insight-chave -->
-        <div class="insight-box" style="margin-top:22px;">
-          <div class="ib-label">Insight-chave da transformação</div>
-          <p>O gargalo era a categorização manual — repetida todo mês, para cada cliente, lançamento por lançamento. Com Aurora, Claudia configura as regras <strong>uma vez</strong> e o sistema executa para sempre. Ela deixa de ser a operadora e passa a ser a consultora.</p>
-        </div>
-      </section>
-
-      <section class="block">
-        <div class="sec-kicker label">Dores do processo AS-IS</div>
-        <h2 class="sec-title serif">O que <span class="it">travava o processo.</span></h2>
-        <div class="pain-list">
-          <div class="pain-item">
-            <span class="pi-num">01</span>
-            <div class="pi-body"><strong>Processo manual e repetitivo</strong>Alto risco de erro por digitação ou categorização incorreta — o mesmo trabalho todo mês, sem aprendizado.</div>
-          </div>
-          <div class="pain-item">
-            <span class="pi-num">02</span>
-            <div class="pi-body"><strong>Cliente sem visibilidade em tempo real</strong>Só recebia o relatório quando Claudia enviava — sem acesso ao próprio financeiro entre reuniões.</div>
-          </div>
-          <div class="pain-item">
-            <span class="pi-num">03</span>
-            <div class="pi-body"><strong>Claudia como gargalo central</strong>Sem ela, nenhum fechamento acontecia. Dependência total de uma pessoa para manter o processo funcionando.</div>
-          </div>
-          <div class="pain-item">
-            <span class="pi-num">04</span>
-            <div class="pi-body"><strong>Fechamento lento — recomeçar do zero todo mês</strong>Cada mês a planilha era montada do início. Sem histórico automatizado, sem comparação de períodos fácil.</div>
-          </div>
-          <div class="pain-item">
-            <span class="pi-num">05</span>
-            <div class="pi-body"><strong>Relatório preparado às vésperas da reunião</strong>Sem tempo para análise prévia — cliente e Claudia chegavam na reunião sem ter digerido os números.</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="block" style="border-bottom:none;">
-        <div class="sec-kicker label">Atores · quem faz o quê</div>
-        <h2 class="sec-title serif">Papéis no <span class="it">novo processo.</span></h2>
-        <div class="actors-grid">
-          <div class="actor-card">
-            <div class="ac-role">Cliente</div>
-            <h4>Envia e acompanha</h4>
-            <p>Faz upload do extrato no portal e acessa DFC, DRE e relatórios com login próprio — quando quiser, sem aguardar.</p>
-          </div>
-          <div class="actor-card">
-            <div class="ac-role">Aurora · sistema</div>
-            <h4>Processa e classifica</h4>
-            <p>Valida o arquivo, aplica regras e IA, gera DFC/DRE automaticamente e disponibiliza relatórios em tempo real.</p>
-          </div>
-          <div class="actor-card">
-            <div class="ac-role">Claudia</div>
-            <h4>Revisa e orienta</h4>
-            <p>Aprova apenas os lançamentos pendentes, analisa os resultados e chega à reunião para orientar decisões — não para explicar números.</p>
-          </div>
-        </div>
-      </section>
-    </div>
-
-  </main>
-</div>
-
-<footer>
-  <span>IAplicada · IA · Automação · Consultoria — Portal de acompanhamento Aurora</span>
-  <span>M1–M6 em produção · Atualizado 24 jun 2026</span>
-</footer>
-
-<script>
-function setView(v){
-  document.body.classList.remove('home');
-  document.querySelectorAll('.view').forEach(function(el){el.classList.remove('active');});
-  var t=document.getElementById('view-'+v);
-  if(t)t.classList.add('active');
-  document.querySelectorAll('.compact-nav .chip').forEach(function(c){c.classList.remove('active');});
-  var chip=document.querySelector('.compact-nav .chip[data-view="'+v+'"]');
-  if(chip)chip.classList.add('active');
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-function goHome(){
-  document.body.classList.add('home');
-  document.querySelectorAll('.view').forEach(function(el){el.classList.remove('active');});
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-document.querySelectorAll('.entrada-btn').forEach(function(btn){
-  btn.addEventListener('click',function(){setView(btn.getAttribute('data-view'));});
-});
-document.querySelectorAll('.compact-nav .chip').forEach(function(c){
-  c.addEventListener('click',function(){setView(c.getAttribute('data-view'));});
-});
-document.querySelectorAll('.view').forEach(function(view){
-  var tabs=view.querySelector('.tabs');
-  if(!tabs)return;
-  var m=view.querySelector('main');
-  tabs.querySelectorAll('.tab').forEach(function(tab){
-    tab.addEventListener('click',function(){
-      tabs.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
-      tab.classList.add('active');
-      var pane=tab.getAttribute('data-pane');
-      m.querySelectorAll('.pane').forEach(function(p){p.classList.remove('active');});
-      var p=m.querySelector('#pane-'+pane);
-      if(p)p.classList.add('active');
-    });
-  });
-});
-</script>
-</body>
+    <script>
+      function setView(v) {
+        document.body.classList.remove("home");
+        document.querySelectorAll(".view").forEach(function (el) {
+          el.classList.remove("active");
+        });
+        var t = document.getElementById("view-" + v);
+        if (t) t.classList.add("active");
+        document.querySelectorAll(".compact-nav .chip").forEach(function (c) {
+          c.classList.remove("active");
+        });
+        var chip = document.querySelector('.compact-nav .chip[data-view="' + v + '"]');
+        if (chip) chip.classList.add("active");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      function goHome() {
+        document.body.classList.add("home");
+        document.querySelectorAll(".view").forEach(function (el) {
+          el.classList.remove("active");
+        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      document.querySelectorAll(".entrada-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          setView(btn.getAttribute("data-view"));
+        });
+      });
+      document.querySelectorAll(".compact-nav .chip").forEach(function (c) {
+        c.addEventListener("click", function () {
+          setView(c.getAttribute("data-view"));
+        });
+      });
+      document.querySelectorAll(".view").forEach(function (view) {
+        var tabs = view.querySelector(".tabs");
+        if (!tabs) return;
+        var m = view.querySelector("main");
+        tabs.querySelectorAll(".tab").forEach(function (tab) {
+          tab.addEventListener("click", function () {
+            tabs.querySelectorAll(".tab").forEach(function (t) {
+              t.classList.remove("active");
+            });
+            tab.classList.add("active");
+            var pane = tab.getAttribute("data-pane");
+            m.querySelectorAll(".pane").forEach(function (p) {
+              p.classList.remove("active");
+            });
+            var p = m.querySelector("#pane-" + pane);
+            if (p) p.classList.add("active");
+          });
+        });
+      });
+    </script>
+  </body>
 </html>

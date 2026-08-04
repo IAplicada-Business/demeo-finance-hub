@@ -16,17 +16,23 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
     const { file_base64, filename, client_id, bank_name, period } = await req.json();
 
-    console.log("[create-upload] payload recebido", { filename, client_id, bank_name, period, file_base64_length: file_base64?.length });
+    console.log("[create-upload] payload recebido", {
+      filename,
+      client_id,
+      bank_name,
+      period,
+      file_base64_length: file_base64?.length,
+    });
 
     if (!file_base64 || !filename || !client_id) {
       return new Response(
         JSON.stringify({ error: "Campos obrigatórios: file_base64, filename, client_id" }),
-        { status: 400, headers: { ...cors, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...cors, "Content-Type": "application/json" } },
       );
     }
     // bank_name é opcional: o parse-extract identifica o banco pelo conteúdo do arquivo.
@@ -35,14 +41,21 @@ Deno.serve(async (req) => {
     const fileBytes = Uint8Array.from(atob(file_base64), (c) => c.charCodeAt(0));
     const ext = filename.toLowerCase().split(".").pop();
     const contentType =
-      ext === "csv" ? "text/csv" :
-      ext === "xlsx" ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" :
-      ext === "xls" ? "application/vnd.ms-excel" :
-      ext === "pdf" ? "application/pdf" :
-      ext === "png" ? "image/png" :
-      ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
-      ext === "webp" ? "image/webp" :
-      "application/octet-stream";
+      ext === "csv"
+        ? "text/csv"
+        : ext === "xlsx"
+          ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          : ext === "xls"
+            ? "application/vnd.ms-excel"
+            : ext === "pdf"
+              ? "application/pdf"
+              : ext === "png"
+                ? "image/png"
+                : ext === "jpg" || ext === "jpeg"
+                  ? "image/jpeg"
+                  : ext === "webp"
+                    ? "image/webp"
+                    : "application/octet-stream";
 
     // Valida existência do cliente antes de processar
     const { data: client } = await supabase
@@ -52,10 +65,10 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!client) {
-      return new Response(
-        JSON.stringify({ error: "Cliente não encontrado" }),
-        { status: 404, headers: { ...cors, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Cliente não encontrado" }), {
+        status: 404,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
     }
 
     const storagePath = `${client_id}/${Date.now()}-${filename}`;
@@ -65,16 +78,15 @@ Deno.serve(async (req) => {
       .upload(storagePath, fileBytes, { contentType, upsert: false });
 
     if (storageError) {
-      return new Response(
-        JSON.stringify({ error: `Erro no Storage: ${storageError.message}` }),
-        { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: `Erro no Storage: ${storageError.message}` }), {
+        status: 500,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
     }
 
     // 2. INSERT em uploads
     const uploadPeriod =
-      period ||
-      new Date().toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" });
+      period || new Date().toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" });
 
     const { data: upload, error: uploadError } = await supabase
       .from("uploads")
@@ -92,23 +104,20 @@ Deno.serve(async (req) => {
     if (uploadError || !upload) {
       return new Response(
         JSON.stringify({ error: `Erro ao registrar upload: ${uploadError?.message}` }),
-        { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...cors, "Content-Type": "application/json" } },
       );
     }
 
     // 3. Aciona parse-extract
-    const parseRes = await fetch(
-      `${Deno.env.get("SUPABASE_URL")}/functions/v1/parse-extract`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          "apikey": Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-        },
-        body: JSON.stringify({ upload_id: upload.id }),
-      }
-    );
+    const parseRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/parse-extract`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        apikey: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      },
+      body: JSON.stringify({ upload_id: upload.id }),
+    });
 
     const parseResult = await parseRes.json();
 
@@ -124,7 +133,7 @@ Deno.serve(async (req) => {
       const status = parseRes.status === 422 ? 422 : 500;
       return new Response(
         JSON.stringify({ error: parseResult.error ?? "Nenhum lançamento encontrado" }),
-        { status, headers: { ...cors, "Content-Type": "application/json" } }
+        { status, headers: { ...cors, "Content-Type": "application/json" } },
       );
     }
 
@@ -141,8 +150,8 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${serviceKey}`,
-          "apikey": serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
         },
         body: JSON.stringify({ upload_id: upload.id }),
         signal: classifyController.signal,
@@ -151,7 +160,10 @@ Deno.serve(async (req) => {
       console.log("[create-upload] classify-batch concluído", classifyData);
     } catch (e) {
       classifyTimedOut = true;
-      console.warn("[create-upload] classify-batch timeout/error — prosseguindo sem classificação:", e);
+      console.warn(
+        "[create-upload] classify-batch timeout/error — prosseguindo sem classificação:",
+        e,
+      );
     } finally {
       clearTimeout(classifyTimeout);
     }
@@ -191,14 +203,13 @@ Deno.serve(async (req) => {
         transactions: transactions || [],
         classify_timedout: classifyTimedOut,
       }),
-      { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...cors, "Content-Type": "application/json" } },
     );
-
   } catch (err) {
     reportError(err, { fn: "create-upload" });
-    return new Response(
-      JSON.stringify({ error: String(err) }),
-      { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: String(err) }), {
+      status: 500,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
   }
 });

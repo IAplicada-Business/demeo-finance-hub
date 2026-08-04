@@ -6,15 +6,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { corsHeaders as getCorsHeaders, handlePreflight } from "../_shared/cors.ts";
 
-interface TxRow { date: string; amount: number; category: string | null }
-interface PatternRow { pattern: string; modal_category: string; occurrences: number }
+interface TxRow {
+  date: string;
+  amount: number;
+  category: string | null;
+}
+interface PatternRow {
+  pattern: string;
+  modal_category: string;
+  occurrences: number;
+}
 
 function brl(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 function clampGrowth(rate: number) {
-  return Math.max(-0.15, Math.min(0.20, rate));
+  return Math.max(-0.15, Math.min(0.2, rate));
 }
 
 Deno.serve(async (req) => {
@@ -56,18 +64,18 @@ Deno.serve(async (req) => {
     ]);
 
     if (!client) {
-      return new Response(
-        JSON.stringify({ error: "Cliente não encontrado" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: "Cliente não encontrado" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const transactions: TxRow[] = txs ?? [];
     if (transactions.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "Nenhuma transação aprovada no período" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: "Nenhuma transação aprovada no período" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ── Totais e top categorias ────────────────────────────────────────────────
@@ -107,8 +115,10 @@ Deno.serve(async (req) => {
       const first = months[0][1];
       const n = months.length;
       // Taxa geométrica composta: (last/first)^(1/(n-1)) - 1
-      if (n >= 2 && first.rec > 0) growthRec = clampGrowth(Math.pow(last.rec / first.rec, 1 / (n - 1)) - 1);
-      if (n >= 2 && first.des > 0) growthDes = clampGrowth(Math.pow(last.des / first.des, 1 / (n - 1)) - 1);
+      if (n >= 2 && first.rec > 0)
+        growthRec = clampGrowth(Math.pow(last.rec / first.rec, 1 / (n - 1)) - 1);
+      if (n >= 2 && first.des > 0)
+        growthDes = clampGrowth(Math.pow(last.des / first.des, 1 / (n - 1)) - 1);
     }
 
     const [periodYear, periodMonth] = period_end.split("-").map(Number);
@@ -125,7 +135,7 @@ Deno.serve(async (req) => {
     const resultado = totalReceitas - totalDespesas;
     const margem = totalReceitas > 0 ? ((resultado / totalReceitas) * 100).toFixed(1) : "0";
 
-    const patternsText = (patterns as PatternRow[] ?? [])
+    const patternsText = ((patterns as PatternRow[]) ?? [])
       .slice(0, 10)
       .map((p) => `  ${p.pattern} → ${p.modal_category} (${p.occurrences}x)`)
       .join("\n");
@@ -139,9 +149,10 @@ Deno.serve(async (req) => {
     const { content } = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1024,
-      messages: [{
-        role: "user",
-        content: `Você é parceira financeira especialista em pequenas e médias empresas brasileiras.
+      messages: [
+        {
+          role: "user",
+          content: `Você é parceira financeira especialista em pequenas e médias empresas brasileiras.
 
 Cliente: ${client.name}
 Setor: ${client.segment ?? "Empresa"}
@@ -166,7 +177,8 @@ Retorne APENAS um JSON (sem texto extra):
   "alerts": ["alerta"]
 }
 Regras: health_score 80+ saudável / 60-79 atenção / <60 crítico. Insights em português, objetivos e concretos. alerts vazio se não houver problemas.`,
-      }],
+        },
+      ],
     });
 
     const raw = content[0].type === "text" ? content[0].text.trim() : "{}";
@@ -184,9 +196,9 @@ Regras: health_score 80+ saudável / 60-79 atenção / <60 crítico. Insights em
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: String(err) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: String(err) }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

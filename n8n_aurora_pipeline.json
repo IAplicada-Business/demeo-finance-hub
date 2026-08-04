@@ -18,11 +18,36 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "f1", "name": "upload_id",      "value": "={{ $json.body?.upload_id      ?? $json.upload_id      ?? \"\" }}", "type": "string" },
-            { "id": "f2", "name": "client_id",      "value": "={{ $json.body?.client_id      ?? $json.client_id      ?? \"\" }}", "type": "string" },
-            { "id": "f3", "name": "tx_count",       "value": "={{ $json.body?.tx_count       ?? $json.tx_count       ?? 0 }}",  "type": "number" },
-            { "id": "f4", "name": "classified",     "value": "={{ $json.body?.classified     ?? $json.classified     ?? 0 }}",  "type": "number" },
-            { "id": "f5", "name": "pending_manual", "value": "={{ $json.body?.pending_manual ?? $json.pending_manual ?? 0 }}",  "type": "number" }
+            {
+              "id": "f1",
+              "name": "upload_id",
+              "value": "={{ $json.body?.upload_id      ?? $json.upload_id      ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "f2",
+              "name": "client_id",
+              "value": "={{ $json.body?.client_id      ?? $json.client_id      ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "f3",
+              "name": "tx_count",
+              "value": "={{ $json.body?.tx_count       ?? $json.tx_count       ?? 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "f4",
+              "name": "classified",
+              "value": "={{ $json.body?.classified     ?? $json.classified     ?? 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "f5",
+              "name": "pending_manual",
+              "value": "={{ $json.body?.pending_manual ?? $json.pending_manual ?? 0 }}",
+              "type": "number"
+            }
           ]
         },
         "options": {}
@@ -39,7 +64,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey",        "value": "{{SUPABASE_ANON_KEY}}" },
+            { "name": "apikey", "value": "{{SUPABASE_ANON_KEY}}" },
             { "name": "Authorization", "value": "Bearer {{SUPABASE_ANON_KEY}}" }
           ]
         },
@@ -55,11 +80,36 @@
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "g1", "name": "client_name",    "value": "={{ $json.name ?? \"Cliente desconhecido\" }}", "type": "string" },
-            { "id": "g2", "name": "upload_id",      "value": "={{ $(\"Normaliza Payload\").item.json.upload_id }}",      "type": "string" },
-            { "id": "g3", "name": "tx_count",       "value": "={{ $(\"Normaliza Payload\").item.json.tx_count }}",       "type": "number" },
-            { "id": "g4", "name": "classified",     "value": "={{ $(\"Normaliza Payload\").item.json.classified }}",     "type": "number" },
-            { "id": "g5", "name": "pending_manual", "value": "={{ $(\"Normaliza Payload\").item.json.pending_manual }}", "type": "number" }
+            {
+              "id": "g1",
+              "name": "client_name",
+              "value": "={{ $json.name ?? \"Cliente desconhecido\" }}",
+              "type": "string"
+            },
+            {
+              "id": "g2",
+              "name": "upload_id",
+              "value": "={{ $(\"Normaliza Payload\").item.json.upload_id }}",
+              "type": "string"
+            },
+            {
+              "id": "g3",
+              "name": "tx_count",
+              "value": "={{ $(\"Normaliza Payload\").item.json.tx_count }}",
+              "type": "number"
+            },
+            {
+              "id": "g4",
+              "name": "classified",
+              "value": "={{ $(\"Normaliza Payload\").item.json.classified }}",
+              "type": "number"
+            },
+            {
+              "id": "g5",
+              "name": "pending_manual",
+              "value": "={{ $(\"Normaliza Payload\").item.json.pending_manual }}",
+              "type": "number"
+            }
           ]
         },
         "options": {}
@@ -73,7 +123,12 @@
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
           "conditions": [
             {
               "id": "cond-pending-001",
@@ -99,14 +154,20 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "to",             "value": "69931349-0c03-4030-be44-29b0fcb16dcb@emailhook.site" },
-            { "name": "subject",        "value": "=Aurora · {{ $json.classified }} classificados · {{ $json.pending_manual }} para revisar ⚠️" },
-            { "name": "client_name",    "value": "={{ $json.client_name }}" },
-            { "name": "upload_id",      "value": "={{ $json.upload_id }}" },
-            { "name": "tx_count",       "value": "={{ $json.tx_count }}" },
-            { "name": "classified",     "value": "={{ $json.classified }}" },
+            { "name": "to", "value": "69931349-0c03-4030-be44-29b0fcb16dcb@emailhook.site" },
+            {
+              "name": "subject",
+              "value": "=Aurora · {{ $json.classified }} classificados · {{ $json.pending_manual }} para revisar ⚠️"
+            },
+            { "name": "client_name", "value": "={{ $json.client_name }}" },
+            { "name": "upload_id", "value": "={{ $json.upload_id }}" },
+            { "name": "tx_count", "value": "={{ $json.tx_count }}" },
+            { "name": "classified", "value": "={{ $json.classified }}" },
             { "name": "pending_manual", "value": "={{ $json.pending_manual }}" },
-            { "name": "url_revisao",    "value": "https://demeo-finance-hub.lovable.app/admin/pendentes" }
+            {
+              "name": "url_revisao",
+              "value": "https://demeo-finance-hub.lovable.app/admin/pendentes"
+            }
           ]
         },
         "options": {}
@@ -124,11 +185,14 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "to",         "value": "69931349-0c03-4030-be44-29b0fcb16dcb@emailhook.site" },
-            { "name": "subject",    "value": "=Aurora · {{ $json.tx_count }} lançamentos classificados ✓" },
-            { "name": "client_name","value": "={{ $json.client_name }}" },
-            { "name": "upload_id",  "value": "={{ $json.upload_id }}" },
-            { "name": "tx_count",   "value": "={{ $json.tx_count }}" },
+            { "name": "to", "value": "69931349-0c03-4030-be44-29b0fcb16dcb@emailhook.site" },
+            {
+              "name": "subject",
+              "value": "=Aurora · {{ $json.tx_count }} lançamentos classificados ✓"
+            },
+            { "name": "client_name", "value": "={{ $json.client_name }}" },
+            { "name": "upload_id", "value": "={{ $json.upload_id }}" },
+            { "name": "tx_count", "value": "={{ $json.tx_count }}" },
             { "name": "classified", "value": "={{ $json.classified }}" }
           ]
         },
@@ -143,9 +207,7 @@
     {
       "parameters": {
         "rule": {
-          "interval": [
-            { "field": "cronExpression", "expression": "0 12 * * 1-5" }
-          ]
+          "interval": [{ "field": "cronExpression", "expression": "0 12 * * 1-5" }]
         }
       },
       "name": "Agendamento — 09h BRT",
@@ -159,7 +221,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey",        "value": "{{SUPABASE_ANON_KEY}}" },
+            { "name": "apikey", "value": "{{SUPABASE_ANON_KEY}}" },
             { "name": "Authorization", "value": "Bearer {{SUPABASE_ANON_KEY}}" }
           ]
         },
@@ -173,7 +235,12 @@
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
           "conditions": [
             {
               "id": "cond-digest-001",
@@ -198,11 +265,20 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "to",              "value": "69931349-0c03-4030-be44-29b0fcb16dcb@emailhook.site" },
-            { "name": "subject",         "value": "=Aurora · Digest Matinal · {{ $json.total }} pendência(s) aguardam revisão 📋" },
+            { "name": "to", "value": "69931349-0c03-4030-be44-29b0fcb16dcb@emailhook.site" },
+            {
+              "name": "subject",
+              "value": "=Aurora · Digest Matinal · {{ $json.total }} pendência(s) aguardam revisão 📋"
+            },
             { "name": "total_pendentes", "value": "={{ $json.total }}" },
-            { "name": "resumo_clientes", "value": "={{ $json.clients.map(c => c.name + ' — ' + c.count + ' pendente(s)').join('\\n') }}" },
-            { "name": "url_revisao",     "value": "https://demeo-finance-hub.lovable.app/admin/pendentes" }
+            {
+              "name": "resumo_clientes",
+              "value": "={{ $json.clients.map(c => c.name + ' — ' + c.count + ' pendente(s)').join('\\n') }}"
+            },
+            {
+              "name": "url_revisao",
+              "value": "https://demeo-finance-hub.lovable.app/admin/pendentes"
+            }
           ]
         },
         "options": {}
@@ -214,20 +290,31 @@
     }
   ],
   "connections": {
-    "Webhook — Upload Novo":          { "main": [[{ "node": "Normaliza Payload",              "type": "main", "index": 0 }]] },
-    "Normaliza Payload":              { "main": [[{ "node": "Supabase — Busca Cliente",        "type": "main", "index": 0 }]] },
-    "Supabase — Busca Cliente":       { "main": [[{ "node": "Monta Contexto",                  "type": "main", "index": 0 }]] },
-    "Monta Contexto":                 { "main": [[{ "node": "Tem pendentes?",                  "type": "main", "index": 0 }]] },
-    "Tem pendentes?":                 { "main": [
-      [{ "node": "Webhook — Revisão necessária", "type": "main", "index": 0 }],
-      [{ "node": "Webhook — Tudo classificado",  "type": "main", "index": 0 }]
-    ]},
-    "Agendamento — 09h BRT":          { "main": [[{ "node": "Supabase — Contagem Pendentes",  "type": "main", "index": 0 }]] },
-    "Supabase — Contagem Pendentes":  { "main": [[{ "node": "Há pendências hoje?",             "type": "main", "index": 0 }]] },
-    "Há pendências hoje?":            { "main": [
-      [{ "node": "Webhook — Digest Matinal", "type": "main", "index": 0 }],
-      []
-    ]}
+    "Webhook — Upload Novo": {
+      "main": [[{ "node": "Normaliza Payload", "type": "main", "index": 0 }]]
+    },
+    "Normaliza Payload": {
+      "main": [[{ "node": "Supabase — Busca Cliente", "type": "main", "index": 0 }]]
+    },
+    "Supabase — Busca Cliente": {
+      "main": [[{ "node": "Monta Contexto", "type": "main", "index": 0 }]]
+    },
+    "Monta Contexto": { "main": [[{ "node": "Tem pendentes?", "type": "main", "index": 0 }]] },
+    "Tem pendentes?": {
+      "main": [
+        [{ "node": "Webhook — Revisão necessária", "type": "main", "index": 0 }],
+        [{ "node": "Webhook — Tudo classificado", "type": "main", "index": 0 }]
+      ]
+    },
+    "Agendamento — 09h BRT": {
+      "main": [[{ "node": "Supabase — Contagem Pendentes", "type": "main", "index": 0 }]]
+    },
+    "Supabase — Contagem Pendentes": {
+      "main": [[{ "node": "Há pendências hoje?", "type": "main", "index": 0 }]]
+    },
+    "Há pendências hoje?": {
+      "main": [[{ "node": "Webhook — Digest Matinal", "type": "main", "index": 0 }], []]
+    }
   },
   "active": true,
   "settings": {

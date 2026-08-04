@@ -3,8 +3,20 @@ import { useState, useEffect, useCallback } from "react";
 import { AdminLayout, PageHeader } from "@/components/AdminLayout";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { brl } from "@/lib/utils";
-import { todayISO, firstOfMonthISO, lastOfMonthISO, firstOfYearISO, isoMonthsInDateRange, uploadPeriodsInDateRange } from "@/lib/dateUtils";
-import { computeHealthLevel, healthMargemPct, HealthLevel, SEGMENT_BENCHMARKS } from "@/lib/healthScore";
+import {
+  todayISO,
+  firstOfMonthISO,
+  lastOfMonthISO,
+  firstOfYearISO,
+  isoMonthsInDateRange,
+  uploadPeriodsInDateRange,
+} from "@/lib/dateUtils";
+import {
+  computeHealthLevel,
+  healthMargemPct,
+  HealthLevel,
+  SEGMENT_BENCHMARKS,
+} from "@/lib/healthScore";
 import { supabase } from "@/lib/supabase";
 import { syncClientStatusFromClosing } from "@/lib/clientStatus";
 import {
@@ -55,15 +67,27 @@ interface TrendPoint {
   des: number;
 }
 
-const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
+const MONTH_LABELS = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
 
 const PRESETS = [
-  { label: "Este mês",     start: () => firstOfMonthISO(0),  end: () => todayISO() },
+  { label: "Este mês", start: () => firstOfMonthISO(0), end: () => todayISO() },
   { label: "Mês anterior", start: () => firstOfMonthISO(-1), end: () => lastOfMonthISO(-1) },
   { label: "Últ. 3 meses", start: () => firstOfMonthISO(-2), end: () => todayISO() },
   { label: "Últ. 6 meses", start: () => firstOfMonthISO(-5), end: () => todayISO() },
-  { label: "Este ano",     start: () => firstOfYearISO(),    end: () => todayISO() },
+  { label: "Este ano", start: () => firstOfYearISO(), end: () => todayISO() },
 ] as const;
 
 interface ClosingAlertItem {
@@ -123,7 +147,7 @@ function AdminDashboard() {
           .map(([key, v]) => ({
             mes: MONTH_LABELS[parseInt(key.slice(5, 7)) - 1],
             ...v,
-          }))
+          })),
       );
     };
     fetchTrend();
@@ -138,18 +162,29 @@ function AdminDashboard() {
         .not("monthly_closing_day", "is", null);
       if (!clientsData?.length) return;
 
-      const candidates = (clientsData as { id: string; name: string; monthly_closing_day: number }[])
-        .map((c) => ({ ...c, ...getClosingInfo(c.monthly_closing_day) }));
+      const candidates = (
+        clientsData as { id: string; name: string; monthly_closing_day: number }[]
+      ).map((c) => ({ ...c, ...getClosingInfo(c.monthly_closing_day) }));
 
-      if (!candidates.length) { setClosingAlerts([]); return; }
+      if (!candidates.length) {
+        setClosingAlerts([]);
+        return;
+      }
 
       const { data: completions } = await supabase()
         .from("monthly_closings")
         .select("client_id, period")
-        .in("client_id", candidates.map((c) => c.id))
+        .in(
+          "client_id",
+          candidates.map((c) => c.id),
+        )
         .not("completed_at", "is", null);
 
-      const completedSet = new Set((completions ?? []).map((c: { client_id: string; period: string }) => `${c.client_id}_${c.period}`));
+      const completedSet = new Set(
+        (completions ?? []).map(
+          (c: { client_id: string; period: string }) => `${c.client_id}_${c.period}`,
+        ),
+      );
 
       setClosingAlerts(
         candidates
@@ -160,7 +195,7 @@ function AdminDashboard() {
             closingDay: c.monthly_closing_day,
             completed: completedSet.has(`${c.id}_${c.period}`),
           }))
-          .sort((a, b) => a.daysUntil - b.daysUntil)
+          .sort((a, b) => a.daysUntil - b.daysUntil),
       );
     }
     fetchClosingAlerts();
@@ -179,7 +214,11 @@ function AdminDashboard() {
       { data: uploadsData },
       { data: closingsData },
     ] = await Promise.all([
-      supabase().from("clients").select("id, name, status, last_upload_at, segment").is("deleted_at", null).order("name"),
+      supabase()
+        .from("clients")
+        .select("id, name, status, last_upload_at, segment")
+        .is("deleted_at", null)
+        .order("name"),
       // Somente o mês atual — evita carregar todo o histórico
       supabase()
         .from("transactions")
@@ -250,14 +289,16 @@ function AdminDashboard() {
     const closedSet = new Set(
       (closingsData ?? [])
         .filter((c: { client_id: string; period: string }) => c.period === endClosingPeriod)
-        .map((c: { client_id: string }) => c.client_id)
+        .map((c: { client_id: string }) => c.client_id),
     );
 
     let totalPend = 0;
     const summaries: ClientSummary[] = clients.map((c) => {
       const clientTx = txByClient[c.id] ?? [];
       const receita = clientTx.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-      const despesas = clientTx.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+      const despesas = clientTx
+        .filter((t) => t.amount < 0)
+        .reduce((s, t) => s + Math.abs(t.amount), 0);
       const saldo = clientTx.reduce((s, t) => s + t.amount, 0);
       const pendentes = pendingByClient[c.id] ?? 0;
       totalPend += pendentes;
@@ -265,7 +306,17 @@ function AdminDashboard() {
       const isClosed = closedSet.has(c.id);
       const health = computeHealthLevel(receita, despesas, c.segment);
       const margem = healthMargemPct(receita, despesas);
-      return { ...c, receita, saldo, pendentes, banks: banksMap[c.id] ?? [], closing, isClosed, health, margem };
+      return {
+        ...c,
+        receita,
+        saldo,
+        pendentes,
+        banks: banksMap[c.id] ?? [],
+        closing,
+        isClosed,
+        health,
+        margem,
+      };
     });
 
     setClientes(summaries);
@@ -278,7 +329,7 @@ function AdminDashboard() {
     loadDashboard(startDate, endDate);
   }, [startDate, endDate, loadDashboard]);
 
-  function applyPreset(preset: typeof PRESETS[number]) {
+  function applyPreset(preset: (typeof PRESETS)[number]) {
     setActivePreset(preset.label);
     setStartDate(preset.start());
     setEndDate(preset.end());
@@ -286,16 +337,31 @@ function AdminDashboard() {
 
   async function handleCloseMonth(clientId: string) {
     const period = endDate.slice(0, 7);
-    const { error } = await supabase().from("monthly_closings").upsert(
-      { client_id: clientId, period, step1_done: true, step2_done: true, step3_done: true, step4_done: true, completed_at: new Date().toISOString() },
-      { onConflict: "client_id,period" }
-    );
-    if (error) { console.error("[handleCloseMonth]", error); return; }
+    const { error } = await supabase()
+      .from("monthly_closings")
+      .upsert(
+        {
+          client_id: clientId,
+          period,
+          step1_done: true,
+          step2_done: true,
+          step3_done: true,
+          step4_done: true,
+          completed_at: new Date().toISOString(),
+        },
+        { onConflict: "client_id,period" },
+      );
+    if (error) {
+      console.error("[handleCloseMonth]", error);
+      return;
+    }
     await syncClientStatusFromClosing(clientId, true);
     setClientes((prev) =>
-      prev.map((c) => (c.id === clientId ? { ...c, isClosed: true, status: "Fechado" } : c))
+      prev.map((c) => (c.id === clientId ? { ...c, isClosed: true, status: "Fechado" } : c)),
     );
-    setClosingAlerts((prev) => prev.map((a) => a.clientId === clientId ? { ...a, completed: true } : a));
+    setClosingAlerts((prev) =>
+      prev.map((a) => (a.clientId === clientId ? { ...a, completed: true } : a)),
+    );
   }
 
   async function handleReopenMonth(clientId: string) {
@@ -305,12 +371,17 @@ function AdminDashboard() {
       .update({ completed_at: null, updated_at: new Date().toISOString() })
       .eq("client_id", clientId)
       .eq("period", period);
-    if (error) { console.error("[handleReopenMonth]", error); return; }
+    if (error) {
+      console.error("[handleReopenMonth]", error);
+      return;
+    }
     await syncClientStatusFromClosing(clientId, false);
     setClientes((prev) =>
-      prev.map((c) => (c.id === clientId ? { ...c, isClosed: false, status: "Em andamento" } : c))
+      prev.map((c) => (c.id === clientId ? { ...c, isClosed: false, status: "Em andamento" } : c)),
     );
-    setClosingAlerts((prev) => prev.map((a) => a.clientId === clientId ? { ...a, completed: false } : a));
+    setClosingAlerts((prev) =>
+      prev.map((a) => (a.clientId === clientId ? { ...a, completed: false } : a)),
+    );
   }
 
   const ativos = clientes.length;
@@ -318,9 +389,10 @@ function AdminDashboard() {
   const totalReceita = clientes.reduce((s, c) => s + c.receita, 0);
   const totalSaldo = clientes.reduce((s, c) => s + c.saldo, 0);
   const maxReceita = Math.max(...clientes.map((c) => c.receita), 1);
-  const periodoLabel = startDate === endDate
-    ? new Date(startDate + "T12:00:00").toLocaleDateString("pt-BR")
-    : `${new Date(startDate + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} – ${new Date(endDate + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}`;
+  const periodoLabel =
+    startDate === endDate
+      ? new Date(startDate + "T12:00:00").toLocaleDateString("pt-BR")
+      : `${new Date(startDate + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} – ${new Date(endDate + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}`;
 
   return (
     <AdminLayout>
@@ -333,14 +405,27 @@ function AdminDashboard() {
             <Link
               to={"/admin/clientes" as never}
               className="focus-ring inline-flex items-center gap-2 px-4 py-2.5 text-[10px] uppercase transition-opacity hover:opacity-80"
-              style={{ background: "transparent", color: "var(--green)", letterSpacing: "2px", fontWeight: 500, border: "1px solid var(--green)", borderRadius: 999 }}
+              style={{
+                background: "transparent",
+                color: "var(--green)",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                border: "1px solid var(--green)",
+                borderRadius: 999,
+              }}
             >
               + Cliente
             </Link>
             <Link
               to={"/admin/importar" as never}
               className="focus-ring inline-flex items-center gap-2 px-4 py-2.5 text-[10px] uppercase transition-opacity hover:opacity-80"
-              style={{ background: "var(--green)", color: "#fff", letterSpacing: "2px", fontWeight: 500, borderRadius: 999 }}
+              style={{
+                background: "var(--green)",
+                color: "#fff",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 999,
+              }}
             >
               + Importar extrato
             </Link>
@@ -349,7 +434,6 @@ function AdminDashboard() {
       />
 
       <div className="aurora-page">
-
         {/* Filtros de período (preset + datas) na mesma linha */}
         <div className="flex flex-wrap items-center gap-2.5">
           {closingAlerts.length > 0 && (
@@ -405,7 +489,13 @@ function AdminDashboard() {
                 >
                   <div
                     className="px-4 py-2.5 text-[10px] uppercase"
-                    style={{ letterSpacing: "2px", fontWeight: 700, color: "var(--muted-foreground)", borderBottom: "1px solid var(--line)", background: "var(--linen)" }}
+                    style={{
+                      letterSpacing: "2px",
+                      fontWeight: 700,
+                      color: "var(--muted-foreground)",
+                      borderBottom: "1px solid var(--line)",
+                      background: "var(--linen)",
+                    }}
                   >
                     Todos os clientes · por data de fechamento
                   </div>
@@ -416,16 +506,19 @@ function AdminDashboard() {
                       style={{ borderBottom: "1px solid var(--line)", gap: 12 }}
                     >
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-[13px]" style={{ fontWeight: 500, color: "var(--foreground)" }}>
+                        <span
+                          className="text-[13px]"
+                          style={{ fontWeight: 500, color: "var(--foreground)" }}
+                        >
                           {a.clientName}
                         </span>
                         <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
-                          Dia {a.closingDay}{" "}·{" "}
+                          Dia {a.closingDay} ·{" "}
                           {a.daysUntil === 0
                             ? "hoje"
                             : a.daysUntil === 1
-                            ? "amanhã"
-                            : `em ${a.daysUntil} dias`}
+                              ? "amanhã"
+                              : `em ${a.daysUntil} dias`}
                         </span>
                       </div>
                       <span
@@ -435,7 +528,9 @@ function AdminDashboard() {
                           fontWeight: 600,
                           padding: "3px 10px",
                           borderRadius: 999,
-                          background: a.completed ? "rgba(74,103,65,0.10)" : "rgba(109,146,166,0.12)",
+                          background: a.completed
+                            ? "rgba(74,103,65,0.10)"
+                            : "rgba(109,146,166,0.12)",
                           color: a.completed ? "var(--green)" : "var(--tan)",
                         }}
                       >
@@ -514,8 +609,16 @@ function AdminDashboard() {
             startDate={startDate}
             endDate={endDate}
             maxDate={todayISO()}
-            onStartChange={(d) => { setActivePreset(""); setStartDate(d); setPresetOpen(false); }}
-            onEndChange={(d) => { setActivePreset(""); setEndDate(d); setPresetOpen(false); }}
+            onStartChange={(d) => {
+              setActivePreset("");
+              setStartDate(d);
+              setPresetOpen(false);
+            }}
+            onEndChange={(d) => {
+              setActivePreset("");
+              setEndDate(d);
+              setPresetOpen(false);
+            }}
           />
         </div>
 
@@ -527,7 +630,9 @@ function AdminDashboard() {
             value={loading ? "—" : String(ativos)}
             sub="empresas sob gestão na carteira"
             tone="sage"
-            footer={loading ? "" : `${brl(totalSaldo).replace(",00", "")} saldo de caixa do período`}
+            footer={
+              loading ? "" : `${brl(totalSaldo).replace(",00", "")} saldo de caixa do período`
+            }
           />
           <KpiCard
             icon="⊙"
@@ -550,23 +655,70 @@ function AdminDashboard() {
         {/* Gráfico de tendência — últimos 6 meses */}
         {trendData.length > 0 && (
           <section className="aurora-panel">
-            <header className="flex items-end justify-between flex-wrap gap-4 px-7 lg:px-9 py-6" style={{ borderBottom: "1px solid var(--line)", background: "#fff" }}>
+            <header
+              className="flex items-end justify-between flex-wrap gap-4 px-7 lg:px-9 py-6"
+              style={{ borderBottom: "1px solid var(--line)", background: "#fff" }}
+            >
               <div>
-                <div className="text-[11px] uppercase mb-2" style={{ letterSpacing: "2.5px", color: "#1C2D45", fontWeight: 600 }}>
+                <div
+                  className="text-[11px] uppercase mb-2"
+                  style={{ letterSpacing: "2.5px", color: "#1C2D45", fontWeight: 600 }}
+                >
                   Histórico · Últimos 6 meses
                 </div>
-                <h2 className="aurora-serif" style={{ fontSize: 28, fontWeight: 400, letterSpacing: "-0.8px", lineHeight: 1.1, color: "#2D2D2D" }}>
+                <h2
+                  className="aurora-serif"
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 400,
+                    letterSpacing: "-0.8px",
+                    lineHeight: 1.1,
+                    color: "#2D2D2D",
+                  }}
+                >
                   Entradas e{" "}
-                  <em className="italic" style={{ color: "var(--navy)" }}>saídas</em>
+                  <em className="italic" style={{ color: "var(--navy)" }}>
+                    saídas
+                  </em>
                 </h2>
               </div>
               <div className="flex items-center gap-6">
-                <span className="flex items-center gap-2 text-[11px] uppercase" style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)", fontWeight: 500 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 999, background: "var(--green)", display: "inline-block" }} />
+                <span
+                  className="flex items-center gap-2 text-[11px] uppercase"
+                  style={{
+                    letterSpacing: "1.5px",
+                    color: "var(--muted-foreground)",
+                    fontWeight: 500,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 999,
+                      background: "var(--green)",
+                      display: "inline-block",
+                    }}
+                  />
                   Entradas
                 </span>
-                <span className="flex items-center gap-2 text-[11px] uppercase" style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)", fontWeight: 500 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 999, background: "var(--expense)", display: "inline-block" }} />
+                <span
+                  className="flex items-center gap-2 text-[11px] uppercase"
+                  style={{
+                    letterSpacing: "1.5px",
+                    color: "var(--muted-foreground)",
+                    fontWeight: 500,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: 999,
+                      background: "var(--expense)",
+                      display: "inline-block",
+                    }}
+                  />
                   Saídas
                 </span>
               </div>
@@ -579,48 +731,102 @@ function AdminDashboard() {
 
         {/* Receita por cliente */}
         <section className="aurora-panel">
-          <header className="flex items-end justify-between flex-wrap gap-4 px-7 lg:px-9 py-6" style={{ borderBottom: "1px solid var(--line)", background: "#fff" }}>
+          <header
+            className="flex items-end justify-between flex-wrap gap-4 px-7 lg:px-9 py-6"
+            style={{ borderBottom: "1px solid var(--line)", background: "#fff" }}
+          >
             <div>
-              <div className="text-[11px] uppercase mb-2" style={{ letterSpacing: "2.5px", color: "#1C2D45", fontWeight: 600 }}>
+              <div
+                className="text-[11px] uppercase mb-2"
+                style={{ letterSpacing: "2.5px", color: "#1C2D45", fontWeight: 600 }}
+              >
                 Receita · Por cliente
               </div>
-              <h2 className="aurora-serif" style={{ fontSize: 28, fontWeight: 400, letterSpacing: "-0.8px", lineHeight: 1.1, color: "#2D2D2D" }}>
+              <h2
+                className="aurora-serif"
+                style={{
+                  fontSize: 28,
+                  fontWeight: 400,
+                  letterSpacing: "-0.8px",
+                  lineHeight: 1.1,
+                  color: "#2D2D2D",
+                }}
+              >
                 {periodoLabel} ·{" "}
                 <span style={{ color: "var(--green)" }}>
                   {brl(totalReceita).replace(",00", "")}
                 </span>
               </h2>
             </div>
-            <div className="text-[11px] uppercase" style={{ letterSpacing: "2px", color: "var(--muted-foreground)", fontWeight: 500 }}>
+            <div
+              className="text-[11px] uppercase"
+              style={{ letterSpacing: "2px", color: "var(--muted-foreground)", fontWeight: 500 }}
+            >
               em R$ · {ativos} empresa{ativos !== 1 ? "s" : ""}
             </div>
           </header>
 
           <div className="px-7 lg:px-9 py-9">
             {loading ? (
-              <div className="text-[12px] text-center py-8" style={{ color: "var(--muted-foreground)" }}>Carregando...</div>
+              <div
+                className="text-[12px] text-center py-8"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                Carregando...
+              </div>
             ) : clientes.length === 0 ? (
-              <div className="text-[12px] text-center py-8" style={{ color: "var(--muted-foreground)" }}>Nenhum cliente cadastrado.</div>
+              <div
+                className="text-[12px] text-center py-8"
+                style={{ color: "var(--muted-foreground)" }}
+              >
+                Nenhum cliente cadastrado.
+              </div>
             ) : (
               <div style={{ overflowX: "auto", paddingBottom: 6 }}>
-              <div className="flex gap-4 items-end" style={{ height: 260, minWidth: "100%", width: clientes.length * 112 + "px" }}>
-                {clientes.map((c) => {
-                  const height = (c.receita / maxReceita) * 100;
-                  return (
-                    <div key={c.id} className="flex flex-col items-stretch gap-3 h-full justify-end" style={{ flex: 1, minWidth: 64, flexShrink: 0 }}>
-                      <div className="aurora-value text-center" style={{ fontSize: 22, color: c.receita > 0 ? "var(--green)" : "var(--muted-foreground)" }}>
-                        {brl(c.receita).replace(",00", "")}
+                <div
+                  className="flex gap-4 items-end"
+                  style={{ height: 260, minWidth: "100%", width: clientes.length * 112 + "px" }}
+                >
+                  {clientes.map((c) => {
+                    const height = (c.receita / maxReceita) * 100;
+                    return (
+                      <div
+                        key={c.id}
+                        className="flex flex-col items-stretch gap-3 h-full justify-end"
+                        style={{ flex: 1, minWidth: 64, flexShrink: 0 }}
+                      >
+                        <div
+                          className="aurora-value text-center"
+                          style={{
+                            fontSize: 22,
+                            color: c.receita > 0 ? "var(--green)" : "var(--muted-foreground)",
+                          }}
+                        >
+                          {brl(c.receita).replace(",00", "")}
+                        </div>
+                        <div className="w-full flex items-end justify-center" style={{ flex: 1 }}>
+                          <div
+                            className="w-full transition-all"
+                            style={{
+                              height: `${Math.max(height, 2)}%`,
+                              background:
+                                c.receita > 0
+                                  ? "linear-gradient(180deg, var(--green), var(--green2))"
+                                  : "var(--line)",
+                              minHeight: 12,
+                            }}
+                          />
+                        </div>
+                        <div
+                          className="text-[12px] text-center"
+                          style={{ color: "var(--foreground)", fontWeight: 500, lineHeight: 1.3 }}
+                        >
+                          {c.name}
+                        </div>
                       </div>
-                      <div className="w-full flex items-end justify-center" style={{ flex: 1 }}>
-                        <div className="w-full transition-all" style={{ height: `${Math.max(height, 2)}%`, background: c.receita > 0 ? "linear-gradient(180deg, var(--green), var(--green2))" : "var(--line)", minHeight: 12 }} />
-                      </div>
-                      <div className="text-[12px] text-center" style={{ color: "var(--foreground)", fontWeight: 500, lineHeight: 1.3 }}>
-                        {c.name}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -630,22 +836,46 @@ function AdminDashboard() {
         <section className="aurora-panel">
           <header
             className="flex items-center justify-between flex-wrap gap-4 px-7 lg:px-9 py-6"
-            style={{ borderBottom: carteiraExpanded ? "1px solid var(--line)" : "none", background: "#fff" }}
+            style={{
+              borderBottom: carteiraExpanded ? "1px solid var(--line)" : "none",
+              background: "#fff",
+            }}
           >
             <div>
-              <div className="text-[11px] uppercase mb-2" style={{ letterSpacing: "2.5px", color: "#1C2D45", fontWeight: 600 }}>
+              <div
+                className="text-[11px] uppercase mb-2"
+                style={{ letterSpacing: "2.5px", color: "#1C2D45", fontWeight: 600 }}
+              >
                 Carteira · Detalhe
               </div>
-              <h2 className="aurora-serif" style={{ fontSize: 28, fontWeight: 400, letterSpacing: "-0.8px", lineHeight: 1.1, color: "#2D2D2D" }}>
+              <h2
+                className="aurora-serif"
+                style={{
+                  fontSize: 28,
+                  fontWeight: 400,
+                  letterSpacing: "-0.8px",
+                  lineHeight: 1.1,
+                  color: "#2D2D2D",
+                }}
+              >
                 Status dos{" "}
-                <em className="italic" style={{ color: "var(--green)" }}>fechamentos</em>
+                <em className="italic" style={{ color: "var(--green)" }}>
+                  fechamentos
+                </em>
               </h2>
             </div>
             <div className="flex items-center gap-3">
               <Link
                 to={"/admin/clientes" as never}
                 className="focus-ring text-[11px] uppercase inline-flex items-center gap-2"
-                style={{ letterSpacing: "2px", color: "var(--foreground)", border: "1px solid var(--foreground)", padding: "10px 18px", fontWeight: 500 , borderRadius: 12 }}
+                style={{
+                  letterSpacing: "2px",
+                  color: "var(--foreground)",
+                  border: "1px solid var(--foreground)",
+                  padding: "10px 18px",
+                  fontWeight: 500,
+                  borderRadius: 12,
+                }}
               >
                 Ver todos →
               </Link>
@@ -679,8 +909,23 @@ function AdminDashboard() {
             <table className="w-full">
               <thead>
                 <tr style={{ background: "#FAFBFA" }}>
-                  {["Cliente", "Bancos", "Saldo de Caixa", "Pendentes", "Fechamento do período", "Saúde"].map((h) => (
-                    <th key={h} className="text-left px-7 lg:px-9 py-4 text-[11px] uppercase" style={{ fontWeight: 600, letterSpacing: "2px", color: "var(--muted-foreground)" }}>
+                  {[
+                    "Cliente",
+                    "Bancos",
+                    "Saldo de Caixa",
+                    "Pendentes",
+                    "Fechamento do período",
+                    "Saúde",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="text-left px-7 lg:px-9 py-4 text-[11px] uppercase"
+                      style={{
+                        fontWeight: 600,
+                        letterSpacing: "2px",
+                        color: "var(--muted-foreground)",
+                      }}
+                    >
                       {h}
                     </th>
                   ))}
@@ -689,47 +934,84 @@ function AdminDashboard() {
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={6} className="px-7 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>Carregando...</td>
+                    <td
+                      colSpan={6}
+                      className="px-7 py-10 text-center text-[12px]"
+                      style={{ color: "var(--muted-foreground)" }}
+                    >
+                      Carregando...
+                    </td>
                   </tr>
                 )}
-                {!loading && clientes.slice(0, 10).map((c) => (
-                  <tr
-                    key={c.id}
-                    style={{ borderTop: "1px solid var(--line)", transition: "background 0.15s" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(40,76,43,0.04)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <td className="px-7 lg:px-9 py-5">
-                      <div className="text-[14px]" style={{ fontWeight: 500, color: "var(--foreground)" }}>{c.name}</div>
-                    </td>
-                    <td className="px-7 lg:px-9 py-5 text-[13px]" style={{ color: "var(--muted-foreground)" }}>
-                      {c.banks.join(" · ") || "—"}
-                    </td>
-                    <td className="px-7 lg:px-9 py-5 aurora-value" style={{ fontSize: 22, color: c.saldo >= 0 ? "var(--navy)" : "var(--expense)" }}>
-                      {brl(c.saldo)}
-                    </td>
-                    <td className="px-7 lg:px-9 py-5">
-                      {c.pendentes > 0 ? (
-                        <Link to={"/admin/pendentes" as never} className="text-[11px] uppercase px-3 py-1" style={{ background: "rgba(109,146,166,0.12)", color: "var(--tan)", letterSpacing: "1.5px", fontWeight: 600 }}>
-                          {c.pendentes} pendente{c.pendentes !== 1 ? "s" : ""}
-                        </Link>
-                      ) : (
-                        <span className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>—</span>
-                      )}
-                    </td>
-                    <td className="px-7 lg:px-9 py-5">
-                      <ClosingBadge
-                        closing={c.closing}
-                        isClosed={c.isClosed}
-                        onClose={() => handleCloseMonth(c.id)}
-                        onReopen={() => handleReopenMonth(c.id)}
-                      />
-                    </td>
-                    <td className="px-7 lg:px-9 py-5">
-                      <HealthBadge health={c.health} margem={c.margem} segment={c.segment} />
-                    </td>
-                  </tr>
-                ))}
+                {!loading &&
+                  clientes.slice(0, 10).map((c) => (
+                    <tr
+                      key={c.id}
+                      style={{ borderTop: "1px solid var(--line)", transition: "background 0.15s" }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "rgba(40,76,43,0.04)")
+                      }
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <td className="px-7 lg:px-9 py-5">
+                        <div
+                          className="text-[14px]"
+                          style={{ fontWeight: 500, color: "var(--foreground)" }}
+                        >
+                          {c.name}
+                        </div>
+                      </td>
+                      <td
+                        className="px-7 lg:px-9 py-5 text-[13px]"
+                        style={{ color: "var(--muted-foreground)" }}
+                      >
+                        {c.banks.join(" · ") || "—"}
+                      </td>
+                      <td
+                        className="px-7 lg:px-9 py-5 aurora-value"
+                        style={{
+                          fontSize: 22,
+                          color: c.saldo >= 0 ? "var(--navy)" : "var(--expense)",
+                        }}
+                      >
+                        {brl(c.saldo)}
+                      </td>
+                      <td className="px-7 lg:px-9 py-5">
+                        {c.pendentes > 0 ? (
+                          <Link
+                            to={"/admin/pendentes" as never}
+                            className="text-[11px] uppercase px-3 py-1"
+                            style={{
+                              background: "rgba(109,146,166,0.12)",
+                              color: "var(--tan)",
+                              letterSpacing: "1.5px",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {c.pendentes} pendente{c.pendentes !== 1 ? "s" : ""}
+                          </Link>
+                        ) : (
+                          <span
+                            className="text-[11px]"
+                            style={{ color: "var(--muted-foreground)" }}
+                          >
+                            —
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-7 lg:px-9 py-5">
+                        <ClosingBadge
+                          closing={c.closing}
+                          isClosed={c.isClosed}
+                          onClose={() => handleCloseMonth(c.id)}
+                          onReopen={() => handleReopenMonth(c.id)}
+                        />
+                      </td>
+                      <td className="px-7 lg:px-9 py-5">
+                        <HealthBadge health={c.health} margem={c.margem} segment={c.segment} />
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           )}
@@ -739,11 +1021,28 @@ function AdminDashboard() {
   );
 }
 
-function KpiCard({ icon, label, value, sub, tone, footer }: {
-  icon: string; label: string; value: string; sub: string; tone: "sage" | "tan" | "navy"; footer?: string;
+function KpiCard({
+  icon,
+  label,
+  value,
+  sub,
+  tone,
+  footer,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  sub: string;
+  tone: "sage" | "tan" | "navy";
+  footer?: string;
 }) {
   const color = tone === "sage" ? "var(--green)" : tone === "tan" ? "var(--tan)" : "var(--navy)";
-  const bg = tone === "sage" ? "rgba(143,166,136,0.10)" : tone === "tan" ? "rgba(109,146,166,0.12)" : "rgba(27,57,77,0.10)";
+  const bg =
+    tone === "sage"
+      ? "rgba(143,166,136,0.10)"
+      : tone === "tan"
+        ? "rgba(109,146,166,0.12)"
+        : "rgba(27,57,77,0.10)";
   return (
     <article
       className="px-5 py-4 flex flex-col gap-1.5"
@@ -755,13 +1054,24 @@ function KpiCard({ icon, label, value, sub, tone, footer }: {
         boxShadow: "var(--shadow-soft)",
         transition: "transform 0.3s cubic-bezier(.22,.61,.36,1), box-shadow 0.3s",
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "var(--shadow-card)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "var(--shadow-soft)"; }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = "var(--shadow-card)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "";
+        e.currentTarget.style.boxShadow = "var(--shadow-soft)";
+      }}
     >
       <header className="flex items-center justify-between gap-3">
         <div
           className="text-[10px] uppercase"
-          style={{ letterSpacing: "1.8px", color: "var(--foreground)", fontWeight: 600, lineHeight: 1.3 }}
+          style={{
+            letterSpacing: "1.8px",
+            color: "var(--foreground)",
+            fontWeight: 600,
+            lineHeight: 1.3,
+          }}
         >
           {label}
         </div>
@@ -782,7 +1092,11 @@ function KpiCard({ icon, label, value, sub, tone, footer }: {
       {footer && (
         <div
           className="mt-1.5 pt-2.5 text-[10px]"
-          style={{ color: "var(--muted-foreground)", borderTop: "1px solid var(--line)", lineHeight: 1.4 }}
+          style={{
+            color: "var(--muted-foreground)",
+            borderTop: "1px solid var(--line)",
+            lineHeight: 1.4,
+          }}
         >
           {footer}
         </div>
@@ -803,11 +1117,11 @@ function TrendChart({ data }: { data: TrendPoint[] }) {
       <AreaChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="trendFillRec" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor="#284C2B" stopOpacity={0.12} />
+            <stop offset="5%" stopColor="#284C2B" stopOpacity={0.12} />
             <stop offset="95%" stopColor="#284C2B" stopOpacity={0} />
           </linearGradient>
           <linearGradient id="trendFillDes" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor="#C0392B" stopOpacity={0.08} />
+            <stop offset="5%" stopColor="#C0392B" stopOpacity={0.08} />
             <stop offset="95%" stopColor="#C0392B" stopOpacity={0} />
           </linearGradient>
         </defs>
@@ -834,10 +1148,19 @@ function TrendChart({ data }: { data: TrendPoint[] }) {
             boxShadow: "var(--shadow-soft)",
           }}
           formatter={(value: number, name: string) => [
-            value.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }),
+            value.toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+              minimumFractionDigits: 0,
+            }),
             name === "rec" ? "Entradas" : "Saídas",
           ]}
-          labelStyle={{ fontSize: 11, fontWeight: 600, color: "var(--foreground)", marginBottom: 4 }}
+          labelStyle={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: "var(--foreground)",
+            marginBottom: 4,
+          }}
         />
         <Area
           type="monotone"
@@ -863,7 +1186,12 @@ function TrendChart({ data }: { data: TrendPoint[] }) {
   );
 }
 
-export function ClosingBadge({ closing, isClosed, onClose, onReopen }: {
+export function ClosingBadge({
+  closing,
+  isClosed,
+  onClose,
+  onReopen,
+}: {
   closing: UploadRow | null;
   isClosed: boolean;
   onClose: () => void;
@@ -871,7 +1199,18 @@ export function ClosingBadge({ closing, isClosed, onClose, onReopen }: {
 }) {
   if (!closing) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-[10px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 600, background: "rgba(192,57,43,0.08)", color: "#C0392B", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>
+      <span
+        className="inline-flex items-center gap-1.5 text-[10px] uppercase"
+        style={{
+          letterSpacing: "1.5px",
+          fontWeight: 600,
+          background: "rgba(192,57,43,0.08)",
+          color: "#C0392B",
+          padding: "4px 10px",
+          borderRadius: 999,
+          whiteSpace: "nowrap",
+        }}
+      >
         <span style={{ width: 5, height: 5, borderRadius: 999, background: "#C0392B" }} />
         Sem extrato
       </span>
@@ -880,7 +1219,19 @@ export function ClosingBadge({ closing, isClosed, onClose, onReopen }: {
   const awaitingApproval = (closing.tx_pending ?? 0) + (closing.tx_classified ?? 0);
   if (awaitingApproval > 0) {
     return (
-      <Link to={"/admin/pendentes" as never} className="inline-flex items-center gap-1.5 text-[10px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 600, background: "rgba(109,146,166,0.12)", color: "var(--tan)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>
+      <Link
+        to={"/admin/pendentes" as never}
+        className="inline-flex items-center gap-1.5 text-[10px] uppercase"
+        style={{
+          letterSpacing: "1.5px",
+          fontWeight: 600,
+          background: "rgba(109,146,166,0.12)",
+          color: "var(--tan)",
+          padding: "4px 10px",
+          borderRadius: 999,
+          whiteSpace: "nowrap",
+        }}
+      >
         <span style={{ width: 5, height: 5, borderRadius: 999, background: "var(--tan)" }} />
         {awaitingApproval} aguardando aprovação
       </Link>
@@ -889,7 +1240,18 @@ export function ClosingBadge({ closing, isClosed, onClose, onReopen }: {
   if (isClosed) {
     return (
       <div className="inline-flex items-center gap-2 flex-wrap">
-        <span className="inline-flex items-center gap-1.5 text-[10px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 600, background: "rgba(74,103,65,0.10)", color: "var(--green)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}>
+        <span
+          className="inline-flex items-center gap-1.5 text-[10px] uppercase"
+          style={{
+            letterSpacing: "1.5px",
+            fontWeight: 600,
+            background: "rgba(74,103,65,0.10)",
+            color: "var(--green)",
+            padding: "4px 10px",
+            borderRadius: 999,
+            whiteSpace: "nowrap",
+          }}
+        >
           <span style={{ width: 5, height: 5, borderRadius: 999, background: "var(--green)" }} />
           Fechado
         </span>
@@ -898,7 +1260,17 @@ export function ClosingBadge({ closing, isClosed, onClose, onReopen }: {
             type="button"
             onClick={onReopen}
             className="text-[10px] uppercase transition-opacity hover:opacity-70"
-            style={{ letterSpacing: "1.5px", fontWeight: 600, color: "var(--muted-foreground)", background: "none", border: "1px solid var(--line)", padding: "4px 10px", borderRadius: 999, cursor: "pointer", whiteSpace: "nowrap" }}
+            style={{
+              letterSpacing: "1.5px",
+              fontWeight: 600,
+              color: "var(--muted-foreground)",
+              background: "none",
+              border: "1px solid var(--line)",
+              padding: "4px 10px",
+              borderRadius: 999,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
           >
             Reabrir
           </button>
@@ -911,28 +1283,61 @@ export function ClosingBadge({ closing, isClosed, onClose, onReopen }: {
       type="button"
       onClick={onClose}
       className="inline-flex items-center gap-1.5 text-[10px] uppercase transition-opacity hover:opacity-70"
-      style={{ letterSpacing: "1.5px", fontWeight: 600, background: "transparent", color: "var(--green)", padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap", border: "1px solid var(--green)", cursor: "pointer" }}
+      style={{
+        letterSpacing: "1.5px",
+        fontWeight: 600,
+        background: "transparent",
+        color: "var(--green)",
+        padding: "4px 10px",
+        borderRadius: 999,
+        whiteSpace: "nowrap",
+        border: "1px solid var(--green)",
+        cursor: "pointer",
+      }}
     >
       Fechar mês
     </button>
   );
 }
 
-function HealthBadge({ health, margem, segment }: { health: HealthLevel; margem: number; segment: string | null }) {
+function HealthBadge({
+  health,
+  margem,
+  segment,
+}: {
+  health: HealthLevel;
+  margem: number;
+  segment: string | null;
+}) {
   if (health === "sem_dados") {
-    return <span className="text-[11px] uppercase" style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)" }}>—</span>;
+    return (
+      <span
+        className="text-[11px] uppercase"
+        style={{ letterSpacing: "1.5px", color: "var(--muted-foreground)" }}
+      >
+        —
+      </span>
+    );
   }
   const config = {
-    saudavel: { label: "Saudável", bg: "rgba(74,103,65,0.10)",    color: "var(--green)" },
-    atencao:  { label: "Atenção",  bg: "rgba(109,146,166,0.12)", color: "var(--tan)"   },
-    critico:  { label: "Crítico",  bg: "rgba(192,57,43,0.10)",   color: "#C0392B"      },
+    saudavel: { label: "Saudável", bg: "rgba(74,103,65,0.10)", color: "var(--green)" },
+    atencao: { label: "Atenção", bg: "rgba(109,146,166,0.12)", color: "var(--tan)" },
+    critico: { label: "Crítico", bg: "rgba(192,57,43,0.10)", color: "#C0392B" },
   }[health];
   const bench = SEGMENT_BENCHMARKS[segment ?? ""] ?? SEGMENT_BENCHMARKS["default"];
   return (
     <span
       title={`Margem: ${margem.toFixed(1)}% · Ref. ${segment ?? "geral"}: saudável ≥ ${bench.healthy}%, atenção ≥ ${bench.caution}%`}
       className="inline-flex items-center gap-1.5 text-[10px] uppercase cursor-help"
-      style={{ letterSpacing: "1.5px", fontWeight: 600, background: config.bg, color: config.color, padding: "4px 10px", borderRadius: 999, whiteSpace: "nowrap" }}
+      style={{
+        letterSpacing: "1.5px",
+        fontWeight: 600,
+        background: config.bg,
+        color: config.color,
+        padding: "4px 10px",
+        borderRadius: 999,
+        whiteSpace: "nowrap",
+      }}
     >
       <span style={{ width: 5, height: 5, borderRadius: 999, background: config.color }} />
       {config.label}
@@ -948,11 +1353,24 @@ export function StatusBadge({ status }: { status: string }) {
         ? "Em andamento"
         : status || "Em andamento";
   const cfg =
-    normalized === "Fechado"    ? { bg: "rgba(40,76,43,0.12)",    color: "#284C2B" }
-    : normalized === "Pendente" ? { bg: "rgba(109,146,166,0.15)", color: "#8C6A40" }
-    : /* Em andamento */          { bg: "rgba(28,45,69,0.12)",    color: "#1C2D45" };
+    normalized === "Fechado"
+      ? { bg: "rgba(40,76,43,0.12)", color: "#284C2B" }
+      : normalized === "Pendente"
+        ? { bg: "rgba(109,146,166,0.15)", color: "#8C6A40" }
+        : /* Em andamento */ { bg: "rgba(28,45,69,0.12)", color: "#1C2D45" };
   return (
-    <span className="inline-flex items-center text-[11px] uppercase" style={{ letterSpacing: "1.5px", fontWeight: 600, background: cfg.bg, color: cfg.color, padding: "4px 12px", borderRadius: "999px", whiteSpace: "nowrap" }}>
+    <span
+      className="inline-flex items-center text-[11px] uppercase"
+      style={{
+        letterSpacing: "1.5px",
+        fontWeight: 600,
+        background: cfg.bg,
+        color: cfg.color,
+        padding: "4px 12px",
+        borderRadius: "999px",
+        whiteSpace: "nowrap",
+      }}
+    >
       {normalized}
     </span>
   );

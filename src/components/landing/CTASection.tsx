@@ -4,11 +4,7 @@ const LINEN3 = "#EDE3D6";
 
 export function CTASection() {
   return (
-    <section
-      id="contato"
-      className="px-6 lg:px-14 py-24 lg:py-32"
-      style={{ background: LINEN3 }}
-    >
+    <section id="contato" className="px-6 lg:px-14 py-24 lg:py-32" style={{ background: LINEN3 }}>
       <div className="max-w-[1280px] mx-auto grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
         {/* Esquerda — copy */}
         <div className="reveal">
@@ -20,7 +16,12 @@ export function CTASection() {
           </div>
           <h2
             className="aurora-serif"
-            style={{ fontSize: "clamp(40px, 6vw, 72px)", fontWeight: 300, lineHeight: 1, letterSpacing: "-2.5px" }}
+            style={{
+              fontSize: "clamp(40px, 6vw, 72px)",
+              fontWeight: 300,
+              lineHeight: 1,
+              letterSpacing: "-2.5px",
+            }}
           >
             Conta um pouco da sua{" "}
             <em className="italic" style={{ color: "var(--green)" }}>
@@ -41,11 +42,7 @@ export function CTASection() {
           </p>
 
           <ul className="mt-9 flex flex-col gap-4">
-            {[
-              "Resposta em até 24h",
-              "Conversa por WhatsApp",
-              "Sem compromisso",
-            ].map((t) => (
+            {["Resposta em até 24h", "Conversa por WhatsApp", "Sem compromisso"].map((t) => (
               <li key={t} className="flex items-center gap-3.5 text-[14px]">
                 <span
                   aria-hidden

@@ -35,24 +35,28 @@ Deno.serve(async (req) => {
     .single();
 
   if (!proposal) return jsonResponse({ error: "Proposta não encontrada" }, 404, origin);
-  if (!proposal.client_email) return jsonResponse({ error: "Proposta sem e-mail do cliente" }, 422, origin);
-  if (proposal.status === "accepted") return jsonResponse({ error: "Proposta já aceita" }, 409, origin);
+  if (!proposal.client_email)
+    return jsonResponse({ error: "Proposta sem e-mail do cliente" }, 422, origin);
+  if (proposal.status === "accepted")
+    return jsonResponse({ error: "Proposta já aceita" }, 409, origin);
 
-  const appUrl    = Deno.env.get("AURORA_APP_URL") ?? "https://aurora.demeo.com.br";
+  const appUrl = Deno.env.get("AURORA_APP_URL") ?? "https://aurora.demeo.com.br";
   const publicUrl = `${appUrl}/p/proposta/${proposal.public_token}`;
-  const webhookUrl = Deno.env.get("N8N_PROPOSAL_WEBHOOK") ?? "https://iaplicada.app.n8n.cloud/webhook/aurora-proposal-send";
+  const webhookUrl =
+    Deno.env.get("N8N_PROPOSAL_WEBHOOK") ??
+    "https://iaplicada.app.n8n.cloud/webhook/aurora-proposal-send";
 
   try {
     const r = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        client_name:     proposal.client_name,
-        client_email:    proposal.client_email,
+        client_name: proposal.client_name,
+        client_email: proposal.client_email,
         proposal_number: proposal.number,
-        public_url:      publicUrl,
-        pdf_url:         proposal.pdf_url ?? null,
-        total_monthly:   Number(proposal.total_monthly),
+        public_url: publicUrl,
+        pdf_url: proposal.pdf_url ?? null,
+        total_monthly: Number(proposal.total_monthly),
       }),
     });
     if (!r.ok) {

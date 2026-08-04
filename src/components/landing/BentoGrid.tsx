@@ -5,7 +5,11 @@ const ABRIL_BARS = [40, 64, 52, 78, 60, 88, 70];
 
 export function BentoGrid() {
   return (
-    <section id="sistema" className="px-6 lg:px-14 py-24 lg:py-32" style={{ background: "var(--linen2)" }}>
+    <section
+      id="sistema"
+      className="px-6 lg:px-14 py-24 lg:py-32"
+      style={{ background: "var(--linen2)" }}
+    >
       <div className="max-w-[1280px] mx-auto">
         <div className="reveal mb-12">
           <div
@@ -16,9 +20,18 @@ export function BentoGrid() {
           </div>
           <h2
             className="aurora-serif"
-            style={{ fontSize: "clamp(40px, 5.5vw, 64px)", fontWeight: 300, lineHeight: 1, letterSpacing: "-2px" }}
+            style={{
+              fontSize: "clamp(40px, 5.5vw, 64px)",
+              fontWeight: 300,
+              lineHeight: 1,
+              letterSpacing: "-2px",
+            }}
           >
-            Onde a clareza <em className="italic" style={{ color: "var(--green)" }}>acontece</em>.
+            Onde a clareza{" "}
+            <em className="italic" style={{ color: "var(--green)" }}>
+              acontece
+            </em>
+            .
           </h2>
         </div>
 
@@ -113,7 +126,13 @@ function BentoHeader({ cap, title }: { cap: string; title: string }) {
       </div>
       <h3
         className="aurora-serif"
-        style={{ fontSize: 22, fontWeight: 300, lineHeight: 1.2, letterSpacing: "-0.5px", color: "var(--navy)" }}
+        style={{
+          fontSize: 22,
+          fontWeight: 300,
+          lineHeight: 1.2,
+          letterSpacing: "-0.5px",
+          color: "var(--navy)",
+        }}
       >
         {title}
       </h3>
@@ -149,9 +168,18 @@ function BentoMaster() {
           </div>
           <h3
             className="aurora-serif"
-            style={{ fontSize: 26, fontWeight: 300, letterSpacing: "-0.5px", lineHeight: 1.15, color: "var(--navy)" }}
+            style={{
+              fontSize: 26,
+              fontWeight: 300,
+              letterSpacing: "-0.5px",
+              lineHeight: 1.15,
+              color: "var(--navy)",
+            }}
           >
-            Dashboard por <em className="italic" style={{ color: "var(--green)" }}>cliente</em>
+            Dashboard por{" "}
+            <em className="italic" style={{ color: "var(--green)" }}>
+              cliente
+            </em>
           </h3>
         </div>
         <div className="flex flex-col items-end gap-1.5">
@@ -201,7 +229,9 @@ function BentoMaster() {
         style={{ letterSpacing: "1.2px", color: "var(--muted-foreground)" }}
       >
         {["seg", "ter", "qua", "qui", "sex", "sáb", "dom"].map((d) => (
-          <div key={d} className="text-center">{d}</div>
+          <div key={d} className="text-center">
+            {d}
+          </div>
         ))}
       </div>
 
@@ -227,8 +257,12 @@ function BentoClassification() {
             style={{ background: "var(--linen)", border: "1px solid var(--line)" }}
           >
             <div className="min-w-0">
-              <div className="text-[12px] truncate" style={{ fontWeight: 500 }}>{it.d}</div>
-              <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{it.c}</div>
+              <div className="text-[12px] truncate" style={{ fontWeight: 500 }}>
+                {it.d}
+              </div>
+              <div className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+                {it.c}
+              </div>
             </div>
             <span
               className="text-[9px] uppercase px-2 py-0.5 shrink-0"
@@ -277,11 +311,22 @@ function BentoProjection() {
             [100, 28],
             [160, 18],
           ].map(([x, y]) => (
-            <circle key={x} cx={x} cy={y} r="2.5" fill="#fff" stroke="var(--green)" strokeWidth="1.5" />
+            <circle
+              key={x}
+              cx={x}
+              cy={y}
+              r="2.5"
+              fill="#fff"
+              stroke="var(--green)"
+              strokeWidth="1.5"
+            />
           ))}
         </svg>
       </div>
-      <div className="flex justify-between mt-2 text-[10px]" style={{ color: "var(--muted-foreground)" }}>
+      <div
+        className="flex justify-between mt-2 text-[10px]"
+        style={{ color: "var(--muted-foreground)" }}
+      >
         <span>30d</span>
         <span>60d</span>
         <span>90d</span>
@@ -358,10 +403,7 @@ function BentoProposals() {
         <div style={{ height: 1, background: "var(--tan2)", opacity: 0.5, margin: "6px 0" }} />
         <div className="flex flex-col gap-1">
           {[0.8, 1, 0.65, 0.9, 0.5].map((w, i) => (
-            <div
-              key={i}
-              style={{ height: 2, width: `${w * 100}%`, background: "var(--line)" }}
-            />
+            <div key={i} style={{ height: 2, width: `${w * 100}%`, background: "var(--line)" }} />
           ))}
         </div>
       </div>
@@ -381,10 +423,16 @@ function BentoPortal() {
           color: "#fff",
         }}
       >
-        <div className="text-[9px] uppercase mb-1" style={{ letterSpacing: "1.5px", color: "rgba(255,255,255,0.55)" }}>
+        <div
+          className="text-[9px] uppercase mb-1"
+          style={{ letterSpacing: "1.5px", color: "rgba(255,255,255,0.55)" }}
+        >
           Saldo hoje
         </div>
-        <div className="aurora-serif" style={{ fontSize: 24, lineHeight: 1, letterSpacing: "-0.5px" }}>
+        <div
+          className="aurora-serif"
+          style={{ fontSize: 24, lineHeight: 1, letterSpacing: "-0.5px" }}
+        >
           R$ 48.2k
         </div>
       </div>

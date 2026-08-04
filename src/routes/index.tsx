@@ -103,9 +103,7 @@ function Landing() {
         <div
           className="flex items-center justify-between transition-all"
           style={{
-            background: scrolled
-              ? "rgba(255,255,255,0.85)"
-              : "rgba(255,255,255,0.7)",
+            background: scrolled ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.7)",
             backdropFilter: "blur(18px) saturate(1.4)",
             WebkitBackdropFilter: "blur(18px) saturate(1.4)",
             border: "1px solid rgba(28,45,69,0.08)",
@@ -197,7 +195,12 @@ function Landing() {
         <HeroPC />
 
         {/* Dobra → Features (branco → branco, com vinco verde) */}
-        <DesignedFold topColor="transparent" bottomColor="transparent" accent="forest" height={96} />
+        <DesignedFold
+          topColor="transparent"
+          bottomColor="transparent"
+          accent="forest"
+          height={96}
+        />
 
         <div style={{ background: "transparent" }}>
           <Features />
@@ -279,9 +282,15 @@ function Landing() {
               </a>
             </FooterCol>
             <FooterCol title="Acompanhe">
-              <a href="#" rel="noopener noreferrer">Instagram</a>
-              <a href="#" rel="noopener noreferrer">LinkedIn</a>
-              <a href="#" rel="noopener noreferrer">Blog</a>
+              <a href="#" rel="noopener noreferrer">
+                Instagram
+              </a>
+              <a href="#" rel="noopener noreferrer">
+                LinkedIn
+              </a>
+              <a href="#" rel="noopener noreferrer">
+                Blog
+              </a>
             </FooterCol>
           </div>
           <div
@@ -291,9 +300,7 @@ function Landing() {
             <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
               © Aurora Gestão Financeira · Claudia De Meo · 2026
             </div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
-              IAplicada Business
-            </div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>IAplicada Business</div>
           </div>
         </div>
       </footer>

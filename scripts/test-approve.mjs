@@ -105,7 +105,7 @@ try {
   step(
     "1. Direct update → approved",
     !directErr && direct?.length === 1 && direct[0].status === "approved",
-    directErr?.message ?? { count: direct?.length, status: direct?.[0]?.status }
+    directErr?.message ?? { count: direct?.length, status: direct?.[0]?.status },
   );
 
   await restoreTx();
@@ -124,10 +124,11 @@ try {
   step(
     "2. RPC approve_transactions_batch",
     !rpcErr && !afterErr && afterRpc?.status === "approved",
-    rpcErr?.message ?? afterErr?.message ?? {
-      status: afterRpc?.status,
-      approved_by: afterRpc?.approved_by,
-    }
+    rpcErr?.message ??
+      afterErr?.message ?? {
+        status: afterRpc?.status,
+        approved_by: afterRpc?.approved_by,
+      },
   );
 } finally {
   try {

@@ -54,7 +54,9 @@ function PropostasListing() {
     queryFn: async (): Promise<Proposal[]> => {
       let q = supabase()
         .from("proposals")
-        .select("id, number, client_name, status, total_monthly, pdf_url, public_token, sent_at, viewed_at, created_at")
+        .select(
+          "id, number, client_name, status, total_monthly, pdf_url, public_token, sent_at, viewed_at, created_at",
+        )
         .order("created_at", { ascending: false });
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       const { data } = await q;
@@ -62,9 +64,10 @@ function PropostasListing() {
     },
   });
 
-  const filtered = proposals.filter((p) =>
-    p.client_name.toLowerCase().includes(search.toLowerCase()) ||
-    p.number.toLowerCase().includes(search.toLowerCase()),
+  const filtered = proposals.filter(
+    (p) =>
+      p.client_name.toLowerCase().includes(search.toLowerCase()) ||
+      p.number.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -78,7 +81,13 @@ function PropostasListing() {
             to="/admin/propostas/nova"
             search={{ step: 1 }}
             className="inline-flex items-center gap-2 px-5 py-3 text-[10px] uppercase"
-            style={{ background: "var(--green)", color: "#fff", letterSpacing: "2.5px", fontWeight: 500 , borderRadius: 999 }}
+            style={{
+              background: "var(--green)",
+              color: "#fff",
+              letterSpacing: "2.5px",
+              fontWeight: 500,
+              borderRadius: 999,
+            }}
           >
             + Nova proposta
           </Link>
@@ -108,7 +117,7 @@ function PropostasListing() {
                   borderRadius: 999,
                 }}
               >
-                {s === "all" ? "Todos" : STATUS_LABEL[s] ?? s}
+                {s === "all" ? "Todos" : (STATUS_LABEL[s] ?? s)}
               </button>
             ))}
           </div>
@@ -118,38 +127,66 @@ function PropostasListing() {
           <table className="w-full">
             <thead>
               <tr style={{ background: "var(--offwhite)" }}>
-                {["Número", "Cliente", "Valor mensal", "Status", "Enviada", "Vista", "Ações"].map((h) => (
-                  <th key={h} className="text-left px-5 py-3 aurora-cap" style={{ fontWeight: 500 }}>
-                    {h}
-                  </th>
-                ))}
+                {["Número", "Cliente", "Valor mensal", "Status", "Enviada", "Vista", "Ações"].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="text-left px-5 py-3 aurora-cap"
+                      style={{ fontWeight: 500 }}
+                    >
+                      {h}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>
               {filtered.map((p, i) => (
-                <tr key={p.id} style={{ background: i % 2 === 0 ? "#fff" : "#FAFBFA", borderTop: "1px solid var(--line)" }}>
+                <tr
+                  key={p.id}
+                  style={{
+                    background: i % 2 === 0 ? "#fff" : "#FAFBFA",
+                    borderTop: "1px solid var(--line)",
+                  }}
+                >
                   <td className="px-5 py-3 text-[11px]" style={{ fontFamily: "monospace" }}>
                     {p.number}
                   </td>
                   <td className="px-5 py-3 text-[12px]" style={{ fontWeight: 500 }}>
                     {p.client_name}
                   </td>
-                  <td className="px-5 py-3 aurora-serif text-[16px]" style={{ color: "var(--green)" }}>
+                  <td
+                    className="px-5 py-3 aurora-serif text-[16px]"
+                    style={{ color: "var(--green)" }}
+                  >
                     {brl(Number(p.total_monthly))}
                   </td>
                   <td className="px-5 py-3">
-                    <span className={STATUS_TONE[p.status] ?? "aurora-badge"}>● {STATUS_LABEL[p.status] ?? p.status}</span>
+                    <span className={STATUS_TONE[p.status] ?? "aurora-badge"}>
+                      ● {STATUS_LABEL[p.status] ?? p.status}
+                    </span>
                   </td>
-                  <td className="px-5 py-3 text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  <td
+                    className="px-5 py-3 text-[11px]"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
                     {p.sent_at ? new Date(p.sent_at).toLocaleDateString("pt-BR") : "—"}
                   </td>
-                  <td className="px-5 py-3 text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                  <td
+                    className="px-5 py-3 text-[11px]"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
                     {p.viewed_at ? new Date(p.viewed_at).toLocaleDateString("pt-BR") : "—"}
                   </td>
                   <td className="px-5 py-3 text-[11px]">
                     <div className="flex gap-3">
                       {p.pdf_url && (
-                        <a href={p.pdf_url} target="_blank" rel="noopener noreferrer" className="aurora-link">
+                        <a
+                          href={p.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="aurora-link"
+                        >
                           PDF
                         </a>
                       )}
@@ -171,7 +208,11 @@ function PropostasListing() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                  <td
+                    colSpan={7}
+                    className="px-5 py-10 text-center text-[12px]"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
                     Nenhuma proposta {statusFilter !== "all" ? "neste status" : "ainda"}.
                   </td>
                 </tr>

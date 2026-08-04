@@ -71,7 +71,9 @@ export function FeatureTabs() {
               className="text-left transition-all whitespace-nowrap lg:whitespace-normal relative overflow-hidden"
               style={{
                 padding: "20px 24px",
-                background: a ? "linear-gradient(135deg, var(--green), var(--green2))" : "rgba(255,255,255,0.7)",
+                background: a
+                  ? "linear-gradient(135deg, var(--green), var(--green2))"
+                  : "rgba(255,255,255,0.7)",
                 backdropFilter: !a ? "blur(8px)" : "none",
                 color: a ? "#fff" : "var(--foreground)",
                 border: `1px solid ${a ? "transparent" : "rgba(74,103,65,0.08)"}`,

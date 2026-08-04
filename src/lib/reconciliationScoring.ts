@@ -53,7 +53,11 @@ export function scoreMatch(payable: PayableMatchInput, tx: TxMatchInput): number
 
   const desc = payable.description.toLowerCase();
   const txDesc = tx.description.toLowerCase();
-  if (desc && txDesc && (txDesc.includes(desc.slice(0, 12)) || desc.includes(txDesc.slice(0, 12)))) {
+  if (
+    desc &&
+    txDesc &&
+    (txDesc.includes(desc.slice(0, 12)) || desc.includes(txDesc.slice(0, 12)))
+  ) {
     score += 10;
   }
 
@@ -63,11 +67,16 @@ export function scoreMatch(payable: PayableMatchInput, tx: TxMatchInput): number
 /** Auto-conciliação conservadora: exatamente 1 candidato forte. */
 export function pickAutoMatch(
   payables: PayableMatchInput[],
-  tx: TxMatchInput
+  tx: TxMatchInput,
 ): PayableMatchInput | null {
   const scored = payables
     .map((payable) => ({ payable, score: scoreMatch(payable, tx) }))
-    .filter((s) => s.score >= 90 && amountsMatch(s.payable, tx) && daysBetween(s.payable.due_date, tx.date) <= 3);
+    .filter(
+      (s) =>
+        s.score >= 90 &&
+        amountsMatch(s.payable, tx) &&
+        daysBetween(s.payable.due_date, tx.date) <= 3,
+    );
 
   if (scored.length !== 1) return null;
   return scored[0].payable;
@@ -76,19 +85,21 @@ export function pickAutoMatch(
 export function rankMatches(
   payables: PayableMatchInput[],
   tx: TxMatchInput,
-  minScore = 60
+  minScore = 60,
 ): ScoredMatch[] {
-  return payables
-    .map((payable) => ({ payable, score: scoreMatch(payable, tx) }))
-    // Valor incompatível nunca entra no modal/toast (RPC também rejeita)
-    .filter((s) => s.score >= minScore && amountsMatch(s.payable, tx))
-    .sort((a, b) => b.score - a.score);
+  return (
+    payables
+      .map((payable) => ({ payable, score: scoreMatch(payable, tx) }))
+      // Valor incompatível nunca entra no modal/toast (RPC também rejeita)
+      .filter((s) => s.score >= minScore && amountsMatch(s.payable, tx))
+      .sort((a, b) => b.score - a.score)
+  );
 }
 
 export function rankTxCandidatesForPayable(
   payable: PayableMatchInput,
   transactions: TxMatchInput[],
-  minScore = 60
+  minScore = 60,
 ): { tx: TxMatchInput; score: number }[] {
   return transactions
     .map((tx) => ({ tx, score: scoreMatch(payable, tx) }))

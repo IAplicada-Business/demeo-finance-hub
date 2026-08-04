@@ -105,11 +105,7 @@ function PendentesPage() {
       undefined,
       filterOpts,
     );
-    const countQuery = pendingTransactionsFilter(
-      "*",
-      { count: "exact", head: true },
-      filterOpts,
-    );
+    const countQuery = pendingTransactionsFilter("*", { count: "exact", head: true }, filterOpts);
 
     const [{ data: txData, error: txErr }, { count }] = await Promise.all([
       txQuery.order("date", { ascending: false }).range(p * PAGE_SIZE, (p + 1) * PAGE_SIZE - 1),
@@ -630,7 +626,11 @@ function PendentesPage() {
                                   background: style.background,
                                   color: style.color,
                                 }}
-                                title={category ? CONFIDENCE_TOOLTIP : "Selecione uma categoria para ver a confiança da classificação"}
+                                title={
+                                  category
+                                    ? CONFIDENCE_TOOLTIP
+                                    : "Selecione uma categoria para ver a confiança da classificação"
+                                }
                               >
                                 {confidenceLabel(conf)}
                               </span>

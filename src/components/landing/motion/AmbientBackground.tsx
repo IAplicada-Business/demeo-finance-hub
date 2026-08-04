@@ -19,8 +19,7 @@ export function AmbientBackground() {
           top: "5%",
           width: 760,
           height: 760,
-          background:
-            "radial-gradient(circle, rgba(153,169,137,0.18) 0%, transparent 60%)",
+          background: "radial-gradient(circle, rgba(153,169,137,0.18) 0%, transparent 60%)",
           filter: "blur(60px)",
           borderRadius: "50%",
           animation: "ambient-drift-1 28s ease-in-out infinite",
@@ -34,8 +33,7 @@ export function AmbientBackground() {
           top: "30%",
           width: 820,
           height: 820,
-          background:
-            "radial-gradient(circle, rgba(109,146,166,0.14) 0%, transparent 60%)",
+          background: "radial-gradient(circle, rgba(109,146,166,0.14) 0%, transparent 60%)",
           filter: "blur(80px)",
           borderRadius: "50%",
           animation: "ambient-drift-2 36s ease-in-out infinite",
@@ -49,8 +47,7 @@ export function AmbientBackground() {
           bottom: "-10%",
           width: 640,
           height: 640,
-          background:
-            "radial-gradient(circle, rgba(40,76,43,0.12) 0%, transparent 60%)",
+          background: "radial-gradient(circle, rgba(40,76,43,0.12) 0%, transparent 60%)",
           filter: "blur(70px)",
           borderRadius: "50%",
           animation: "ambient-drift-3 32s ease-in-out infinite",

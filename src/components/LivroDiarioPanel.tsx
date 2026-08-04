@@ -77,15 +77,17 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
             .from("payables")
             .select("id, due_date")
             .in("id", payableIds);
-          linkedDueById = Object.fromEntries((linked ?? []).map((p) => [p.id, p.due_date as string]));
+          linkedDueById = Object.fromEntries(
+            (linked ?? []).map((p) => [p.id, p.due_date as string]),
+          );
         }
         setRows(
           buildLivroDiarioRows(
             txs,
             (payRes.data ?? []) as UnpaidPayableInput[],
             undefined,
-            linkedDueById
-          )
+            linkedDueById,
+          ),
         );
       }
       setLoading(false);
@@ -94,7 +96,7 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
 
   const filtered = useMemo(
     () => filterLivroDiarioRows(rows, { status: statusFilter, search, startDate, endDate }),
-    [rows, statusFilter, search, startDate, endDate]
+    [rows, statusFilter, search, startDate, endDate],
   );
 
   const kpis = useMemo(() => livroDiarioKpis(filtered), [filtered]);
@@ -113,7 +115,8 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
           <p className="text-[12px] mt-2" style={{ color: "var(--muted-foreground)" }}>
             <strong style={{ color: "var(--green)" }}>Verde</strong> = já no banco ·{" "}
             <strong>cinza</strong> = ainda na agenda. Extratos aprovados usam a{" "}
-            <strong>data do extrato</strong>; se conciliados com a agenda, o vencimento original aparece à esquerda. Contas em aberto vêm da{" "}
+            <strong>data do extrato</strong>; se conciliados com a agenda, o vencimento original
+            aparece à esquerda. Contas em aberto vêm da{" "}
             {onOpenContas ? (
               <button
                 type="button"
@@ -135,7 +138,11 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
         <KpiCard label="Realizados" value={String(kpis.realizados)} tone="green" />
         <KpiCard label="Agendados no prazo" value={String(kpis.noPrazo)} tone="navy" />
         <KpiCard label="Agendados atrasados" value={String(kpis.atrasados)} tone="tan" />
-        <KpiCard label="Saldo do período" value={brl(kpis.saldo)} tone={kpis.saldo >= 0 ? "green" : "expense"} />
+        <KpiCard
+          label="Saldo do período"
+          value={brl(kpis.saldo)}
+          tone={kpis.saldo >= 0 ? "green" : "expense"}
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -194,7 +201,10 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
           <div className="text-[13px]">Carregando livro diário...</div>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="aurora-card text-center py-12 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+        <div
+          className="aurora-card text-center py-12 text-[12px]"
+          style={{ color: "var(--muted-foreground)" }}
+        >
           Nenhum lançamento no período com os filtros selecionados.
         </div>
       ) : (
@@ -202,18 +212,31 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
           <table className="w-full">
             <thead>
               <tr style={{ background: "var(--linen)" }}>
-                {["Vencimento", "Data no extrato", "Plano de contas", "Histórico", "Conta bancária", "Valor", "Status"].map(
-                  (h) => (
-                    <th key={h} className="text-left px-5 py-3 aurora-cap" style={{ fontWeight: 500, whiteSpace: "nowrap" }}>
-                      {h}
-                    </th>
-                  )
-                )}
+                {[
+                  "Vencimento",
+                  "Data no extrato",
+                  "Plano de contas",
+                  "Histórico",
+                  "Conta bancária",
+                  "Valor",
+                  "Status",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="text-left px-5 py-3 aurora-cap"
+                    style={{ fontWeight: 500, whiteSpace: "nowrap" }}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((row, idx) => (
-                <tr key={`${row.source}-${row.id}`} style={{ background: idx % 2 === 0 ? "#fff" : "#FAFAF8" }}>
+                <tr
+                  key={`${row.source}-${row.id}`}
+                  style={{ background: idx % 2 === 0 ? "#fff" : "#FAFAF8" }}
+                >
                   <td className="px-5 py-3 text-[12px]" style={{ whiteSpace: "nowrap" }}>
                     {formatDatePtBR(row.expectedDate)}
                   </td>
@@ -228,18 +251,29 @@ export function LivroDiarioPanel({ clientId, startDate, endDate, onOpenContas }:
                     {row.reconciled && (
                       <span
                         className="ml-2 inline-block px-1.5 py-0.5 text-[9px] uppercase"
-                        style={{ background: "rgba(74,124,89,0.12)", color: "var(--green)", letterSpacing: "1px", fontWeight: 600 }}
+                        style={{
+                          background: "rgba(74,124,89,0.12)",
+                          color: "var(--green)",
+                          letterSpacing: "1px",
+                          fontWeight: 600,
+                        }}
                       >
                         Conciliado
                       </span>
                     )}
                   </td>
-                  <td className="px-5 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                  <td
+                    className="px-5 py-3 text-[12px]"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
                     {row.bank ?? "—"}
                   </td>
                   <td
                     className="px-5 py-3 aurora-value text-[14px]"
-                    style={{ color: row.amount >= 0 ? "var(--green)" : "var(--expense)", whiteSpace: "nowrap" }}
+                    style={{
+                      color: row.amount >= 0 ? "var(--green)" : "var(--expense)",
+                      whiteSpace: "nowrap",
+                    }}
                   >
                     {row.amount >= 0 ? "+" : ""}
                     {brl(row.amount)}
@@ -267,7 +301,13 @@ function KpiCard({
   tone: "green" | "navy" | "tan" | "expense";
 }) {
   const color =
-    tone === "green" ? "var(--green)" : tone === "navy" ? "var(--navy)" : tone === "tan" ? "var(--tan)" : "var(--expense)";
+    tone === "green"
+      ? "var(--green)"
+      : tone === "navy"
+        ? "var(--navy)"
+        : tone === "tan"
+          ? "var(--tan)"
+          : "var(--expense)";
   return (
     <div className="aurora-card">
       <div className="aurora-cap mb-2">{label}</div>

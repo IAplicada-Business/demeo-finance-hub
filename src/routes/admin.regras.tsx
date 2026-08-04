@@ -77,7 +77,7 @@ function RegrasPage() {
       .update({ is_active: !rule.is_active })
       .eq("id", rule.id);
     setRules((prev) =>
-      prev.map((r) => (r.id === rule.id ? { ...r, is_active: !rule.is_active } : r))
+      prev.map((r) => (r.id === rule.id ? { ...r, is_active: !rule.is_active } : r)),
     );
   }
 
@@ -92,8 +92,13 @@ function RegrasPage() {
       .from("classification_rules")
       .update({ category: editCategory.trim() })
       .eq("id", id);
-    if (err) { setError(err.message); return; }
-    setRules((prev) => prev.map((r) => (r.id === id ? { ...r, category: editCategory.trim() } : r)));
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setRules((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, category: editCategory.trim() } : r)),
+    );
     setEditingId(null);
   }
 
@@ -122,10 +127,17 @@ function RegrasPage() {
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
             className="px-3 py-2 text-[13px]"
-            style={{ border: "1px solid var(--line)", background: "#fff", minWidth: 220 , borderRadius: 12 }}
+            style={{
+              border: "1px solid var(--line)",
+              background: "#fff",
+              minWidth: 220,
+              borderRadius: 12,
+            }}
           >
             {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </select>
 
@@ -135,8 +147,8 @@ function RegrasPage() {
               filter === "all"
                 ? `Todas (${rules.length})`
                 : filter === "active"
-                ? `Ativas (${activeCount})`
-                : `Pendentes (${pendingCount})`
+                  ? `Ativas (${activeCount})`
+                  : `Pendentes (${pendingCount})`
             }
             minWidth={200}
           >
@@ -166,7 +178,11 @@ function RegrasPage() {
         {activeCount >= 400 && (
           <div
             className="text-[12px] px-4 py-3 flex items-center gap-2"
-            style={{ background: "rgba(109,146,166,0.12)", borderLeft: "3px solid var(--tan)", color: "var(--tan)" }}
+            style={{
+              background: "rgba(109,146,166,0.12)",
+              borderLeft: "3px solid var(--tan)",
+              color: "var(--tan)",
+            }}
           >
             <span style={{ fontWeight: 600 }}>Atenção:</span>
             {activeCount >= 500
@@ -178,7 +194,11 @@ function RegrasPage() {
         {error && (
           <div
             className="text-[12px] px-4 py-3"
-            style={{ background: "rgba(109,146,166,0.1)", borderLeft: "3px solid var(--tan)", color: "var(--tan)" }}
+            style={{
+              background: "rgba(109,146,166,0.1)",
+              borderLeft: "3px solid var(--tan)",
+              color: "var(--tan)",
+            }}
           >
             {error}
           </div>
@@ -203,122 +223,178 @@ function RegrasPage() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                  <td
+                    colSpan={7}
+                    className="px-6 py-10 text-center text-[12px]"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
                     Carregando regras...
                   </td>
                 </tr>
               )}
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                  <td
+                    colSpan={7}
+                    className="px-6 py-10 text-center text-[12px]"
+                    style={{ color: "var(--muted-foreground)" }}
+                  >
                     Nenhuma regra encontrada.
                   </td>
                 </tr>
               )}
-              {!loading && filtered.map((rule, idx) => {
-                const hitsToGo = HITS_TO_ACTIVATE - (rule.hits ?? 0);
-                return (
-                  <tr
-                    key={rule.id}
-                    style={{
-                      borderTop: idx > 0 ? "1px solid var(--line)" : undefined,
-                      opacity: rule.is_active ? 1 : 0.6,
-                    }}
-                  >
-                    <td className="px-6 py-3">
-                      <code
-                        className="text-[12px]"
-                        style={{
-                          background: "rgba(27,57,77,0.07)",
-                          padding: "2px 7px",
-                          color: "var(--navy)",
-                          fontFamily: "monospace",
-                        }}
-                      >
-                        {rule.pattern}
-                      </code>
-                    </td>
-                    <td className="px-6 py-3 text-[12px]">
-                      {editingId === rule.id ? (
-                        <input
-                          value={editCategory}
-                          onChange={(e) => setEditCategory(e.target.value)}
-                          className="text-[12px] px-2 py-1"
-                          style={{ border: "1px solid var(--line)", minWidth: 160 , borderRadius: 12 }}
-                        />
-                      ) : (
-                        rule.category
-                      )}
-                    </td>
-                    <td className="px-6 py-3">
-                      <SourceBadge source={rule.source} />
-                    </td>
-                    <td className="px-6 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                      {rule.hits ?? 0}
-                    </td>
-                    <td className="px-6 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
-                      {rule.last_used ? rule.last_used.slice(0, 10) : "—"}
-                    </td>
-                    <td className="px-6 py-3">
-                      {rule.is_active ? (
-                        <span className="text-[10px] uppercase" style={{ color: "var(--green)", letterSpacing: "1.5px", fontWeight: 600 }}>
-                          Ativa
-                        </span>
-                      ) : (
-                        <span className="text-[10px] uppercase" style={{ color: "var(--tan)", letterSpacing: "1.5px" }}>
-                          {hitsToGo > 0 ? `+${hitsToGo} p/ ativar` : "Inativa"}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-3 text-right">
-                      <div className="inline-flex items-center gap-2">
+              {!loading &&
+                filtered.map((rule, idx) => {
+                  const hitsToGo = HITS_TO_ACTIVATE - (rule.hits ?? 0);
+                  return (
+                    <tr
+                      key={rule.id}
+                      style={{
+                        borderTop: idx > 0 ? "1px solid var(--line)" : undefined,
+                        opacity: rule.is_active ? 1 : 0.6,
+                      }}
+                    >
+                      <td className="px-6 py-3">
+                        <code
+                          className="text-[12px]"
+                          style={{
+                            background: "rgba(27,57,77,0.07)",
+                            padding: "2px 7px",
+                            color: "var(--navy)",
+                            fontFamily: "monospace",
+                          }}
+                        >
+                          {rule.pattern}
+                        </code>
+                      </td>
+                      <td className="px-6 py-3 text-[12px]">
                         {editingId === rule.id ? (
-                          <>
-                            <button
-                              onClick={() => saveRuleCategory(rule.id)}
-                              className="text-[10px] uppercase px-3 py-1"
-                              style={{ background: "var(--green)", color: "#fff", letterSpacing: "1.5px" , borderRadius: 999 }}
-                            >
-                              Salvar
-                            </button>
-                            <button
-                              onClick={() => setEditingId(null)}
-                              className="text-[10px] uppercase px-3 py-1"
-                              style={{ border: "1px solid var(--line)", letterSpacing: "1.5px" , borderRadius: 12 }}
-                            >
-                              Cancelar
-                            </button>
-                          </>
+                          <input
+                            value={editCategory}
+                            onChange={(e) => setEditCategory(e.target.value)}
+                            className="text-[12px] px-2 py-1"
+                            style={{
+                              border: "1px solid var(--line)",
+                              minWidth: 160,
+                              borderRadius: 12,
+                            }}
+                          />
                         ) : (
-                          <>
-                            <button
-                              onClick={() => { setEditingId(rule.id); setEditCategory(rule.category); }}
-                              className="text-[10px] uppercase px-3 py-1"
-                              style={{ border: "1px solid var(--navy)", color: "var(--navy)", letterSpacing: "1.5px" , borderRadius: 12 }}
-                            >
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => toggleActive(rule)}
-                              className="text-[10px] uppercase px-3 py-1"
-                              style={{ border: "1px solid var(--line)", color: "var(--foreground)", letterSpacing: "1.5px" , borderRadius: 12 }}
-                            >
-                              {rule.is_active ? "Desativar" : "Ativar"}
-                            </button>
-                            <button
-                              onClick={() => deleteRule(rule.id)}
-                              className="text-[10px] uppercase px-3 py-1"
-                              style={{ border: "1px solid rgba(109,146,166,0.4)", color: "var(--tan)", letterSpacing: "1.5px" , borderRadius: 12 }}
-                            >
-                              ×
-                            </button>
-                          </>
+                          rule.category
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td className="px-6 py-3">
+                        <SourceBadge source={rule.source} />
+                      </td>
+                      <td
+                        className="px-6 py-3 text-[12px]"
+                        style={{ color: "var(--muted-foreground)" }}
+                      >
+                        {rule.hits ?? 0}
+                      </td>
+                      <td
+                        className="px-6 py-3 text-[12px]"
+                        style={{ color: "var(--muted-foreground)" }}
+                      >
+                        {rule.last_used ? rule.last_used.slice(0, 10) : "—"}
+                      </td>
+                      <td className="px-6 py-3">
+                        {rule.is_active ? (
+                          <span
+                            className="text-[10px] uppercase"
+                            style={{
+                              color: "var(--green)",
+                              letterSpacing: "1.5px",
+                              fontWeight: 600,
+                            }}
+                          >
+                            Ativa
+                          </span>
+                        ) : (
+                          <span
+                            className="text-[10px] uppercase"
+                            style={{ color: "var(--tan)", letterSpacing: "1.5px" }}
+                          >
+                            {hitsToGo > 0 ? `+${hitsToGo} p/ ativar` : "Inativa"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-3 text-right">
+                        <div className="inline-flex items-center gap-2">
+                          {editingId === rule.id ? (
+                            <>
+                              <button
+                                onClick={() => saveRuleCategory(rule.id)}
+                                className="text-[10px] uppercase px-3 py-1"
+                                style={{
+                                  background: "var(--green)",
+                                  color: "#fff",
+                                  letterSpacing: "1.5px",
+                                  borderRadius: 999,
+                                }}
+                              >
+                                Salvar
+                              </button>
+                              <button
+                                onClick={() => setEditingId(null)}
+                                className="text-[10px] uppercase px-3 py-1"
+                                style={{
+                                  border: "1px solid var(--line)",
+                                  letterSpacing: "1.5px",
+                                  borderRadius: 12,
+                                }}
+                              >
+                                Cancelar
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditingId(rule.id);
+                                  setEditCategory(rule.category);
+                                }}
+                                className="text-[10px] uppercase px-3 py-1"
+                                style={{
+                                  border: "1px solid var(--navy)",
+                                  color: "var(--navy)",
+                                  letterSpacing: "1.5px",
+                                  borderRadius: 12,
+                                }}
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => toggleActive(rule)}
+                                className="text-[10px] uppercase px-3 py-1"
+                                style={{
+                                  border: "1px solid var(--line)",
+                                  color: "var(--foreground)",
+                                  letterSpacing: "1.5px",
+                                  borderRadius: 12,
+                                }}
+                              >
+                                {rule.is_active ? "Desativar" : "Ativar"}
+                              </button>
+                              <button
+                                onClick={() => deleteRule(rule.id)}
+                                className="text-[10px] uppercase px-3 py-1"
+                                style={{
+                                  border: "1px solid rgba(109,146,166,0.4)",
+                                  color: "var(--tan)",
+                                  letterSpacing: "1.5px",
+                                  borderRadius: 12,
+                                }}
+                              >
+                                ×
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
@@ -329,15 +405,21 @@ function RegrasPage() {
 
 function SourceBadge({ source }: { source: string | null }) {
   const map: Record<string, { label: string; color: string }> = {
-    manual:   { label: "Manual",   color: "var(--navy)" },
+    manual: { label: "Manual", color: "var(--navy)" },
     approval: { label: "Aprendida", color: "var(--green)" },
-    ai:       { label: "IA",       color: "var(--tan)" },
-    import:   { label: "Importada", color: "var(--muted-foreground)" },
+    ai: { label: "IA", color: "var(--tan)" },
+    import: { label: "Importada", color: "var(--muted-foreground)" },
     rejected: { label: "Rejeitada", color: "var(--expense)" },
   };
-  const { label, color } = map[source ?? ""] ?? { label: source ?? "—", color: "var(--muted-foreground)" };
+  const { label, color } = map[source ?? ""] ?? {
+    label: source ?? "—",
+    color: "var(--muted-foreground)",
+  };
   return (
-    <span className="text-[10px] uppercase" style={{ color, letterSpacing: "1.5px", fontWeight: 600 }}>
+    <span
+      className="text-[10px] uppercase"
+      style={{ color, letterSpacing: "1.5px", fontWeight: 600 }}
+    >
       {label}
     </span>
   );

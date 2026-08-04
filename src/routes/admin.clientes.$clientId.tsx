@@ -82,7 +82,13 @@ function ClientePage() {
   const [catMapLoaded, setCatMapLoaded] = useState(false);
 
   // Usuários do portal
-  interface PortalUser { id: string; user_id: string; email: string | null; display_name: string | null; portal_role: string; }
+  interface PortalUser {
+    id: string;
+    user_id: string;
+    email: string | null;
+    display_name: string | null;
+    portal_role: string;
+  }
   const [portalUsers, setPortalUsers] = useState<PortalUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [newEmail, setNewEmail] = useState("");
@@ -91,7 +97,6 @@ function ClientePage() {
   const [addingUser, setAddingUser] = useState(false);
   const [addUserError, setAddUserError] = useState<string | null>(null);
   const [addUserSuccess, setAddUserSuccess] = useState(false);
-
 
   useEffect(() => {
     supabase()
@@ -112,7 +117,9 @@ function ClientePage() {
     if (!clientId) return;
     supabase()
       .from("uploads")
-      .select("id, period, bank_name, filename, tx_total, tx_classified, tx_pending, status, created_at")
+      .select(
+        "id, period, bank_name, filename, tx_total, tx_classified, tx_pending, status, created_at",
+      )
       .eq("client_id", clientId)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -183,12 +190,22 @@ function ClientePage() {
       const res = await fetch(`${FUNCTIONS_URL}/create-client-user`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ client_id: clientId, email: newEmail, display_name: newName, portal_role: newRole }),
+        body: JSON.stringify({
+          client_id: clientId,
+          email: newEmail,
+          display_name: newName,
+          portal_role: newRole,
+        }),
       });
       const json = await res.json();
-      if (!res.ok) { setAddUserError(json.error ?? "Erro ao criar usuário"); return; }
+      if (!res.ok) {
+        setAddUserError(json.error ?? "Erro ao criar usuário");
+        return;
+      }
       setAddUserSuccess(true);
-      setNewEmail(""); setNewName(""); setNewRole("owner");
+      setNewEmail("");
+      setNewName("");
+      setNewRole("owner");
       loadPortalUsers();
     } catch {
       setAddUserError("Erro de conexão. Tente novamente.");
@@ -199,7 +216,11 @@ function ClientePage() {
 
   async function handleRemoveUser(userId: string) {
     if (!confirm("Remover acesso deste usuário ao portal?")) return;
-    await supabase().from("user_client_mapping").delete().eq("user_id", userId).eq("client_id", clientId);
+    await supabase()
+      .from("user_client_mapping")
+      .delete()
+      .eq("user_id", userId)
+      .eq("client_id", clientId);
     loadPortalUsers();
   }
 
@@ -228,35 +249,46 @@ function ClientePage() {
     setTx((data ?? []) as Tx[]);
   }
 
-const receita = useMemo(
-    () => tx.filter((t) => t.status === "approved" && t.amount > 0).reduce((s, t) => s + t.amount, 0),
-    [tx]
+  const receita = useMemo(
+    () =>
+      tx.filter((t) => t.status === "approved" && t.amount > 0).reduce((s, t) => s + t.amount, 0),
+    [tx],
   );
   const despesas = useMemo(
-    () => tx.filter((t) => t.status === "approved" && t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0),
-    [tx]
+    () =>
+      tx
+        .filter((t) => t.status === "approved" && t.amount < 0)
+        .reduce((s, t) => s + Math.abs(t.amount), 0),
+    [tx],
   );
   const saldo = receita - despesas;
   const pendentes = useMemo(
     () => tx.filter((t) => t.status === "pending" || t.status === "classified").length,
-    [tx]
+    [tx],
   );
 
   const health = useMemo(
     () => computeHealthLevel(receita, despesas, client?.segment ?? null),
-    [receita, despesas, client]
+    [receita, despesas, client],
   );
   const margem = useMemo(() => healthMargemPct(receita, despesas), [receita, despesas]);
 
   const dre = useMemo<DREData>(
-    () => computeDRE(tx.filter((t) => t.status === "approved"), catMap),
-    [tx, catMap]
+    () =>
+      computeDRE(
+        tx.filter((t) => t.status === "approved"),
+        catMap,
+      ),
+    [tx, catMap],
   );
 
   if (loading) {
     return (
       <AdminLayout>
-        <div className="px-8 py-16 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+        <div
+          className="px-8 py-16 text-center text-[12px]"
+          style={{ color: "var(--muted-foreground)" }}
+        >
           Carregando cliente...
         </div>
       </AdminLayout>
@@ -287,7 +319,13 @@ const receita = useMemo(
             <Link
               to={"/admin/importar" as never}
               className="inline-flex items-center gap-2 px-5 py-3 text-[10px] uppercase transition-opacity hover:opacity-80"
-              style={{ background: "var(--green)", color: "#fff", letterSpacing: "2.5px", fontWeight: 500 , borderRadius: 999 }}
+              style={{
+                background: "var(--green)",
+                color: "#fff",
+                letterSpacing: "2.5px",
+                fontWeight: 500,
+                borderRadius: 999,
+              }}
             >
               + Importar extrato
             </Link>
@@ -295,7 +333,13 @@ const receita = useMemo(
               to={"/admin/dfc" as never}
               search={{ clientId } as never}
               className="inline-flex items-center gap-2 px-5 py-3 text-[10px] uppercase transition-opacity hover:opacity-80"
-              style={{ border: "1px solid var(--line)", color: "var(--foreground)", letterSpacing: "2px", fontWeight: 500 , borderRadius: 12 }}
+              style={{
+                border: "1px solid var(--line)",
+                color: "var(--foreground)",
+                letterSpacing: "2px",
+                fontWeight: 500,
+                borderRadius: 12,
+              }}
             >
               Ver DFC →
             </Link>
@@ -304,7 +348,6 @@ const receita = useMemo(
       />
 
       <div className="aurora-page">
-
         {/* Cabeçalho do cliente */}
         <div className="aurora-card flex flex-wrap gap-6 items-start">
           <div className="flex-1 min-w-[150px]">
@@ -344,7 +387,14 @@ const receita = useMemo(
         <div className="flex flex-wrap gap-1">
           {(["lancamentos", "importacoes", "painel", "usuarios"] as const).map((tab) => {
             const isActive = activeTab === tab;
-            const label = tab === "lancamentos" ? "Lançamentos" : tab === "importacoes" ? "Importações" : tab === "painel" ? "Painel DFC / DRE" : "Usuários do Portal";
+            const label =
+              tab === "lancamentos"
+                ? "Lançamentos"
+                : tab === "importacoes"
+                  ? "Importações"
+                  : tab === "painel"
+                    ? "Painel DFC / DRE"
+                    : "Usuários do Portal";
             return (
               <button
                 key={tab}
@@ -399,15 +449,18 @@ const receita = useMemo(
 
             {/* KPIs do período */}
             <div className="grid md:grid-cols-4 gap-5">
-              <KpiCard label="Receitas"  value={brl(receita)}         tone="green" />
-              <KpiCard label="Despesas"  value={brl(despesas)}        tone="tan"   />
-              <KpiCard label="Resultado" value={brl(saldo)}           tone={saldo >= 0 ? "green" : "tan"} />
-              <KpiCard label="Pendentes" value={String(pendentes)}    tone="navy"  />
+              <KpiCard label="Receitas" value={brl(receita)} tone="green" />
+              <KpiCard label="Despesas" value={brl(despesas)} tone="tan" />
+              <KpiCard label="Resultado" value={brl(saldo)} tone={saldo >= 0 ? "green" : "tan"} />
+              <KpiCard label="Pendentes" value={String(pendentes)} tone="navy" />
             </div>
 
             {/* Tabela de lançamentos */}
             <div className="aurora-card p-0 overflow-hidden">
-              <div className="px-6 py-4" style={{ borderBottom: "1px solid var(--line)", background: "var(--offwhite)" }}>
+              <div
+                className="px-6 py-4"
+                style={{ borderBottom: "1px solid var(--line)", background: "var(--offwhite)" }}
+              >
                 <div className="aurora-cap mb-0.5">Lançamentos</div>
                 <div className="aurora-serif text-[20px]">
                   {period}{" "}
@@ -418,11 +471,17 @@ const receita = useMemo(
               </div>
 
               {txLoading ? (
-                <div className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <div
+                  className="px-6 py-10 text-center text-[12px]"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
                   Carregando lançamentos...
                 </div>
               ) : tx.length === 0 ? (
-                <div className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <div
+                  className="px-6 py-10 text-center text-[12px]"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
                   Nenhum lançamento em {period}. Tente selecionar outro mês no seletor acima.
                 </div>
               ) : (
@@ -430,7 +489,11 @@ const receita = useMemo(
                   <thead>
                     <tr style={{ background: "#FAFBFA" }}>
                       {["Data", "Descrição", "Categoria", "Valor", "Status"].map((h) => (
-                        <th key={h} className="text-left px-6 py-3 aurora-cap" style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}>
+                        <th
+                          key={h}
+                          className="text-left px-6 py-3 aurora-cap"
+                          style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}
+                        >
                           {h}
                         </th>
                       ))}
@@ -438,15 +501,29 @@ const receita = useMemo(
                   </thead>
                   <tbody>
                     {tx.map((t, idx) => (
-                      <tr key={t.id} style={{ background: idx % 2 === 0 ? "#fff" : "#FAFBFA", borderTop: "1px solid var(--line)" }}>
+                      <tr
+                        key={t.id}
+                        style={{
+                          background: idx % 2 === 0 ? "#fff" : "#FAFBFA",
+                          borderTop: "1px solid var(--line)",
+                        }}
+                      >
                         <td className="px-6 py-3 text-[12px]">{formatDatePtBR(t.date)}</td>
-                        <td className="px-6 py-3 text-[12px]" style={{ maxWidth: 280 }}>{t.description}</td>
-                        <td className="px-6 py-3 text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                        <td className="px-6 py-3 text-[12px]" style={{ maxWidth: 280 }}>
+                          {t.description}
+                        </td>
+                        <td
+                          className="px-6 py-3 text-[11px]"
+                          style={{ color: "var(--muted-foreground)" }}
+                        >
                           {t.category ?? <span style={{ opacity: 0.4 }}>—</span>}
                         </td>
                         <td
                           className="px-6 py-3 aurora-value"
-                          style={{ fontSize: 14, color: t.amount >= 0 ? "var(--green)" : "var(--navy)" }}
+                          style={{
+                            fontSize: 14,
+                            color: t.amount >= 0 ? "var(--green)" : "var(--navy)",
+                          }}
                         >
                           {t.amount >= 0 ? "+" : ""}
                           {brl(t.amount)}
@@ -469,8 +546,15 @@ const receita = useMemo(
             {/* Seletor de período */}
             <div className="flex items-center gap-3">
               <span className="aurora-cap">Período</span>
-              <select value={period} onChange={(e) => setPeriod(e.target.value)} className="bg-white px-3 py-2 text-[12px]" style={{ border: "1px solid var(--line)" }}>
-                {PERIODS.map((p) => <option key={p}>{p}</option>)}
+              <select
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="bg-white px-3 py-2 text-[12px]"
+                style={{ border: "1px solid var(--line)" }}
+              >
+                {PERIODS.map((p) => (
+                  <option key={p}>{p}</option>
+                ))}
               </select>
             </div>
 
@@ -478,10 +562,14 @@ const receita = useMemo(
             <div>
               <div className="aurora-cap mb-4">Demonstrativo de Fluxo de Caixa</div>
               <div className="grid md:grid-cols-4 gap-5">
-                <KpiCard label="Receitas"    value={brl(receita)}   tone="green" />
-                <KpiCard label="Despesas"    value={brl(despesas)}  tone="tan" />
-                <KpiCard label="Resultado"   value={brl(saldo)}     tone={saldo >= 0 ? "green" : "tan"} />
-                <KpiCard label="Lançamentos" value={String(tx.filter((t) => t.status === "approved").length)} tone="navy" />
+                <KpiCard label="Receitas" value={brl(receita)} tone="green" />
+                <KpiCard label="Despesas" value={brl(despesas)} tone="tan" />
+                <KpiCard label="Resultado" value={brl(saldo)} tone={saldo >= 0 ? "green" : "tan"} />
+                <KpiCard
+                  label="Lançamentos"
+                  value={String(tx.filter((t) => t.status === "approved").length)}
+                  tone="navy"
+                />
               </div>
             </div>
 
@@ -489,11 +577,17 @@ const receita = useMemo(
             <div>
               <div className="aurora-cap mb-4">DRE — Demonstrativo do Resultado do Exercício</div>
               {!catMapLoaded ? (
-                <div className="aurora-card px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <div
+                  className="aurora-card px-6 py-10 text-center text-[12px]"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
                   Carregando categorias…
                 </div>
               ) : dre.groups.length === 0 ? (
-                <div className="aurora-card px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <div
+                  className="aurora-card px-6 py-10 text-center text-[12px]"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
                   Nenhum lançamento classificado no período.
                 </div>
               ) : (
@@ -501,44 +595,108 @@ const receita = useMemo(
                   <table className="w-full">
                     <thead>
                       <tr style={{ background: "#F8F6F1" }}>
-                        <th className="text-left px-6 py-3 aurora-cap" style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}>Conta</th>
-                        <th className="text-right px-6 py-3 aurora-cap" style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}>Valor</th>
+                        <th
+                          className="text-left px-6 py-3 aurora-cap"
+                          style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}
+                        >
+                          Conta
+                        </th>
+                        <th
+                          className="text-right px-6 py-3 aurora-cap"
+                          style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}
+                        >
+                          Valor
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {dre.groups.flatMap((g) => {
-                        const isReceita = g.name === "Receita" || g.name === "Receita não Operacional";
+                        const isReceita =
+                          g.name === "Receita" || g.name === "Receita não Operacional";
                         const color = isReceita ? "var(--green)" : "var(--tan)";
                         const rows = [
                           <tr key={g.name + "_hdr"} style={{ background: "#F8F6F1" }}>
-                            <td colSpan={2} className="px-6 py-2 aurora-cap" style={{ fontWeight: 600, color: "var(--muted-foreground)" }}>
-                              {!isReceita && "(−) "}{g.name}
+                            <td
+                              colSpan={2}
+                              className="px-6 py-2 aurora-cap"
+                              style={{ fontWeight: 600, color: "var(--muted-foreground)" }}
+                            >
+                              {!isReceita && "(−) "}
+                              {g.name}
                             </td>
                           </tr>,
                           ...g.lines.map((l) => (
-                            <tr key={g.name + "_" + l.cat} style={{ borderTop: "1px solid var(--line)" }}>
-                              <td className="px-6 py-2.5 text-[12px]" style={{ paddingLeft: 32, color: "var(--muted-foreground)" }}>{l.cat}</td>
-                              <td className="px-6 py-2.5 text-right text-[13px]" style={{ color }}>{isReceita ? brl(l.total) : `(${brl(l.total)})`}</td>
+                            <tr
+                              key={g.name + "_" + l.cat}
+                              style={{ borderTop: "1px solid var(--line)" }}
+                            >
+                              <td
+                                className="px-6 py-2.5 text-[12px]"
+                                style={{ paddingLeft: 32, color: "var(--muted-foreground)" }}
+                              >
+                                {l.cat}
+                              </td>
+                              <td className="px-6 py-2.5 text-right text-[13px]" style={{ color }}>
+                                {isReceita ? brl(l.total) : `(${brl(l.total)})`}
+                              </td>
                             </tr>
                           )),
                           <tr key={g.name + "_sub"} style={{ borderTop: "1px solid var(--line)" }}>
-                            <td className="px-6 py-3 text-[12px]" style={{ fontWeight: 600 }}>Subtotal {g.name}</td>
-                            <td className="px-6 py-3 text-right" style={{ fontSize: 14, fontWeight: 700, color }}>{isReceita ? brl(g.subtotal) : `(${brl(g.subtotal)})`}</td>
+                            <td className="px-6 py-3 text-[12px]" style={{ fontWeight: 600 }}>
+                              Subtotal {g.name}
+                            </td>
+                            <td
+                              className="px-6 py-3 text-right"
+                              style={{ fontSize: 14, fontWeight: 700, color }}
+                            >
+                              {isReceita ? brl(g.subtotal) : `(${brl(g.subtotal)})`}
+                            </td>
                           </tr>,
                         ];
                         if (g.name === DRE_EBITDA_PIVOT) {
                           rows.push(
-                            <tr key="ebitda" style={{ background: "rgba(143,166,136,0.12)", borderTop: "2px solid var(--green)" }}>
-                              <td className="px-6 py-3 text-[13px]" style={{ fontWeight: 700 }}>= Resultado Operacional (EBITDA)</td>
-                              <td className="px-6 py-3 text-right" style={{ fontSize: 15, fontWeight: 700, color: dre.ebitda >= 0 ? "var(--green)" : "var(--tan)" }}>{brl(dre.ebitda)}</td>
-                            </tr>
+                            <tr
+                              key="ebitda"
+                              style={{
+                                background: "rgba(143,166,136,0.12)",
+                                borderTop: "2px solid var(--green)",
+                              }}
+                            >
+                              <td className="px-6 py-3 text-[13px]" style={{ fontWeight: 700 }}>
+                                = Resultado Operacional (EBITDA)
+                              </td>
+                              <td
+                                className="px-6 py-3 text-right"
+                                style={{
+                                  fontSize: 15,
+                                  fontWeight: 700,
+                                  color: dre.ebitda >= 0 ? "var(--green)" : "var(--tan)",
+                                }}
+                              >
+                                {brl(dre.ebitda)}
+                              </td>
+                            </tr>,
                           );
                         }
                         return rows;
                       })}
                       <tr style={{ background: "var(--navy)" }}>
-                        <td className="px-6 py-4 text-[13px]" style={{ fontWeight: 700, color: "#fff" }}>= Resultado Líquido do Período</td>
-                        <td className="px-6 py-4 text-right" style={{ fontSize: 16, fontWeight: 700, color: dre.resultadoLiquido >= 0 ? "#A8D5A2" : "#F4A57E" }}>{brl(dre.resultadoLiquido)}</td>
+                        <td
+                          className="px-6 py-4 text-[13px]"
+                          style={{ fontWeight: 700, color: "#fff" }}
+                        >
+                          = Resultado Líquido do Período
+                        </td>
+                        <td
+                          className="px-6 py-4 text-right"
+                          style={{
+                            fontSize: 16,
+                            fontWeight: 700,
+                            color: dre.resultadoLiquido >= 0 ? "#A8D5A2" : "#F4A57E",
+                          }}
+                        >
+                          {brl(dre.resultadoLiquido)}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -551,7 +709,10 @@ const receita = useMemo(
         {/* ── Aba: Importações ─────────────────────────────────────────────────── */}
         {activeTab === "importacoes" && (
           <div className="aurora-card p-0 overflow-hidden">
-            <div className="px-6 py-4" style={{ borderBottom: "1px solid var(--line)", background: "var(--offwhite)" }}>
+            <div
+              className="px-6 py-4"
+              style={{ borderBottom: "1px solid var(--line)", background: "var(--offwhite)" }}
+            >
               <div className="aurora-cap mb-0.5">Histórico de importações</div>
               <div className="aurora-serif text-[20px]">
                 Histórico{" "}
@@ -562,19 +723,39 @@ const receita = useMemo(
             </div>
 
             {uploadsLoading ? (
-              <div className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+              <div
+                className="px-6 py-10 text-center text-[12px]"
+                style={{ color: "var(--muted-foreground)" }}
+              >
                 Carregando histórico…
               </div>
             ) : uploads.length === 0 ? (
-              <div className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+              <div
+                className="px-6 py-10 text-center text-[12px]"
+                style={{ color: "var(--muted-foreground)" }}
+              >
                 Nenhuma importação registrada.
               </div>
             ) : (
               <table className="w-full">
                 <thead>
                   <tr style={{ background: "#FAFBFA" }}>
-                    {["Período", "Banco", "Arquivo", "Classificados", "Pendentes", "Cobertura", "Status", "Importado em", ""].map((h) => (
-                      <th key={h || "ações"} className="text-left px-6 py-3 aurora-cap" style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}>
+                    {[
+                      "Período",
+                      "Banco",
+                      "Arquivo",
+                      "Classificados",
+                      "Pendentes",
+                      "Cobertura",
+                      "Status",
+                      "Importado em",
+                      "",
+                    ].map((h) => (
+                      <th
+                        key={h || "ações"}
+                        className="text-left px-6 py-3 aurora-cap"
+                        style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}
+                      >
                         {h}
                       </th>
                     ))}
@@ -583,24 +764,60 @@ const receita = useMemo(
                 <tbody>
                   {uploads.map((u, idx) => {
                     const classified = u.tx_classified ?? 0;
-                    const pending    = u.tx_pending    ?? 0;
-                    const total      = classified + pending;
-                    const pct        = total > 0 ? Math.round((classified / total) * 100) : 0;
+                    const pending = u.tx_pending ?? 0;
+                    const total = classified + pending;
+                    const pct = total > 0 ? Math.round((classified / total) * 100) : 0;
                     return (
-                      <tr key={u.id} style={{ background: idx % 2 === 0 ? "#fff" : "#FAFBFA", borderTop: "1px solid var(--line)" }}>
-                        <td className="px-6 py-3 text-[13px]" style={{ fontWeight: 600 }}>{u.period}</td>
-                        <td className="px-6 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>{u.bank_name}</td>
-                        <td className="px-6 py-3 text-[12px] max-w-[160px] truncate" style={{ color: "var(--muted-foreground)" }} title={u.filename}>
+                      <tr
+                        key={u.id}
+                        style={{
+                          background: idx % 2 === 0 ? "#fff" : "#FAFBFA",
+                          borderTop: "1px solid var(--line)",
+                        }}
+                      >
+                        <td className="px-6 py-3 text-[13px]" style={{ fontWeight: 600 }}>
+                          {u.period}
+                        </td>
+                        <td
+                          className="px-6 py-3 text-[12px]"
+                          style={{ color: "var(--muted-foreground)" }}
+                        >
+                          {u.bank_name}
+                        </td>
+                        <td
+                          className="px-6 py-3 text-[12px] max-w-[160px] truncate"
+                          style={{ color: "var(--muted-foreground)" }}
+                          title={u.filename}
+                        >
                           {u.filename || "—"}
                         </td>
-                        <td className="px-6 py-3 aurora-value" style={{ fontSize: 14, color: "var(--green)" }}>{classified}</td>
-                        <td className="px-6 py-3 aurora-value" style={{ fontSize: 14, color: pending > 0 ? "var(--tan)" : "var(--muted-foreground)" }}>{pending}</td>
+                        <td
+                          className="px-6 py-3 aurora-value"
+                          style={{ fontSize: 14, color: "var(--green)" }}
+                        >
+                          {classified}
+                        </td>
+                        <td
+                          className="px-6 py-3 aurora-value"
+                          style={{
+                            fontSize: 14,
+                            color: pending > 0 ? "var(--tan)" : "var(--muted-foreground)",
+                          }}
+                        >
+                          {pending}
+                        </td>
                         <td className="px-6 py-3">
                           <span
                             className="text-[11px] uppercase px-2.5 py-1"
                             style={{
-                              background: pct >= 80 ? "rgba(74,103,65,0.10)" : pct >= 50 ? "rgba(109,146,166,0.12)" : "rgba(192,57,43,0.08)",
-                              color:      pct >= 80 ? "var(--green)"          : pct >= 50 ? "var(--tan)"            : "#C0392B",
+                              background:
+                                pct >= 80
+                                  ? "rgba(74,103,65,0.10)"
+                                  : pct >= 50
+                                    ? "rgba(109,146,166,0.12)"
+                                    : "rgba(192,57,43,0.08)",
+                              color:
+                                pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--tan)" : "#C0392B",
                               letterSpacing: "1.5px",
                               fontWeight: 600,
                             }}
@@ -611,13 +828,19 @@ const receita = useMemo(
                         <td className="px-6 py-3">
                           <UploadStatusBadge status={u.status} />
                         </td>
-                        <td className="px-6 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                        <td
+                          className="px-6 py-3 text-[12px]"
+                          style={{ color: "var(--muted-foreground)" }}
+                        >
                           {formatDatePtBR(u.created_at)}
                         </td>
                         <td className="px-6 py-3 text-right whitespace-nowrap">
                           <button
                             type="button"
-                            onClick={() => { setDeleteUploadErr(null); setDeleteUpload(u); }}
+                            onClick={() => {
+                              setDeleteUploadErr(null);
+                              setDeleteUpload(u);
+                            }}
                             className="text-[11px] transition-opacity hover:opacity-70"
                             style={{ color: "var(--tan)" }}
                             title="Remove o extrato e todos os lançamentos gerados por ele"
@@ -637,19 +860,32 @@ const receita = useMemo(
         {/* ── Aba: Usuários do Portal ──────────────────────────────────────── */}
         {activeTab === "usuarios" && (
           <div className="flex flex-col gap-6">
-
             {/* Lista de usuários */}
             <div className="aurora-card p-0 overflow-hidden">
-              <div className="px-6 py-4" style={{ borderBottom: "1px solid var(--line)", background: "var(--offwhite)" }}>
+              <div
+                className="px-6 py-4"
+                style={{ borderBottom: "1px solid var(--line)", background: "var(--offwhite)" }}
+              >
                 <div className="aurora-cap mb-0.5">Usuários do portal</div>
                 <div className="aurora-serif text-[20px]">
-                  Acesso ao <em className="italic" style={{ color: "var(--green)" }}>Portal do Cliente</em>
+                  Acesso ao{" "}
+                  <em className="italic" style={{ color: "var(--green)" }}>
+                    Portal do Cliente
+                  </em>
                 </div>
               </div>
               {usersLoading ? (
-                <div className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>Carregando…</div>
+                <div
+                  className="px-6 py-10 text-center text-[12px]"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
+                  Carregando…
+                </div>
               ) : portalUsers.length === 0 ? (
-                <div className="px-6 py-10 text-center text-[12px]" style={{ color: "var(--muted-foreground)" }}>
+                <div
+                  className="px-6 py-10 text-center text-[12px]"
+                  style={{ color: "var(--muted-foreground)" }}
+                >
                   Nenhum usuário com acesso ao portal deste cliente.
                 </div>
               ) : (
@@ -657,7 +893,13 @@ const receita = useMemo(
                   <thead>
                     <tr style={{ background: "#FAFBFA" }}>
                       {["Nome", "E-mail", "Perfil", ""].map((h) => (
-                        <th key={h} className="text-left px-6 py-3 aurora-cap" style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}>{h}</th>
+                        <th
+                          key={h}
+                          className="text-left px-6 py-3 aurora-cap"
+                          style={{ fontWeight: 500, borderBottom: "1px solid var(--line)" }}
+                        >
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -665,9 +907,21 @@ const receita = useMemo(
                     {portalUsers.map((u) => (
                       <tr key={u.id} style={{ borderTop: "1px solid var(--line)" }}>
                         <td className="px-6 py-3 text-[13px]">{u.display_name ?? "—"}</td>
-                        <td className="px-6 py-3 text-[12px]" style={{ color: "var(--muted-foreground)" }}>{u.email ?? "—"}</td>
+                        <td
+                          className="px-6 py-3 text-[12px]"
+                          style={{ color: "var(--muted-foreground)" }}
+                        >
+                          {u.email ?? "—"}
+                        </td>
                         <td className="px-6 py-3">
-                          <span className="text-[9px] uppercase px-2 py-0.5" style={{ background: "var(--line)", letterSpacing: "1.5px", color: "var(--muted-foreground)" }}>
+                          <span
+                            className="text-[9px] uppercase px-2 py-0.5"
+                            style={{
+                              background: "var(--line)",
+                              letterSpacing: "1.5px",
+                              color: "var(--muted-foreground)",
+                            }}
+                          >
                             {u.portal_role === "owner" ? "Proprietário" : "Financeiro"}
                           </span>
                         </td>
@@ -675,7 +929,12 @@ const receita = useMemo(
                           <button
                             onClick={() => handleRemoveUser(u.user_id)}
                             className="text-[10px] uppercase px-3 py-1.5 transition-opacity hover:opacity-70"
-                            style={{ border: "1px solid var(--line)", color: "var(--muted-foreground)", letterSpacing: "1.5px" , borderRadius: 12 }}
+                            style={{
+                              border: "1px solid var(--line)",
+                              color: "var(--muted-foreground)",
+                              letterSpacing: "1.5px",
+                              borderRadius: 12,
+                            }}
                           >
                             Remover
                           </button>
@@ -691,7 +950,10 @@ const receita = useMemo(
             <div className="aurora-card">
               <div className="aurora-cap mb-1">Adicionar usuário</div>
               <div className="aurora-serif text-[20px] mb-6">
-                Convidar <em className="italic" style={{ color: "var(--green)" }}>novo acesso</em>
+                Convidar{" "}
+                <em className="italic" style={{ color: "var(--green)" }}>
+                  novo acesso
+                </em>
               </div>
               <form onSubmit={handleAddUser} className="flex flex-col gap-4">
                 <div className="grid md:grid-cols-2 gap-4">
@@ -735,20 +997,29 @@ const receita = useMemo(
                           borderColor: newRole === r ? "var(--green)" : "var(--line)",
                           color: newRole === r ? "var(--green)" : "var(--muted-foreground)",
                           background: newRole === r ? "rgba(74,103,65,0.06)" : "transparent",
-                        borderRadius: 12 }}
+                          borderRadius: 12,
+                        }}
                       >
-                        {r === "owner" ? "Proprietário (acesso total)" : "Financeiro (sem saldo/downloads)"}
+                        {r === "owner"
+                          ? "Proprietário (acesso total)"
+                          : "Financeiro (sem saldo/downloads)"}
                       </button>
                     ))}
                   </div>
                 </div>
                 {addUserError && (
-                  <div className="text-[12px] px-4 py-3" style={{ background: "rgba(192,126,72,0.1)", color: "var(--tan)" }}>
+                  <div
+                    className="text-[12px] px-4 py-3"
+                    style={{ background: "rgba(192,126,72,0.1)", color: "var(--tan)" }}
+                  >
                     {addUserError}
                   </div>
                 )}
                 {addUserSuccess && (
-                  <div className="text-[12px] px-4 py-3" style={{ background: "rgba(74,103,65,0.08)", color: "var(--green)" }}>
+                  <div
+                    className="text-[12px] px-4 py-3"
+                    style={{ background: "rgba(74,103,65,0.08)", color: "var(--green)" }}
+                  >
                     Usuário criado e convite enviado por e-mail.
                   </div>
                 )}
@@ -757,7 +1028,13 @@ const receita = useMemo(
                     type="submit"
                     disabled={addingUser || !newEmail || !newName}
                     className="text-[10px] uppercase px-7 py-3.5 disabled:opacity-50 transition-opacity"
-                    style={{ background: "var(--green)", color: "#fff", letterSpacing: "2.5px", fontWeight: 500 , borderRadius: 999 }}
+                    style={{
+                      background: "var(--green)",
+                      color: "#fff",
+                      letterSpacing: "2.5px",
+                      fontWeight: 500,
+                      borderRadius: 999,
+                    }}
                   >
                     {addingUser ? "Criando…" : "Enviar convite →"}
                   </button>
@@ -772,17 +1049,36 @@ const receita = useMemo(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.45)" }}
-          onClick={(e) => { if (e.target === e.currentTarget && !deletingUpload) { setDeleteUpload(null); setDeleteUploadErr(null); } }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !deletingUpload) {
+              setDeleteUpload(null);
+              setDeleteUploadErr(null);
+            }
+          }}
         >
-          <div className="aurora-modal w-full max-w-sm bg-white overflow-hidden" style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}>
-            <div className="px-6 py-5 flex items-start justify-between" style={{ background: "rgba(109,146,166,0.12)", borderBottom: "1px solid var(--line)" }}>
+          <div
+            className="aurora-modal w-full max-w-sm bg-white overflow-hidden"
+            style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}
+          >
+            <div
+              className="px-6 py-5 flex items-start justify-between"
+              style={{
+                background: "rgba(109,146,166,0.12)",
+                borderBottom: "1px solid var(--line)",
+              }}
+            >
               <div>
-                <div className="aurora-cap mb-0.5" style={{ color: "var(--tan)" }}>Atenção</div>
+                <div className="aurora-cap mb-0.5" style={{ color: "var(--tan)" }}>
+                  Atenção
+                </div>
                 <div className="aurora-serif text-[20px]">Excluir extrato</div>
               </div>
               <button
                 type="button"
-                onClick={() => { setDeleteUpload(null); setDeleteUploadErr(null); }}
+                onClick={() => {
+                  setDeleteUpload(null);
+                  setDeleteUploadErr(null);
+                }}
                 disabled={deletingUpload}
                 className="text-[18px] leading-none mt-1 opacity-50 hover:opacity-100"
               >
@@ -799,25 +1095,45 @@ const receita = useMemo(
               </div>
               <div
                 className="text-[12px] px-4 py-3"
-                style={{ background: "rgba(109,146,166,0.10)", borderLeft: "3px solid var(--tan)", color: "var(--foreground)", lineHeight: 1.6 }}
+                style={{
+                  background: "rgba(109,146,166,0.10)",
+                  borderLeft: "3px solid var(--tan)",
+                  color: "var(--foreground)",
+                  lineHeight: 1.6,
+                }}
               >
                 Este extrato e <strong>todos os lançamentos</strong> gerados por ele
-                {deleteUpload.tx_total > 0 ? <> ({deleteUpload.tx_total})</> : null}
-                {" "}serão removidos permanentemente — inclusive pendentes, classificados e aprovados.
-                DFC, DRE e portais refletem a exclusão imediatamente. Essa ação não pode ser desfeita.
+                {deleteUpload.tx_total > 0 ? <> ({deleteUpload.tx_total})</> : null} serão removidos
+                permanentemente — inclusive pendentes, classificados e aprovados. DFC, DRE e portais
+                refletem a exclusão imediatamente. Essa ação não pode ser desfeita.
               </div>
               {deleteUploadErr && (
-                <div className="text-[12px] px-4 py-3" style={{ background: "rgba(109,146,166,0.1)", borderLeft: "3px solid var(--tan)", color: "var(--tan)" }}>
+                <div
+                  className="text-[12px] px-4 py-3"
+                  style={{
+                    background: "rgba(109,146,166,0.1)",
+                    borderLeft: "3px solid var(--tan)",
+                    color: "var(--tan)",
+                  }}
+                >
                   {deleteUploadErr}
                 </div>
               )}
               <div className="flex justify-end gap-3 pt-1">
                 <button
                   type="button"
-                  onClick={() => { setDeleteUpload(null); setDeleteUploadErr(null); }}
+                  onClick={() => {
+                    setDeleteUpload(null);
+                    setDeleteUploadErr(null);
+                  }}
                   disabled={deletingUpload}
                   className="text-[10px] uppercase px-5 py-3 transition-opacity disabled:opacity-40"
-                  style={{ border: "1px solid var(--line)", letterSpacing: "2px", fontWeight: 500 , borderRadius: 12 }}
+                  style={{
+                    border: "1px solid var(--line)",
+                    letterSpacing: "2px",
+                    fontWeight: 500,
+                    borderRadius: 12,
+                  }}
                 >
                   Cancelar
                 </button>
@@ -826,7 +1142,12 @@ const receita = useMemo(
                   onClick={handleDeleteUploadConfirm}
                   disabled={deletingUpload}
                   className="text-[10px] uppercase px-6 py-3 transition-opacity disabled:opacity-50"
-                  style={{ background: "var(--tan)", color: "#fff", letterSpacing: "2px", fontWeight: 500 }}
+                  style={{
+                    background: "var(--tan)",
+                    color: "#fff",
+                    letterSpacing: "2px",
+                    fontWeight: 500,
+                  }}
                 >
                   {deletingUpload ? "Excluindo..." : "Excluir extrato"}
                 </button>
@@ -841,12 +1162,22 @@ const receita = useMemo(
 
 // ─── Componentes auxiliares ───────────────────────────────────────────────────
 
-function KpiCard({ label, value, tone }: { label: string; value: string; tone: "green" | "tan" | "navy" }) {
+function KpiCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "green" | "tan" | "navy";
+}) {
   const color = tone === "green" ? "var(--green)" : tone === "tan" ? "var(--tan)" : "var(--navy)";
   return (
     <div className="aurora-card">
       <div className="aurora-cap mb-3">{label}</div>
-      <div className="aurora-value" style={{ fontSize: 32, color }}>{value}</div>
+      <div className="aurora-value" style={{ fontSize: 32, color }}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -854,14 +1185,20 @@ function KpiCard({ label, value, tone }: { label: string; value: string; tone: "
 function TxStatusBadge({ status }: { status: string }) {
   const tone =
     status === "approved"
-      ? { bg: "rgba(74,103,65,0.10)",   color: "var(--green)", label: "Aprovado" }
+      ? { bg: "rgba(74,103,65,0.10)", color: "var(--green)", label: "Aprovado" }
       : status === "pending"
-      ? { bg: "rgba(109,146,166,0.15)", color: "var(--tan)",   label: "Pendente" }
-      : { bg: "rgba(27,57,77,0.10)",    color: "var(--navy)",  label: status     };
+        ? { bg: "rgba(109,146,166,0.15)", color: "var(--tan)", label: "Pendente" }
+        : { bg: "rgba(27,57,77,0.10)", color: "var(--navy)", label: status };
   return (
     <span
       className="inline-flex items-center gap-1.5 text-[10px] uppercase"
-      style={{ letterSpacing: "1.5px", fontWeight: 600, background: tone.bg, color: tone.color, padding: "4px 10px" }}
+      style={{
+        letterSpacing: "1.5px",
+        fontWeight: 600,
+        background: tone.bg,
+        color: tone.color,
+        padding: "4px 10px",
+      }}
     >
       <span style={{ width: 5, height: 5, borderRadius: 999, background: tone.color }} />
       {tone.label}
@@ -872,14 +1209,20 @@ function TxStatusBadge({ status }: { status: string }) {
 function UploadStatusBadge({ status }: { status: string }) {
   const tone =
     status === "done"
-      ? { bg: "rgba(74,103,65,0.10)",   color: "var(--green)", label: "Concluído"   }
+      ? { bg: "rgba(74,103,65,0.10)", color: "var(--green)", label: "Concluído" }
       : status === "processing"
-      ? { bg: "rgba(27,57,77,0.10)",    color: "var(--navy)",  label: "Processando" }
-      : { bg: "rgba(109,146,166,0.15)", color: "var(--tan)",   label: status         };
+        ? { bg: "rgba(27,57,77,0.10)", color: "var(--navy)", label: "Processando" }
+        : { bg: "rgba(109,146,166,0.15)", color: "var(--tan)", label: status };
   return (
     <span
       className="inline-flex items-center gap-1.5 text-[10px] uppercase"
-      style={{ letterSpacing: "1.5px", fontWeight: 600, background: tone.bg, color: tone.color, padding: "4px 10px" }}
+      style={{
+        letterSpacing: "1.5px",
+        fontWeight: 600,
+        background: tone.bg,
+        color: tone.color,
+        padding: "4px 10px",
+      }}
     >
       <span style={{ width: 5, height: 5, borderRadius: 999, background: tone.color }} />
       {tone.label}

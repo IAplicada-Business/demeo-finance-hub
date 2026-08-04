@@ -16,7 +16,10 @@ async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
       return await fn();
     } catch (err) {
       if (attempt === maxAttempts) throw err;
-      console.error(`[classify-batch] attempt ${attempt} failed, retrying in ${2 ** (attempt - 1)}s:`, err);
+      console.error(
+        `[classify-batch] attempt ${attempt} failed, retrying in ${2 ** (attempt - 1)}s:`,
+        err,
+      );
       await new Promise((r) => setTimeout(r, 1000 * 2 ** (attempt - 1)));
     }
   }
@@ -49,19 +52,32 @@ function resolveCategory(aiCat: string, categoryNames: string[]): string | null 
     return suffix === norm || suffix.includes(norm) || norm.includes(suffix);
   });
   if (bySuffix) return bySuffix;
-  return categoryNames.find((c) => c.toLowerCase().includes(norm) || norm.includes(c.toLowerCase())) ?? null;
+  return (
+    categoryNames.find((c) => c.toLowerCase().includes(norm) || norm.includes(c.toLowerCase())) ??
+    null
+  );
 }
 
 /** Fallback para históricos abreviados (Caixa: DEB PIX CH, COMPRA, PAG BOLETO…). */
-function heuristicCategory(description: string, amount: number, categoryNames: string[]): string | null {
+function heuristicCategory(
+  description: string,
+  amount: number,
+  categoryNames: string[],
+): string | null {
   const d = description.toUpperCase().trim();
   const pick = (...patterns: RegExp[]) =>
     categoryNames.find((c) => patterns.some((p) => p.test(c))) ?? null;
 
-  if (/^CRE PIX|^CRED PIX|^DP DIN|^REND|^TED.*CRED|^RECEB|^CREDIT/i.test(d) || (amount > 0 && /^CRE |^DP /i.test(d))) {
+  if (
+    /^CRE PIX|^CRED PIX|^DP DIN|^REND|^TED.*CRED|^RECEB|^CREDIT/i.test(d) ||
+    (amount > 0 && /^CRE |^DP /i.test(d))
+  ) {
     return pick(/receita|honor|entrada/i) ?? pick(/receber/i);
   }
-  if (/^DEB PIX|^ENVIO PIX|^PIX ENVIAD|^DB PPG|^SAQUE/i.test(d) || (amount < 0 && /^DEB /i.test(d))) {
+  if (
+    /^DEB PIX|^ENVIO PIX|^PIX ENVIAD|^DB PPG|^SAQUE/i.test(d) ||
+    (amount < 0 && /^DEB /i.test(d))
+  ) {
     return (
       pick(/transfer/i) ??
       pick(/fornecedor|pagamento|despesa vari|despesa fixa|^4\./i) ??
@@ -187,7 +203,10 @@ Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(origin);
 
   try {
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
 
     const { upload_id } = await req.json();
     if (!upload_id) {
@@ -214,7 +233,11 @@ Deno.serve(async (req) => {
     const { client_id } = upload;
 
     // Busca dados do cliente (nome + setor para contexto do Haiku)
-    const { data: client } = await supabase.from("clients").select("name, segment").eq("id", client_id).single();
+    const { data: client } = await supabase
+      .from("clients")
+      .select("name, segment")
+      .eq("id", client_id)
+      .single();
 
     const clientName = client?.name ?? "Cliente";
     const clientSegment = client?.segment ?? "Empresa";
@@ -228,7 +251,12 @@ Deno.serve(async (req) => {
 
     if (!pending || pending.length === 0) {
       return new Response(
-        JSON.stringify({ classified: 0, approved: 0, pending_manual: 0, message: "Nenhuma transação pendente" }),
+        JSON.stringify({
+          classified: 0,
+          approved: 0,
+          pending_manual: 0,
+          message: "Nenhuma transação pendente",
+        }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -267,7 +295,9 @@ Deno.serve(async (req) => {
     for (const tx of pending as TxRow[]) {
       const normalized = buildPattern(tx.description);
       // Word-boundary match: padrão "PIX" não pode casar com "PIXBET"
-      const match = rules.find((r) => normalized === r.pattern || normalized.startsWith(r.pattern + " "));
+      const match = rules.find(
+        (r) => normalized === r.pattern || normalized.startsWith(r.pattern + " "),
+      );
       if (match) {
         ruleMatches.push({ tx, match });
         approvedByRule.push(tx.id);
@@ -278,11 +308,18 @@ Deno.serve(async (req) => {
 
     // Batch-update transactions agrupadas pela mesma classificação (1 query por grupo)
     if (ruleMatches.length > 0) {
-      const txGroups = new Map<string, { ids: string[]; category: string; is_recurring: boolean }>();
+      const txGroups = new Map<
+        string,
+        { ids: string[]; category: string; is_recurring: boolean }
+      >();
       for (const { tx, match } of ruleMatches) {
         const key = `${match.category}||${match.is_recurring ?? false}`;
         if (!txGroups.has(key)) {
-          txGroups.set(key, { ids: [], category: match.category, is_recurring: match.is_recurring ?? false });
+          txGroups.set(key, {
+            ids: [],
+            category: match.category,
+            is_recurring: match.is_recurring ?? false,
+          });
         }
         txGroups.get(key)!.ids.push(tx.id);
       }
@@ -394,7 +431,9 @@ Deno.serve(async (req) => {
 
     // Se não há categorias cadastradas, camada 3 não tem como classificar — pular IA
     if (categoryNames.length === 0 && remainingAfterHeuristic.length > 0) {
-      console.warn("[classify-batch] cliente sem categorias ativas — pulando camada 3, todas ficam pending");
+      console.warn(
+        "[classify-batch] cliente sem categorias ativas — pulando camada 3, todas ficam pending",
+      );
     }
 
     const BATCH_SIZE = 50;
@@ -416,10 +455,19 @@ Deno.serve(async (req) => {
         const waveResults = await Promise.all(
           wave.map(async (batch) => {
             try {
-              const results = await classifyWithAI(batch, categoryNames, clientName, clientSegment, topPatterns ?? []);
+              const results = await classifyWithAI(
+                batch,
+                categoryNames,
+                clientName,
+                clientSegment,
+                topPatterns ?? [],
+              );
               return { batch, results };
             } catch (aiErr) {
-              console.error("[classify-batch] AI batch failed after 3 retries, marking as pending:", aiErr);
+              console.error(
+                "[classify-batch] AI batch failed after 3 retries, marking as pending:",
+                aiErr,
+              );
               return { batch, results: null };
             }
           }),
@@ -442,13 +490,20 @@ Deno.serve(async (req) => {
         for (const r of results) {
           const resolved = resolveCategory(r.cat, categoryNames);
           if (!resolved) {
-            console.error(`[classify-batch] AI category not resolved "${r.cat}" for tx ${r.id} — deixando pending`);
+            console.error(
+              `[classify-batch] AI category not resolved "${r.cat}" for tx ${r.id} — deixando pending`,
+            );
             aiPending++;
             continue;
           }
           const key = `${resolved}||${r.rec ?? false}||${r.conf ?? 0}`;
           if (!classifiedGroups.has(key)) {
-            classifiedGroups.set(key, { ids: [], category: resolved, is_recurring: r.rec ?? false, confidence: r.conf ?? 0 });
+            classifiedGroups.set(key, {
+              ids: [],
+              category: resolved,
+              is_recurring: r.rec ?? false,
+              confidence: r.conf ?? 0,
+            });
           }
           classifiedGroups.get(key)!.ids.push(r.id);
           aiClassified++;
@@ -476,7 +531,11 @@ Deno.serve(async (req) => {
     }
 
     // Atualiza contadores do upload (classificados aguardando aprovação + pendentes de classificação)
-    const totalClassified = approvedByRule.length + approvedByRecurrence.length + approvedByHeuristic.length + aiClassified;
+    const totalClassified =
+      approvedByRule.length +
+      approvedByRecurrence.length +
+      approvedByHeuristic.length +
+      aiClassified;
     await supabase
       .from("uploads")
       .update({
