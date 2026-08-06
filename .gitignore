@@ -18,9 +18,11 @@ M[0-9][0-9]_*.md
 # Claude Code — contexto local, nunca subir
 .claude/
 
-# Suite de testes + config — nunca subir ao repositório
-tests/
-playwright.config.ts
+# Testes — versionar specs e configs; ignorar segredos, sessões e artefatos
+tests/e2e/.auth/
+tests/e2e/reports/
+tests/e2e/fixtures/*
+!tests/e2e/fixtures/README.md
 playwright-report/
 test-results/
 *.test.local.*

@@ -14,6 +14,7 @@ até **DFC/DRE**, **fechamento mensal**, **portal do cliente** e um **CRM comerc
 
 - [Visão geral](#visão-geral)
 - [Funcionalidades](#funcionalidades)
+- [Hub DFC / DRE](#hub-dfc--dre)
 - [Modo de uso](#modo-de-uso)
 - [Arquitetura](#arquitetura)
 - [Stack](#stack)
@@ -59,18 +60,27 @@ montando relatórios gerenciais por cliente.
 
 ### Financeiro
 
-- **Importação de extratos** — CSV, XLSX, PDF e imagem; detecção automática do banco
-  pelo conteúdo do arquivo; deduplicação de lançamentos reimportados.
+- **Importação de extratos** — CSV, XLSX, PDF e imagem (sem suporte a OFX); detecção
+  automática do banco pelo conteúdo do arquivo; deduplicação de lançamentos reimportados;
+  seleção de **período (mês/ano)** na importação.
 - **Classificação automática em 3 camadas** — regras ativas → padrões de recorrência
   → Claude Haiku (com contexto do setor e do plano de contas do cliente).
 - **Revisão obrigatória** — a IA marca os lançamentos como _classificados_; só entram
-  em relatórios/portal após **aprovação manual** da gestora.
+  em relatórios/portal após **aprovação manual** da gestora. O **sino de pendências**
+  no header e as telas Importar / Extratos / Pendentes orientam esse passo.
 - **Plano de Contas por cliente** — upload do plano contábil (XLSX/CSV) que vira as
-  categorias usadas pela IA e replica automaticamente todos os meses.
-- **Categorias e Regras de Classificação** — configuráveis por cliente.
-- **DFC Gerencial e DRE** — por cliente e período, com projeção de fluxo de caixa.
-- **Fechamento mensal, Detalhamento e Relatórios** — exportação em **PDF** e **Excel**.
-- **Contas a pagar** e **lançamentos parcelados**.
+  categorias usadas pela IA. Novos clientes **não** recebem mais as 16 categorias padrão
+  Aurora; ao subir o plano do cliente, as categorias seed são desativadas.
+- **Categorias e Regras de Classificação** — configuráveis por cliente (inclui grupo
+  _Receita não Operacional_).
+- **DFC Gerencial e DRE** — por cliente e período, com coluna **Esperado** (Realizado /
+  % / Var % / Esperado via payables em aberto), projeção de fluxo de caixa e **Livro
+  Diário** (visão cronológica agendado vs realizado).
+- **Conciliação Agenda ↔ Extrato** — vincular contas da Agenda a lançamentos aprovados
+  do extrato (manual, com sugestão pós-aprovação); anti-duplicata na reimportação.
+- **Fechamento mensal reabível**, Detalhamento (inclui **Receitas Brutas**) e
+  **Relatórios multi-mês** — exportação em **PDF** e **Excel** por intervalo customizado.
+- **Agenda (contas a pagar/receber)**, **Recorrências** e **lançamentos parcelados**.
 
 ### Portal do cliente
 
@@ -94,15 +104,33 @@ montando relatórios gerenciais por cliente.
 
 ---
 
+## Hub DFC / DRE
+
+A rota **`/admin/dfc`** concentra a operação financeira por cliente (equivalente ao menu
+YAMPA). Abas disponíveis:
+
+| Aba | Função |
+| --- | --- |
+| **DFC** | Fluxo de caixa gerencial com coluna Esperado |
+| **DRE** | Demonstrativo de resultado |
+| **Detalhamento** | Breakdown por conta; cadastro de **Receitas Brutas** |
+| **Agenda** | Contas a pagar/receber; botão **Conciliar** com extrato |
+| **Livro Diário** | Cronologia agendado vs realizado (badge Conciliado) |
+| **Extratos do banco** | Histórico e aprovação por upload |
+| **Recorrências** | Fila de padrões recorrentes pendentes |
+| **Fechamento** | Checklist mensal (reabível após concluído) |
+
+---
+
 ## Modo de uso
 
 ### Gestora (painel administrativo)
 
 **1. Cadastrar o cliente**
-`Clientes → Novo cliente`. Informe nome, CNPJ e dados básicos. Ao criar, o cliente
-já nasce com um conjunto padrão de categorias.
+`Clientes → Novo cliente`. Informe nome, CNPJ e dados básicos. O cliente nasce **sem
+categorias** — é necessário enviar o plano de contas antes de importar extratos.
 
-**2. Definir o plano de contas** _(opcional, recomendado)_
+**2. Definir o plano de contas** _(obrigatório para operar)_
 `Configuração → Plano de Contas → selecione o cliente → envie o arquivo` (XLSX/CSV).
 Confira a **prévia** das contas e clique em **Adicionar contas ao plano**. As contas
 passam a ser usadas pela IA na classificação e se repetem todos os meses.
@@ -120,19 +148,25 @@ Na tela de revisão, cada lançamento aparece como:
 
 Ajuste categorias/valores se necessário e clique em **Aprovar classificados**.
 Só depois disso os lançamentos entram em DFC/DRE, relatórios e no portal do cliente.
-Para descartar tudo, use **Cancelar envio** (remove o extrato do histórico).
+Enquanto houver pendências, o **sino** no topo direito mostra a contagem e link para
+`Pendentes`. Para descartar tudo, use **Cancelar envio** (remove o extrato do histórico).
 
 **5. Tratar pendências**
-`Pendentes` lista os lançamentos sem categoria de todos os clientes. Categorize e
-aprove por ali. Categorias aprovadas repetidamente viram **regras automáticas**.
+`Pendentes` lista lançamentos **sem categoria** (`pending`) e **classificados aguardando
+aprovação** (`classified`) de todos os clientes. A coluna **confiança** ajuda a priorizar
+revisões. Categorize, ajuste e aprove por ali. Categorias aprovadas repetidamente viram
+**regras automáticas**.
 
-**6. Analisar DFC / DRE**
-`DFC / DRE` (ou o botão **Ver DFC** no cliente) mostra o fluxo de caixa e o
-demonstrativo de resultado por período, com projeção e detalhamento por conta.
+**6. Analisar DFC / DRE e conciliar**
+`DFC / DRE` (hub com 8 abas — ver tabela acima) mostra fluxo de caixa, DRE, livro
+diário e fechamento por período. Após aprovar extratos, use **Agenda → Conciliar** para
+vincular contas agendadas a lançamentos do banco (ou siga o toast _Ver Agenda_ pós-aprovação).
 
 **7. Fechar o mês e exportar**
-No fechamento mensal, valide o checklist e as receitas brutas; em `Relatórios`,
-exporte **PDF** (relatório executivo) ou **Excel** (DFC / DFC Gerencial) por período.
+Na aba **Fechamento**, valide o checklist (com links para cada etapa); cadastre **Receitas
+Brutas** em **Detalhamento**. Fechamento concluído pode ser **reaberto** para editar
+etapas. Em `Relatórios`, exporte **PDF** ou **Excel** por **intervalo multi-mês**
+(trimestre, semestre ou range livre).
 
 **8. Comercial (opcional)**
 `Pipeline` move negócios entre etapas; a partir de um negócio você gera uma
@@ -247,11 +281,18 @@ sequenceDiagram
     U-->>F: lançamentos classificados
     G->>DB: revisa e "Aprova classificados" → status "approved"
     Note over DB: só "approved" entra em DFC/DRE/portal
+    G->>DB: Agenda → Conciliar ↔ extrato (RPC reconcile_payable)
+    Note over DB: Livro Diário exibe badge Conciliado
 ```
 
 **Estados de um lançamento:** `pending` (sem categoria → tela Pendentes) →
-`classified` (categorizado pela IA, aguardando aprovação) → `approved`
-(aprovado pela gestora, visível em relatórios e no portal).
+`classified` (categorizado pela IA, aguardando aprovação — também aparece em Pendentes) →
+`approved` (aprovado pela gestora, visível em relatórios e no portal).
+
+**Conciliação (pós-aprovação):** em `DFC → Agenda`, escolha uma conta pendente e clique
+**Conciliar** para vinculá-la a um lançamento aprovado do extrato. RPCs:
+`reconcile_payable`, `unreconcile_payable`, `create_manual_payment`, `undo_manual_payment`.
+A reimportação ignora linhas já quitadas/conciliadas (`parse-extract`).
 
 ---
 
@@ -266,13 +307,19 @@ sequenceDiagram
 │   │   ├── admin.*.tsx       # Painel da gestora (dashboard, clientes, DFC, importar…)
 │   │   ├── portal.tsx        # Portal do cliente
 │   │   └── p.proposta.$token.tsx  # Aceite público de proposta
-│   ├── components/           # Componentes (AdminLayout, painéis DFC/DRE, drawers…)
+│   ├── components/           # AdminLayout, LivroDiarioPanel, FechamentoMensalPanel…
 │   ├── hooks/                # useCategories, useDFCForecast, usePushNotifications…
-│   ├── lib/                  # supabase, auth, dre, healthScore, utils…
+│   ├── lib/                  # dfcEsperado, livroDiario, reconciliation, pendingCounts…
 │   └── routeTree.gen.ts      # Árvore de rotas (gerada pelo plugin)
+├── tests/
+│   ├── unit/                 # Jest (confidence, livroDiario, reconciliation…)
+│   └── e2e/                  # Playwright (specs + helpers; fixtures locais)
+├── scripts/                  # test-*.mjs (fluxos manuais contra Supabase)
 ├── supabase/
-│   ├── functions/            # 23 Edge Functions (Deno) + _shared/
+│   ├── functions/            # 24 Edge Functions (Deno) + _shared/
 │   └── migrations/           # Migrações SQL (schema, RLS, triggers, seeds)
+├── jest.config.cjs
+├── playwright.config.ts
 ├── public/                   # Assets estáticos + service worker (push)
 ├── vite.config.ts
 └── package.json
@@ -287,14 +334,14 @@ Principais entidades (PostgreSQL, todas com RLS):
 **Financeiro**
 
 - `clients`, `client_banks` — clientes e seus bancos.
-- `uploads` — arquivos de extrato importados (status, período, contadores).
-- `transactions` — lançamentos (`status`, `category`, `is_recurring`, parcelas).
+- `uploads` — arquivos de extrato importados (`status`, `period`, `document_type`, contadores).
+- `transactions` — lançamentos (`status`, `category`, `confidence`, `payable_id`, parcelas).
 - `categories` — plano de contas do cliente (com `code` contábil hierárquico).
 - `classification_rules`, `recurrence_patterns` — motor de classificação.
 - `chart_of_accounts_uploads` — histórico dos planos de contas enviados.
 - `monthly_closings`, `monthly_revenue_entries` — fechamento mensal.
 - `report_exports` — histórico de PDFs/Excel gerados.
-- `payables` — contas a pagar.
+- `payables` — agenda (contas a pagar/receber); `matched_transaction_id`, `source_upload_id`.
 
 **Comercial**
 
@@ -317,19 +364,22 @@ Principais entidades (PostgreSQL, todas com RLS):
 | Função                                                    | Responsabilidade                                                                   |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | `create-upload`                                           | Orquestra o upload: Storage → `parse-extract` → `classify-batch`.                  |
-| `parse-extract`                                           | Extrai lançamentos (CSV/XLSX por colunas, PDF/imagem via Claude), detecta o banco. |
-| `classify-batch`                                          | Classifica em 3 camadas (regras → recorrência → Claude).                           |
+| `parse-extract`                                           | Extrai lançamentos (CSV/XLSX/PDF/imagem via Claude); anti-duplicata na reimportação. |
+| `classify-batch`                                          | Classifica em 3 camadas; valida recorrência contra categorias ativas.              |
 | `parse-chart-of-accounts`                                 | Lê o plano de contas (XLSX/CSV) e alimenta as categorias do cliente.               |
 | `client-report-generate`                                  | Gera o relatório executivo do cliente.                                             |
-| `pending-count` / `pipeline-kpis`                         | Contadores e KPIs.                                                                 |
+| `pending-count` / `pipeline-kpis`                         | Contadores (pending+classified com upload) e KPIs.                                 |
 | `proposal-generate/send/view/accept` · `expire-proposals` | Ciclo de vida das propostas.                                                       |
 | `contract-generate/send`                                  | Geração e envio de contratos.                                                      |
 | `deal-move`                                               | Movimentação no funil.                                                             |
 | `lead-intake`                                             | Captação de leads (landing).                                                       |
 | `analyze-client`                                          | Análise financeira assistida por IA.                                               |
-| `create-admin-user` / `create-client-user`                | Provisionamento de usuários.                                                       |
+| `create-admin-user` / `create-client-user` / `manage-admin-user` | Provisionamento de usuários admin e clientes.                         |
 | `subscribe-push` / `send-push`                            | Notificações web push.                                                             |
 | `expire-stale-rules` · `status`                           | Manutenção e healthcheck.                                                          |
+
+**Total:** 24 funções (+ `_shared/`). Conciliação agenda ↔ extrato usa **RPCs PostgreSQL**
+(`reconcile_payable`, etc.), não Edge Function dedicada.
 
 O CORS de todas as funções é centralizado em `supabase/functions/_shared/cors.ts`.
 
@@ -371,6 +421,14 @@ npm run format     # Prettier
 | `VITE_SUPABASE_ANON_KEY` / `VITE_SUPABASE_PUBLISHABLE_KEY` | Chave pública (anon).     |
 | `VITE_AURORA_APP_URL`                                      | URL pública da aplicação. |
 
+**Testes (`.env.test`, copie de `.env.test.example`)**
+
+| Variável | Descrição |
+| -------- | --------- |
+| `APP_URL` | URL do deploy para Playwright (ex.: preview Lovable). |
+| `TEST_ADMIN_EMAIL` / `TEST_ADMIN_PASSWORD` | Credenciais gestora para E2E. |
+| `TEST_PORTAL_EMAIL` / `TEST_PORTAL_PASSWORD` | Credenciais portal para E2E. |
+
 **Edge Functions (secrets no Supabase/Lovable)**
 
 | Variável                                                   | Uso                                                     |
@@ -391,14 +449,23 @@ npm run format     # Prettier
 
 ## Testes
 
-A suíte segue a pirâmide **unit → integração → E2E** (Jest + Playwright):
+Suíte em três camadas — specs versionadas no repo; segredos e artefatos ficam locais.
 
-```bash
-npm run test              # unitários (tests/unit)
-npm run test:integration  # integração (tests/integration)
-npm run test:e2e          # end-to-end (Playwright)
-npm run test:all          # tudo
-```
+| Camada | Comando | Onde |
+| ------ | ------- | ---- |
+| **Unitários** | `npm run test` | `tests/unit/` (Jest) |
+| **Integração** | `npm run test:integration` | reservado (`tests/integration/`) |
+| **E2E** | `npm run test:e2e` | `tests/e2e/` (Playwright) |
+| **Fluxos manuais** | `node scripts/test-*.mjs` | scripts contra Supabase real |
+| **Tudo** | `npm run test:all` | Jest + Playwright |
+
+**Setup E2E:** copie `.env.test.example` → `.env.test` com credenciais de teste e
+`APP_URL` do deploy (preview ou produção). Coloque fixtures de extrato em
+`tests/e2e/fixtures/` (gitignored — ver README da pasta). Sessões salvas em
+`tests/e2e/.auth/` também ficam locais.
+
+**Ignorados pelo git:** `.env.test`, `tests/e2e/.auth/`, `tests/e2e/reports/`,
+fixtures com extratos reais, `test-results/`.
 
 ---
 
