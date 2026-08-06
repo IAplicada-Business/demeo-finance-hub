@@ -126,6 +126,59 @@ YAMPA). Abas disponíveis:
 
 ### Gestora (painel administrativo)
 
+Visão do **ciclo mensal** por cliente — da configuração inicial ao fechamento:
+
+```mermaid
+flowchart TD
+  subgraph setup [Setup]
+    step1["1 · Cadastrar cliente"]
+    step2["2 · Plano de contas"]
+    step1 --> step2
+  end
+
+  subgraph importFlow [Importacao]
+    step3["3 · Importar extrato"]
+    step4["4 · Revisar e aprovar"]
+    step3 --> step4
+  end
+
+  subgraph pendencias [Pendencias]
+    step5["5 · Pendentes + sino"]
+    step5 --> step4
+  end
+
+  subgraph hubDfc [Hub DFC / DRE]
+    step6["6 · DFC · DRE · Livro Diario"]
+    conciliar["Agenda · Conciliar"]
+    step6 --> conciliar
+  end
+
+  subgraph fechamento [Fechamento]
+    step7a["Detalhamento · Receitas Brutas"]
+    step7b["7 · Checklist de fechamento"]
+    step7c["Relatorios PDF / Excel"]
+    step7a --> step7b --> step7c
+  end
+
+  step2 --> step3
+  step4 -->|"so approved"| step6
+  step4 -.->|"pending / classified"| step5
+  conciliar --> step7a
+  step7c --> portal["Portal do cliente"]
+
+  subgraph comercial [Comercial opcional]
+    step8["8 · Pipeline · Proposta · Contrato"]
+  end
+```
+
+| Etapa | Rota principal | Resultado |
+| ----- | -------------- | --------- |
+| 1–2 | `/admin/clientes` · `/admin/plano-contas` | Cliente pronto para operar |
+| 3–5 | `/admin/importar` · `/admin/pendentes` | Lançamentos `approved` |
+| 6 | `/admin/dfc` (8 abas) | Caixa, conciliação, livro diário |
+| 7 | Fechamento · Detalhamento · `/admin/relatorios` | Mês fechado e exportado |
+| 8 | `/admin/pipeline` · propostas · contratos | CRM (paralelo ao financeiro) |
+
 **1. Cadastrar o cliente**
 `Clientes → Novo cliente`. Informe nome, CNPJ e dados básicos. O cliente nasce **sem
 categorias** — é necessário enviar o plano de contas antes de importar extratos.
@@ -173,6 +226,15 @@ etapas. Em `Relatórios`, exporte **PDF** ou **Excel** por **intervalo multi-mê
 **proposta**, envia por e-mail e acompanha o **aceite**; aceita, vira **contrato**.
 
 ### Cliente (portal)
+
+Fluxo simplificado — só vê lançamentos já **aprovados** pela gestora:
+
+```mermaid
+flowchart LR
+  login["Login portal"] --> mes["Escolhe o mes"]
+  mes --> dash["Dashboard · DFC · DRE"]
+  dash --> pdf["Relatorio executivo PDF"]
+```
 
 1. Acessa com o usuário criado pela gestora (perfil **owner** ou **financeiro**).
 2. No **portal**, escolhe o mês e acompanha os próprios indicadores, DFC/DRE e
