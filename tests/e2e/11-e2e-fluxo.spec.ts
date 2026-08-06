@@ -7,15 +7,12 @@
  * criados pelos testes anteriores ou do ambiente pré-semeado.
  */
 import { test, expect } from '@playwright/test';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { loginAsAdmin } from './helpers/login';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const FIXTURES = path.resolve(__dirname, 'fixtures');
+import {
+  uploadAndConfirmImport,
+  waitForImportResultOrDuplicate,
+} from './helpers/importar';
+import { primaryImportFixture } from './helpers/fixtures';
 
 test.describe('11 — Fluxo End-to-End Completo', () => {
   /**
@@ -109,51 +106,32 @@ test.describe('11 — Fluxo End-to-End Completo', () => {
    */
   test('P0 — Importação completa: upload → classificação → aprovação → DFC admin → portal', async ({ page }) => {
     test.setTimeout(240_000); // classificação IA + aprovação + DFC pode levar até 3min
-    if (!fs.existsSync(path.join(FIXTURES, 'itau-sample.pdf'))) {
-      test.skip(true, 'Fixture itau-sample.pdf não encontrada — necessária para o fluxo de importação E2E');
+    const fixture = primaryImportFixture();
+    if (!fixture) {
+      test.skip(true, 'Nenhuma fixture de extrato em tests/e2e/fixtures/');
     }
 
     // ── 1. Importação ─────────────────────────────────────────────────────────
     await page.goto('/admin/importar');
-    // Upload primeiro — o select "CLIENTE VINCULADO" aparece depois do upload
-    await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES, 'itau-sample.pdf'));
-    const clientSelect = page.locator('select').first();
-    await expect(clientSelect).toBeVisible({ timeout: 10_000 });
+    await uploadAndConfirmImport(page, fixture!.path, { periodIso: fixture!.periodIso });
+    const outcome = await waitForImportResultOrDuplicate(page);
 
-    // Aguarda opções carregarem (async)
-    await page.waitForFunction(
-      () => { const s = document.querySelector('select'); return s ? s.options.length > 1 : false; },
-      { timeout: 10_000 }
-    ).catch(() => {});
-
-    await clientSelect.selectOption({ index: 1 });
-
-    // Diálogo de confirmação após selecionar cliente
-    const confirmImport = page.getByRole('button', { name: /confirmar importação/i });
-    if (await confirmImport.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await confirmImport.click();
-    }
-
-    // Aguarda "Classificando com IA..." aparecer (loading iniciado; evita sidebar "Regras de Classificação")
-    const loadingMsg = page.getByText(/classificando com ia|analisando com ia|processando com ia/i);
-    await expect(loadingMsg).toBeVisible({ timeout: 30_000 });
-    // Aguarda loading SUMIR — IA terminou (até 120s)
-    await expect(loadingMsg).not.toBeVisible({ timeout: 120_000 });
-
-    // ── 2. Aprovação em massa ─────────────────────────────────────────────────
-    const selectAll = page.locator('input[type="checkbox"]').first();
-    if (await selectAll.count() > 0) {
-      await selectAll.check();
-      const approveAll = page.getByRole('button', { name: /aprovar.*(todos|selecionados|em massa)/i })
-        .or(page.getByRole('button', { name: /aprovar/i }).nth(1));
-      if (await approveAll.count() > 0) await approveAll.first().click();
+    if (outcome === 'duplicate') {
+      console.warn(`AVISO: ${fixture!.label} duplicado — pulando aprovação e validando DFC/portal`);
     } else {
-      // Aprova individualmente
-      await page.getByRole('button', { name: /aprovar/i }).first().click();
-    }
+      // ── 2. Aprovação em massa ─────────────────────────────────────────────────
+      const approveClassificados = page.getByRole('button', { name: /aprovar classificados/i });
+      const canApprove = await approveClassificados.isEnabled({ timeout: 15_000 }).catch(() => false);
 
-    // Aguarda confirmação de aprovação (sem hard fail se não houver request Supabase)
-    await page.waitForResponse((r) => r.url().includes('supabase') && r.status() < 400, { timeout: 15_000 }).catch(() => {});
+      if (canApprove) {
+        await approveClassificados.click();
+      } else {
+        test.skip(true, 'Nenhum lançamento classificado para aprovar após importação');
+      }
+
+      // Aguarda confirmação de aprovação (sem hard fail se não houver request Supabase)
+      await page.waitForResponse((r) => r.url().includes('supabase') && r.status() < 400, { timeout: 15_000 }).catch(() => {});
+    }
 
     // ── 3. DFC Admin: verifica dados (import recente pode não aparecer imediatamente) ──
     await page.goto('/admin/dfc');

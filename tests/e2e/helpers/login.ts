@@ -21,7 +21,7 @@ export async function loginAsPortal(page: Page) {
 export async function logout(page: Page) {
   // Abre menu do usuário (botão no header que contém "Gestora")
   await page.locator('header').getByRole('button').filter({ hasText: 'Gestora' }).click();
-  // "Sair" é um <Link to="/login"> — navega sem chamar signOut()
-  await page.getByText('Sair').click();
+  // "Sair" no dropdown é um Link; evita colidir com o botão "Sair" da sidebar mobile
+  await page.locator('header').getByRole('link', { name: /sair/i }).click();
   await page.waitForURL(/\/login/, { timeout: 8_000 });
 }
