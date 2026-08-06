@@ -13,7 +13,8 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPatterns=tests/unit",
     "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPatterns=tests/integration",
     "test:e2e": "playwright test",
-    "test:all": "node --experimental-vm-modules node_modules/jest/bin/jest.js && playwright test",
+    "test:flows": "node scripts/test-reconciliation.mjs && node scripts/test-onda-a-flow.mjs && node scripts/test-contas-livro.mjs && node scripts/test-fechamento-reopen.mjs",
+    "test:all": "node --experimental-vm-modules node_modules/jest/bin/jest.js && npm run test:flows && playwright test",
     "deploy:parse-extract": "supabase functions deploy parse-extract --project-ref ofvhmiugqkpzlgziqnjb"
   },
   "dependencies": {

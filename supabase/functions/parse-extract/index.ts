@@ -531,6 +531,202 @@ Regras:
   return { transactions, detectedBank };
 }
 
+interface IdentifyResult {
+  bank: string | null;
+  account_holder: string | null;
+  cnpj: string | null;
+  period_iso: string | null;
+}
+
+function inferPeriodIsoFromRange(start?: string | null, end?: string | null): string | null {
+  const pick = (iso?: string | null) => {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+    return iso.slice(0, 7);
+  };
+  return pick(end) ?? pick(start);
+}
+
+function inferPeriodIsoFromText(text: string): string | null {
+  const rangeFull = text.match(
+    /(?:periodo|período|referencia|referência)[:\s]*(\d{2})\/(\d{2})\/(20\d{2})/i,
+  );
+  if (rangeFull) return `${rangeFull[3]}-${rangeFull[2]}`;
+
+  const periodo = text.match(/(?:periodo|período|referencia|referência)[:\s]*(\d{2})\/(\d{4})/i);
+  if (periodo) return `${periodo[2]}-${periodo[1]}`;
+  const mmYYYY = text.match(/(?:^|[\s(])(0?[1-9]|1[0-2])\/(20\d{2})(?:[\s).]|$)/);
+  if (mmYYYY) return `${mmYYYY[2]}-${mmYYYY[1].padStart(2, "0")}`;
+  return null;
+}
+
+function extractHolderAndCnpjFromText(text: string): {
+  account_holder: string | null;
+  cnpj: string | null;
+} {
+  const cnpjMatch = text.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/);
+  const cnpj = cnpjMatch?.[0] ?? null;
+  const holderMatch = text.match(
+    /(?:titular|raz[aã]o social|cliente|empresa)[:\s]+([^\n\r;|]{4,80})/i,
+  );
+  return {
+    account_holder: holderMatch?.[1]?.trim() ?? null,
+    cnpj,
+  };
+}
+
+async function identifyWithAI(fileData: Blob, filename: string): Promise<IdentifyResult> {
+  const client = new Anthropic();
+  const buffer = await fileData.arrayBuffer();
+  if (buffer.byteLength > MAX_PDF_BYTES) {
+    throw new Error("Arquivo muito grande para identificação (máx. 20 MB).");
+  }
+
+  const base64 = arrayBufferToBase64(buffer);
+  const ext = filename.toLowerCase().split(".").pop() ?? "";
+  const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(ext);
+  const isPDF = ext === "pdf";
+  if (!isImage && !isPDF) {
+    throw new Error(`identifyWithAI não suporta .${ext}`);
+  }
+
+  const mediaType = isPDF
+    ? "application/pdf"
+    : ext === "jpg" || ext === "jpeg"
+      ? "image/jpeg"
+      : ext === "png"
+        ? "image/png"
+        : ext === "webp"
+          ? "image/webp"
+          : "image/gif";
+
+  const contentBlock = isPDF
+    ? {
+        type: "document" as const,
+        source: {
+          type: "base64" as const,
+          media_type: mediaType as "application/pdf",
+          data: base64,
+        },
+      }
+    : {
+        type: "image" as const,
+        source: {
+          type: "base64" as const,
+          media_type: mediaType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+          data: base64,
+        },
+      };
+
+  const { content } = await withRetry(() =>
+    client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 512,
+      messages: [
+        {
+          role: "user",
+          content: [
+            contentBlock,
+            {
+              type: "text",
+              text: `Identifique metadados deste extrato bancário (NÃO extraia lançamentos).
+
+Retorne SOMENTE JSON:
+{"bank":"NOME_CURTO","account_holder":"RAZÃO SOCIAL DO TITULAR","cnpj":"00.000.000/0000-00 ou null","period_start":"YYYY-MM-DD ou null","period_end":"YYYY-MM-DD ou null"}
+
+Regras:
+- bank: um destes rótulos curtos: ${KNOWN_BANKS.map((b) => `"${b}"`).join(", ")} ou "Outro"
+- account_holder: razão social / titular visível no cabeçalho
+- cnpj: somente se legível no documento
+- period_start/period_end: intervalo do extrato quando existir`,
+            },
+          ],
+        },
+      ],
+    }),
+  );
+
+  const raw = content[0].type === "text" ? content[0].text.trim() : "{}";
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return { bank: null, account_holder: null, cnpj: null, period_iso: null };
+  }
+
+  let parsed: {
+    bank?: string;
+    account_holder?: string;
+    cnpj?: string | null;
+    period_start?: string | null;
+    period_end?: string | null;
+  };
+  try {
+    parsed = JSON.parse(jsonMatch[0]);
+  } catch {
+    return { bank: null, account_holder: null, cnpj: null, period_iso: null };
+  }
+
+  const rawBank = (parsed.bank ?? "").trim();
+  let bank: string | null = null;
+  if (rawBank && rawBank.toLowerCase() !== "outro") {
+    const rawKey = bankKey(rawBank);
+    bank =
+      KNOWN_BANKS.find((b) => bankKey(b) === rawKey) ??
+      detectBankName(rawBank) ??
+      KNOWN_BANKS.find((b) => rawKey.includes(bankKey(b))) ??
+      null;
+  }
+
+  return {
+    bank,
+    account_holder: parsed.account_holder?.trim() ?? null,
+    cnpj: parsed.cnpj ?? null,
+    period_iso: inferPeriodIsoFromRange(parsed.period_start, parsed.period_end),
+  };
+}
+
+function identifyFromStructured(buffer: ArrayBuffer, filename: string): IdentifyResult {
+  const lower = filename.toLowerCase();
+  let text = "";
+
+  if (lower.endsWith(".csv")) {
+    text = new TextDecoder("utf-8").decode(buffer).slice(0, 8000);
+  } else if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
+    try {
+      const wb = XLSX.read(buffer, { type: "array" });
+      const sn = wb.SheetNames[0];
+      if (sn) text = XLSX.utils.sheet_to_csv(wb.Sheets[sn]).slice(0, 8000);
+    } catch {
+      text = "";
+    }
+  }
+
+  const { account_holder, cnpj } = extractHolderAndCnpjFromText(text);
+  return {
+    bank: detectBankName(text),
+    account_holder,
+    cnpj,
+    period_iso: inferPeriodIsoFromText(text),
+  };
+}
+
+async function identifyUpload(fileBytes: Uint8Array, filename: string): Promise<IdentifyResult> {
+  const lower = filename.toLowerCase();
+  const blob = new Blob([fileBytes]);
+
+  if (
+    lower.endsWith(".pdf") ||
+    lower.endsWith(".png") ||
+    lower.endsWith(".jpg") ||
+    lower.endsWith(".jpeg") ||
+    lower.endsWith(".webp")
+  ) {
+    return identifyWithAI(blob, filename);
+  }
+  if (lower.endsWith(".csv") || lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
+    return identifyFromStructured(fileBytes.buffer, filename);
+  }
+  throw new Error(`Formato não suportado para identificação: ${filename}`);
+}
+
 Deno.serve(async (req) => {
   const preflightRes = handlePreflight(req);
   if (preflightRes) return preflightRes;
@@ -538,12 +734,30 @@ Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(origin);
 
   try {
+    const body = await req.json();
+
+    if (body.identify_only) {
+      const { file_base64, filename } = body;
+      if (!file_base64 || !filename) {
+        return new Response(
+          JSON.stringify({ error: "Campos obrigatórios: file_base64, filename" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const fileBytes = Uint8Array.from(atob(file_base64), (c) => c.charCodeAt(0));
+      const identity = await identifyUpload(fileBytes, filename);
+      return new Response(JSON.stringify({ success: true, ...identity }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { upload_id } = await req.json();
+    const { upload_id } = body;
 
     if (!upload_id) {
       return new Response(JSON.stringify({ error: "upload_id é obrigatório" }), {
@@ -758,15 +972,27 @@ Deno.serve(async (req) => {
     }
 
     if (afterPayableDup.length === 0) {
+      const extracted = transactions.length;
+      const detail =
+        payableDupSkipped >= extracted
+          ? `A IA leu ${extracted} lançamento(s), mas todos já constam na agenda como quitados.`
+          : duplicatesCount >= extracted
+            ? `A IA leu ${extracted} lançamento(s), mas todos já existem no sistema. Exclua o extrato anterior (DFC → Extratos) ou use outro arquivo.`
+            : `A IA leu ${extracted} lançamento(s), mas nenhum é novo (${duplicatesCount} duplicata(s)${payableDupSkipped ? `, ${payableDupSkipped} já quitado(s) na agenda` : ""}).`;
       await supabase
         .from("uploads")
         .update({
           status: "error",
-          error_message: "Todos os lançamentos deste arquivo já foram importados anteriormente.",
+          error_message: detail,
         })
         .eq("id", upload_id);
       return new Response(
-        JSON.stringify({ error: "Arquivo duplicado: todos os lançamentos já existem" }),
+        JSON.stringify({
+          error: detail,
+          ai_extracted: extracted,
+          duplicates: duplicatesCount,
+          payable_skipped: payableDupSkipped,
+        }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }

@@ -4,6 +4,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { loadMergedEnv } from "./_shared.mjs";
+import { agendadoStatus, livroCountsInRange, roundMoney, todayISO } from "./_flowHelpers.mjs";
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -20,23 +21,8 @@ const { clientName, start: START, end: END } = parseArgs();
 const env = loadMergedEnv();
 const sb = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_PUBLISHABLE_KEY);
 
-const today = new Date().toISOString().slice(0, 10);
+const today = todayISO();
 const TEST_DESC = `[test-contas-livro ${Date.now()}] Fornecedor QA`;
-
-function agendadoStatus(dueDate) {
-  return dueDate < today ? "atrasado" : "no_prazo";
-}
-
-function buildLivroCount(transactions, payables) {
-  let realizados = 0;
-  let agendados = 0;
-  for (const _ of transactions) realizados++;
-  for (const p of payables) {
-    agendadoStatus(p.due_date);
-    agendados++;
-  }
-  return { realizados, agendados, total: realizados + agendados };
-}
 
 function esperadoDelta(payables, type) {
   return payables.filter((p) => p.type === type).reduce((s, p) => s + p.amount, 0);
@@ -75,10 +61,9 @@ const CLIENT_ID = client.id;
 const dueDate = END >= today ? today : END;
 const TEST_AMOUNT = 123.45;
 
-// Baseline
 const { data: baseTx } = await sb
   .from("transactions")
-  .select("id, amount")
+  .select("id, date, amount, payable_id")
   .eq("client_id", CLIENT_ID)
   .eq("status", "approved")
   .gte("date", START)
@@ -92,8 +77,8 @@ const { data: basePay } = await sb
   .gte("due_date", START)
   .lte("due_date", END);
 
-const baseRealizadoSum = (baseTx ?? []).reduce((s, t) => s + t.amount, 0);
-const baseLivro = buildLivroCount(baseTx ?? [], basePay ?? []);
+const baseRealizadoSum = roundMoney((baseTx ?? []).reduce((s, t) => s + t.amount, 0));
+const baseLivro = livroCountsInRange(baseTx ?? [], basePay ?? [], START, END, today);
 step("1. Baseline Livro Diário", true, {
   realizados: baseLivro.realizados,
   agendados: baseLivro.agendados,
@@ -101,7 +86,6 @@ step("1. Baseline Livro Diário", true, {
   esperadoPagarAberto: esperadoDelta(basePay ?? [], "pagar"),
 });
 
-// Criar payable (Contas → + Novo)
 const { data: cat } = await sb
   .from("categories")
   .select("name")
@@ -131,7 +115,6 @@ step(
 
 let payableId = created?.id;
 
-// Deve aparecer no Livro como agendado
 const { data: afterInsPay } = await sb
   .from("payables")
   .select("id, type, amount, due_date")
@@ -141,26 +124,24 @@ const { data: afterInsPay } = await sb
   .lte("due_date", END);
 
 const foundInLivro = (afterInsPay ?? []).some((p) => p.id === payableId);
-const statusExpected = agendadoStatus(dueDate);
+const statusExpected = agendadoStatus(dueDate, today);
 step("3. Livro — payable aparece como agendado", foundInLivro, {
   status: statusExpected,
   agendadosNoPeriodo: afterInsPay?.length ?? 0,
 });
 
-// ESPERADO DFC sobe pelo valor do payable
 const esperadoAntes = esperadoDelta(basePay ?? [], "pagar");
 const esperadoDepois = esperadoDelta(afterInsPay ?? [], "pagar");
 step(
   "4. DFC ESPERADO — inclui payable em aberto",
-  Math.abs(esperadoDepois - esperadoAntes - TEST_AMOUNT) < 0.02,
+  Math.abs(roundMoney(esperadoDepois - esperadoAntes - TEST_AMOUNT)) < 0.02,
   {
     antes: esperadoAntes,
     depois: esperadoDepois,
-    delta: esperadoDepois - esperadoAntes,
+    delta: roundMoney(esperadoDepois - esperadoAntes),
   },
 );
 
-// Pago manual via RPC (Onda A — data no período do teste para refletir no DFC)
 const { data: txId, error: payErr } = await sb.rpc("create_manual_payment", {
   p_payable_id: payableId,
   p_date: dueDate,
@@ -196,23 +177,22 @@ const { data: afterPaidTx } = await sb
   .gte("date", START)
   .lte("date", END);
 
-const realizadoDepois = (afterPaidTx ?? []).reduce((s, t) => s + t.amount, 0);
-const expectedDelta = -TEST_AMOUNT; // pagar → saída
+const realizadoDepois = roundMoney((afterPaidTx ?? []).reduce((s, t) => s + t.amount, 0));
+const expectedDelta = -TEST_AMOUNT;
 step(
   "7. DFC Realizado — inclui pago manual no período",
   !!cashTx &&
     cashTx.payable_id === payableId &&
     cashTx.bank === "Espécie" &&
-    Math.abs(realizadoDepois - (baseRealizadoSum + expectedDelta)) < 0.02,
+    Math.abs(roundMoney(realizadoDepois - (baseRealizadoSum + expectedDelta))) < 0.02,
   {
     antes: baseRealizadoSum,
     depois: realizadoDepois,
-    delta: realizadoDepois - baseRealizadoSum,
+    delta: roundMoney(realizadoDepois - baseRealizadoSum),
     cashTx,
   },
 );
 
-// Limpeza — desfazer pago manual e excluir payable
 if (payableId) {
   await sb.rpc("undo_manual_payment", { p_payable_id: payableId });
   await sb.from("payables").delete().eq("id", payableId);

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { LogoMark } from "@/components/Logo";
 import { supabase, FUNCTIONS_URL } from "@/lib/supabase";
-import { useSession, usePortalRole } from "@/lib/auth";
+import { useSession, usePortalRole, usePortalClientId } from "@/lib/auth";
 import { authHeaders } from "@/lib/auth";
 import { brl, monthOptions, monthRangeDates } from "@/lib/utils";
 import { computeDRE, DRE_EBITDA_PIVOT, type CatInfo, type DREData } from "@/lib/dre";
@@ -41,9 +41,8 @@ function PortalPage() {
   const qc = useQueryClient();
   const { data: session, isLoading: sessionLoading } = useSession();
   const { data: portalRole = "owner" } = usePortalRole();
+  const { data: clientId, isLoading: clientIdLoading } = usePortalClientId();
   const isOwner = portalRole === "owner";
-
-  const clientId = session?.user?.user_metadata?.client_id as string | undefined;
 
   // Auth guard — redireciona para login se não há sessão
   useEffect(() => {
@@ -240,7 +239,7 @@ function PortalPage() {
   }
 
   // Enquanto verifica sessão, não renderiza nada (o useEffect vai redirecionar se necessário)
-  if (sessionLoading) {
+  if (sessionLoading || clientIdLoading) {
     return (
       <div
         className="min-h-screen app-shell flex items-center justify-center"

@@ -49,8 +49,22 @@ Deno.serve(async (req: Request) => {
     .eq("client_id", client_id)
     .eq("email", email)
     .maybeSingle();
-  if (existing)
-    return jsonResponse({ error: "Este e-mail já está vinculado a este cliente" }, 409, origin);
+  if (existing) {
+    await sb
+      .from("user_client_mapping")
+      .update({ portal_role, display_name })
+      .eq("user_id", existing.user_id);
+    await sb.auth.admin
+      .updateUserById(existing.user_id, {
+        user_metadata: { display_name, client_id },
+      })
+      .catch(() => null);
+    return jsonResponse(
+      { user_id: existing.user_id, email, portal_role, resynced: true },
+      200,
+      origin,
+    );
+  }
 
   // Gerar link de convite (cria o usuário no Auth se não existir)
   let userId: string;

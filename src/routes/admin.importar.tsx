@@ -9,6 +9,15 @@ import {
   inferUploadPeriodFromFilename,
   dominantIsoMonthFromDates,
 } from "@/lib/dateUtils";
+import {
+  allPlanEntriesReady,
+  applyExtractIdentityToPlan,
+  buildFileUploadPlan,
+  entryNeedsAiIdentification,
+  planEntryPeriodLabel,
+  type ClientMatchInput,
+  type FileUploadPlanEntry,
+} from "@/lib/uploadInference";
 import { supabase } from "@/lib/supabase";
 import { useCategories } from "@/hooks/useCategories";
 import { DateInput } from "@/components/DateInput";
@@ -40,6 +49,8 @@ interface Transaction {
   bank: string | null;
   installment_number?: number | null;
   installment_total?: number | null;
+  /** Cliente do upload (necessário em lotes com vários clientes). */
+  client_id?: string;
 }
 
 // Opções de banco para edição inline (inclui "Outro" para extratos não identificados).
@@ -72,6 +83,8 @@ interface InstallmentState {
 interface ClientOption {
   id: string;
   name: string;
+  owner_name: string;
+  cnpj?: string | null;
 }
 
 function toBase64(file: File): Promise<string> {
@@ -97,12 +110,15 @@ function ImportarPage() {
   const [periodMismatch, setPeriodMismatch] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pendingFilesRef = useRef<File[] | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [approving, setApproving] = useState(false);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
+  const [filePlan, setFilePlan] = useState<FileUploadPlanEntry[]>([]);
+  const [planIdentifying, setPlanIdentifying] = useState(false);
   const [awaitingConfirm, setAwaitingConfirm] = useState(false);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [canceling, setCanceling] = useState(false);
@@ -112,6 +128,8 @@ function ImportarPage() {
   const [installments, setInstallments] = useState<Record<string, InstallmentState>>({});
 
   const CATEGORIAS = useCategories(clientId);
+  const editClientId = editTx?.client_id ?? clientId;
+  const editCategories = useCategories(editClientId);
   const qc = useQueryClient();
   const { data: activeCategoryCount } = useQuery({
     queryKey: ["categories", "active-count", clientId],
@@ -142,7 +160,7 @@ function ImportarPage() {
     async function loadClients() {
       const { data, error: clientsError } = await supabase()
         .from("clients")
-        .select("id, name")
+        .select("id, name, owner_name, cnpj")
         .is("deleted_at", null)
         .order("name");
       if (data && data.length > 0) {
@@ -160,10 +178,54 @@ function ImportarPage() {
     loadClients();
   }, []);
 
-  function applySelectedFiles(fileList: File[]) {
+  useEffect(() => {
+    if (clientsLoading || clients.length === 0 || !pendingFilesRef.current) return;
+    const pending = pendingFilesRef.current;
+    pendingFilesRef.current = null;
+    void applySelectedFiles(pending);
+  }, [clientsLoading, clients]);
+
+  async function identifyFileIdentity(file: File, accessToken: string) {
+    const file_base64 = await toBase64(file);
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-extract`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        apikey: anonKey,
+      },
+      body: JSON.stringify({ identify_only: true, file_base64, filename: file.name }),
+    });
+    if (!res.ok) return null;
+    return res.json() as Promise<{
+      account_holder?: string | null;
+      cnpj?: string | null;
+      period_iso?: string | null;
+    }>;
+  }
+
+  async function applySelectedFiles(fileList: File[]) {
     setFiles(fileList);
     setError(null);
     setPeriodMismatch(null);
+    setAwaitingConfirm(false);
+
+    if (clientsLoading || clients.length === 0) {
+      pendingFilesRef.current = fileList;
+      return;
+    }
+
+    const clientInputs: ClientMatchInput[] = clients.map((c) => ({
+      id: c.id,
+      name: c.name,
+      owner_name: c.owner_name,
+      cnpj: c.cnpj,
+    }));
+
+    let plan = buildFileUploadPlan(fileList, clientInputs, defaultUploadIsoMonth());
+    setFilePlan(plan);
+
     const inferred = fileList.map((f) => inferUploadPeriodFromFilename(f.name)).find(Boolean);
     if (inferred) {
       setUploadPeriod(inferred);
@@ -171,21 +233,79 @@ function ImportarPage() {
     } else {
       setPeriodInferredFromFile(false);
     }
-    if (clientId) setAwaitingConfirm(true);
+
+    const uniqueClientIds = [...new Set(plan.map((p) => p.clientId).filter(Boolean))];
+    if (uniqueClientIds.length === 1) setClientId(uniqueClientIds[0]);
+    else if (fileList.length === 1 && plan[0]?.clientId) setClientId(plan[0].clientId);
+
+    if (fileList.length === 1 && plan[0]) {
+      setUploadPeriod(plan[0].periodIso);
+      setPeriodInferredFromFile(plan[0].periodSource === "filename" || plan[0].periodSource === "ai");
+    }
+
+    const needAi = plan.filter(entryNeedsAiIdentification);
+    if (needAi.length === 0) {
+      setAwaitingConfirm(true);
+      return;
+    }
+
+    setPlanIdentifying(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase().auth.getSession();
+      const accessToken = session?.access_token ?? (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string);
+
+      for (const entry of needAi) {
+        const file = fileList[entry.fileIndex];
+        if (!file) continue;
+        try {
+          const identity = await identifyFileIdentity(file, accessToken);
+          if (!identity) continue;
+          plan = applyExtractIdentityToPlan(
+            plan,
+            entry.fileIndex,
+            {
+              account_holder: identity.account_holder,
+              cnpj: identity.cnpj,
+              period_iso: identity.period_iso,
+            },
+            clientInputs,
+          );
+          setFilePlan([...plan]);
+        } catch {
+          /* identificação opcional — usuário confirma manualmente */
+        }
+      }
+
+      const resolvedClients = [...new Set(plan.map((p) => p.clientId).filter(Boolean))];
+      if (resolvedClients.length === 1) setClientId(resolvedClients[0]);
+      if (plan.length === 1) {
+        setUploadPeriod(plan[0].periodIso);
+        setPeriodInferredFromFile(plan[0].periodSource !== "default");
+      }
+    } finally {
+      setPlanIdentifying(false);
+      setAwaitingConfirm(true);
+    }
   }
 
-  async function handleUpload(fileList: File[], uploadClientId = clientId) {
-    if (!fileList.length) return;
+  async function handleUpload(plan: FileUploadPlanEntry[] = filePlan) {
+    if (!plan.length) return;
+    if (!allPlanEntriesReady(plan)) {
+      setError("Defina cliente e período para cada arquivo antes de importar.");
+      return;
+    }
     if (clientsLoading) {
       setError("Aguarde o carregamento da lista de clientes.");
       return;
     }
-    if (!uploadClientId) {
-      setError("Selecione um cliente antes de enviar o arquivo.");
-      return;
-    }
+
     const MAX_FILE_MB = 15;
-    const oversized = fileList.filter((f) => f.size > MAX_FILE_MB * 1024 * 1024);
+    const oversized = plan
+      .map((entry) => files[entry.fileIndex])
+      .filter((f): f is File => !!f)
+      .filter((f) => f.size > MAX_FILE_MB * 1024 * 1024);
     if (oversized.length > 0) {
       setError(
         oversized.map((f) => `"${f.name}" excede o limite de ${MAX_FILE_MB} MB.`).join("\n"),
@@ -193,7 +313,6 @@ function ImportarPage() {
       return;
     }
 
-    setFiles(fileList);
     setError(null);
     setClassifyTimedOut(false);
     setFileBanks([]);
@@ -209,9 +328,12 @@ function ImportarPage() {
     } = await supabase().auth.getSession();
     const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
-    for (let i = 0; i < fileList.length; i++) {
+    for (let i = 0; i < plan.length; i++) {
       setCurrentFileIndex(i);
-      const file = fileList[i];
+      const entry = plan[i];
+      const file = files[entry.fileIndex];
+      if (!file) continue;
+      const uploadClientId = entry.clientId;
 
       try {
         setStage("reading");
@@ -230,7 +352,7 @@ function ImportarPage() {
             file_base64,
             filename: file.name,
             client_id: uploadClientId,
-            period: uploadPeriodFromIsoMonth(uploadPeriod),
+            period: uploadPeriodFromIsoMonth(entry.periodIso),
           }),
         });
 
@@ -242,7 +364,12 @@ function ImportarPage() {
           continue;
         }
 
-        allTransactions.push(...(result.transactions ?? []));
+        allTransactions.push(
+          ...(result.transactions ?? []).map((t: Transaction) => ({
+            ...t,
+            client_id: uploadClientId,
+          })),
+        );
         allFileBanks.push({ name: file.name, bank: result.bank ?? "Outro" });
         if (result.classify_timedout) anyTimedOut = true;
       } catch (err) {
@@ -256,10 +383,14 @@ function ImportarPage() {
     setFileBanks(allFileBanks);
     if (anyTimedOut) setClassifyTimedOut(true);
 
+    const uniqueClients = [...new Set(plan.map((p) => p.clientId).filter(Boolean))];
+    if (uniqueClients.length === 1) setClientId(uniqueClients[0]);
+
     const dominant = dominantIsoMonthFromDates(allTransactions.map((t) => t.date).filter(Boolean));
-    if (dominant && dominant !== uploadPeriod) {
+    const primaryPeriod = plan[0]?.periodIso ?? uploadPeriod;
+    if (dominant && dominant !== primaryPeriod) {
       setPeriodMismatch(
-        `Os lançamentos são majoritariamente de ${uploadPeriodFromIsoMonth(dominant)}, mas o período selecionado é ${uploadPeriodFromIsoMonth(uploadPeriod)}. Ajuste o mês acima para o histórico ficar correto.`,
+        `Os lançamentos são majoritariamente de ${uploadPeriodFromIsoMonth(dominant)}, mas o período selecionado é ${uploadPeriodFromIsoMonth(primaryPeriod)}. Ajuste o mês acima para o histórico ficar correto.`,
       );
     } else {
       setPeriodMismatch(null);
@@ -303,49 +434,68 @@ function ImportarPage() {
         return;
       }
 
-      const payloads: ApproveTxPayload[] = await Promise.all(
-        toApprove.map(async (t) => {
-          const inst = installments[t.id];
-          const base: ApproveTxPayload = {
-            id: t.id,
-            category: t.category!,
-            is_recurring: t.is_recurring ?? false,
-          };
-          if (inst?.enabled && inst.total >= 2 && inst.number >= 1 && inst.number <= inst.total) {
-            base.installment_number = inst.number;
-            base.installment_total = inst.total;
-            base.installment_group_id = await installmentGroupId(
-              clientId,
-              t.description,
-              inst.total,
-              t.date,
-              t.id,
-            );
-          }
-          return base;
-        }),
-      );
-
-      const result = await approveTransactionsBatch(payloads, { clientId });
-      if (!result.ok) {
-        setError(`Erro ao aprovar: ${result.error}`);
+      const missingClient = toApprove.filter((t) => !(t.client_id ?? clientId));
+      if (missingClient.length > 0) {
+        setError("Não foi possível identificar o cliente de alguns lançamentos selecionados.");
         return;
       }
 
-      toastReconciliationSuggestions(result.reconcileSuggestions);
+      const byClient = new Map<string, typeof toApprove>();
+      for (const t of toApprove) {
+        const cid = t.client_id ?? clientId;
+        const group = byClient.get(cid) ?? [];
+        group.push(t);
+        byClient.set(cid, group);
+      }
 
-      // Refetch status real — aprovação parcial não deve marcar todos como approved na UI
-      const payloadIds = payloads.map((p) => p.id);
-      const { data: verifiedRows } = await supabase()
-        .from("transactions")
-        .select("id, status")
-        .in("id", payloadIds);
-      const approvedIds = new Set(
-        (verifiedRows ?? []).filter((r) => r.status === "approved").map((r) => r.id),
-      );
+      const approvedIds = new Set<string>();
+      let totalPayloads = 0;
 
-      if (approvedIds.size < payloads.length) {
-        setError(`Apenas ${approvedIds.size} de ${payloads.length} lançamentos foram aprovados.`);
+      for (const [batchClientId, group] of byClient) {
+        const payloads: ApproveTxPayload[] = await Promise.all(
+          group.map(async (t) => {
+            const inst = installments[t.id];
+            const base: ApproveTxPayload = {
+              id: t.id,
+              category: t.category!,
+              is_recurring: t.is_recurring ?? false,
+            };
+            if (inst?.enabled && inst.total >= 2 && inst.number >= 1 && inst.number <= inst.total) {
+              base.installment_number = inst.number;
+              base.installment_total = inst.total;
+              base.installment_group_id = await installmentGroupId(
+                batchClientId,
+                t.description,
+                inst.total,
+                t.date,
+                t.id,
+              );
+            }
+            return base;
+          }),
+        );
+        totalPayloads += payloads.length;
+
+        const result = await approveTransactionsBatch(payloads, { clientId: batchClientId });
+        if (!result.ok) {
+          setError(`Erro ao aprovar: ${result.error}`);
+          return;
+        }
+
+        toastReconciliationSuggestions(result.reconcileSuggestions);
+
+        const payloadIds = payloads.map((p) => p.id);
+        const { data: verifiedRows } = await supabase()
+          .from("transactions")
+          .select("id, status")
+          .in("id", payloadIds);
+        for (const row of verifiedRows ?? []) {
+          if (row.status === "approved") approvedIds.add(row.id);
+        }
+      }
+
+      if (approvedIds.size < totalPayloads) {
+        setError(`Apenas ${approvedIds.size} de ${totalPayloads} lançamentos foram aprovados.`);
       }
 
       setTransactions((prev) =>
@@ -506,16 +656,24 @@ function ImportarPage() {
           </div>
         )}
 
-        {/* Cliente + período do extrato (antes do upload) */}
+        {/* Cliente + período do extrato (default / arquivo único) */}
         <div className="grid lg:grid-cols-2 gap-5">
           <div className="aurora-card">
-            <div className="aurora-cap mb-3">Cliente</div>
+            <div className="aurora-cap mb-3">Cliente {files.length > 1 ? "(padrão)" : ""}</div>
             <select
               value={clientId}
               onChange={(e) => {
                 const id = e.target.value;
                 setClientId(id);
-                if (id && files.length > 0 && stage === "idle") setAwaitingConfirm(true);
+                if (files.length === 1 && filePlan.length === 1) {
+                  setFilePlan([
+                    {
+                      ...filePlan[0],
+                      clientId: id,
+                      clientSource: "manual",
+                    },
+                  ]);
+                }
               }}
               disabled={clientsLoading}
               className="w-full bg-white px-3 py-2.5 text-[13px]"
@@ -530,13 +688,22 @@ function ImportarPage() {
             </select>
           </div>
           <div className="aurora-card">
-            <div className="aurora-cap mb-3">Período do extrato</div>
+            <div className="aurora-cap mb-3">Período {files.length > 1 ? "(padrão)" : "do extrato"}</div>
             <input
               type="month"
               value={uploadPeriod}
               onChange={(e) => {
                 setUploadPeriod(e.target.value);
                 setPeriodInferredFromFile(false);
+                if (files.length === 1 && filePlan.length === 1) {
+                  setFilePlan([
+                    {
+                      ...filePlan[0],
+                      periodIso: e.target.value,
+                      periodSource: "manual",
+                    },
+                  ]);
+                }
               }}
               className="w-full bg-white px-3 py-2.5 text-[13px]"
               style={{ border: "1px solid var(--line)" }}
@@ -546,8 +713,11 @@ function ImportarPage() {
               style={{ color: "var(--muted-foreground)", lineHeight: 1.5 }}
             >
               Mês de referência do extrato ({uploadPeriodLabel}). Padrão: mês anterior.
+              {files.length > 1 && (
+                <> No envio em massa, cada arquivo pode ter período próprio — confira na confirmação.</>
+              )}
               {periodInferredFromFile && (
-                <> Detectado automaticamente pelo nome do arquivo — confira antes de enviar.</>
+                <> Detectado automaticamente — confira antes de enviar.</>
               )}
             </p>
           </div>
@@ -619,6 +789,23 @@ function ImportarPage() {
           </div>
         )}
 
+        {planIdentifying && (
+          <div className="aurora-card flex items-center gap-4">
+            <div
+              className="w-5 h-5 rounded-full border-2 animate-spin"
+              style={{ borderColor: "var(--green)", borderTopColor: "transparent" }}
+            />
+            <div>
+              <div className="text-[13px]" style={{ fontWeight: 500 }}>
+                Identificando cliente e período com IA…
+              </div>
+              <div className="text-[11px]" style={{ color: "var(--muted-foreground)" }}>
+                {files.length} arquivo(s) · analisando nome e cabeçalho do extrato
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Status */}
         {stage !== "idle" && stage !== "done" && (
           <div className="aurora-card flex items-center gap-4">
@@ -628,8 +815,8 @@ function ImportarPage() {
             />
             <div>
               <div className="text-[13px]" style={{ fontWeight: 500 }}>
-                {files.length > 1
-                  ? `Arquivo ${currentFileIndex + 1} de ${files.length}: ${files[currentFileIndex]?.name} — `
+                {filePlan.length > 1
+                  ? `Arquivo ${currentFileIndex + 1} de ${filePlan.length}: ${filePlan[currentFileIndex]?.filename ?? ""} — `
                   : ""}
                 {stage === "reading" && "Lendo arquivo..."}
                 {stage === "classifying" && "Classificando com IA..."}
@@ -1307,7 +1494,7 @@ function ImportarPage() {
       {editTx && (
         <EditTransactionModal
           tx={editTx}
-          categories={CATEGORIAS ?? []}
+          categories={editCategories ?? []}
           onClose={() => setEditTx(null)}
           onSave={(id, updates) => {
             setTransactions((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
@@ -1365,18 +1552,20 @@ function ImportarPage() {
         />
       )}
 
-      {awaitingConfirm && clientId && files.length > 0 && (
+      {awaitingConfirm && files.length > 0 && !planIdentifying && (
         <ConfirmUploadModal
-          clientName={clients.find((c) => c.id === clientId)?.name ?? ""}
-          uploadPeriodLabel={uploadPeriodLabel}
+          clients={clients}
+          filePlan={filePlan}
           files={files}
+          onUpdatePlan={setFilePlan}
           onConfirm={() => {
             setAwaitingConfirm(false);
-            handleUpload(files);
+            handleUpload(filePlan);
           }}
           onCancel={() => {
             setAwaitingConfirm(false);
             setFiles([]);
+            setFilePlan([]);
             setError(null);
             if (inputRef.current) inputRef.current.value = "";
           }}
@@ -1473,19 +1662,36 @@ function CancelUploadModal({
 }
 
 function ConfirmUploadModal({
-  clientName,
-  uploadPeriodLabel,
-  files,
+  clients,
+  filePlan,
+  onUpdatePlan,
   onConfirm,
   onCancel,
 }: {
-  clientName: string;
-  uploadPeriodLabel: string;
+  clients: ClientOption[];
+  filePlan: FileUploadPlanEntry[];
   files: File[];
+  onUpdatePlan: (plan: FileUploadPlanEntry[]) => void;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const multi = files.length > 1;
+  const multi = filePlan.length > 1;
+  const ready = allPlanEntriesReady(filePlan);
+
+  function updateEntry(fileIndex: number, patch: Partial<FileUploadPlanEntry>) {
+    onUpdatePlan(
+      filePlan.map((entry) =>
+        entry.fileIndex === fileIndex ? { ...entry, ...patch } : entry,
+      ),
+    );
+  }
+
+  function sourceLabel(source: FileUploadPlanEntry["clientSource"]) {
+    if (source === "filename") return "nome do arquivo";
+    if (source === "ai") return "IA";
+    if (source === "manual") return "manual";
+    return "padrão";
+  }
 
   return (
     <div
@@ -1497,7 +1703,7 @@ function ConfirmUploadModal({
     >
       <div
         className="aurora-modal w-full bg-white overflow-hidden"
-        style={{ maxWidth: 480, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}
+        style={{ maxWidth: multi ? 720 : 520, boxShadow: "0 20px 60px rgba(0,0,0,0.18)" }}
       >
         <div
           className="px-6 py-5 flex items-start justify-between"
@@ -1506,7 +1712,7 @@ function ConfirmUploadModal({
           <div>
             <div className="aurora-cap mb-0.5">Confirmar</div>
             <div className="aurora-serif text-[20px]">
-              {multi ? "Importar extratos" : "Importar extrato"}
+              {multi ? "Importar extratos em massa" : "Importar extrato"}
             </div>
           </div>
           <button
@@ -1517,38 +1723,80 @@ function ConfirmUploadModal({
           </button>
         </div>
         <div className="px-6 py-5 flex flex-col gap-4">
-          <div className="flex justify-between items-center text-[13px]">
-            <span style={{ color: "var(--muted-foreground)" }}>Cliente</span>
-            <span style={{ fontWeight: 500 }}>{clientName}</span>
-          </div>
-          <div className="flex justify-between items-center text-[13px]">
-            <span style={{ color: "var(--muted-foreground)" }}>Período do extrato</span>
-            <span style={{ fontWeight: 500 }}>{uploadPeriodLabel}</span>
+          <p className="text-[12px]" style={{ color: "var(--muted-foreground)", lineHeight: 1.6 }}>
+            Cliente e período sugeridos pelo nome do arquivo e pela leitura do cabeçalho (IA).
+            Ajuste antes de processar.
+          </p>
+
+          <div className="overflow-x-auto" style={{ maxHeight: 320 }}>
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--line)" }}>
+                  <th className="text-left py-2 pr-3 aurora-cap">Arquivo</th>
+                  <th className="text-left py-2 pr-3 aurora-cap">Cliente</th>
+                  <th className="text-left py-2 aurora-cap">Período</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filePlan.map((entry) => (
+                  <tr key={entry.fileIndex} style={{ borderBottom: "1px solid var(--line)" }}>
+                    <td className="py-3 pr-3 align-top">
+                      <div className="truncate max-w-[180px]" title={entry.filename}>
+                        {entry.filename}
+                      </div>
+                      <div className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+                        {sourceLabel(entry.clientSource)} · {sourceLabel(entry.periodSource)}
+                      </div>
+                    </td>
+                    <td className="py-3 pr-3 align-top">
+                      <select
+                        value={entry.clientId}
+                        onChange={(e) =>
+                          updateEntry(entry.fileIndex, {
+                            clientId: e.target.value,
+                            clientSource: "manual",
+                          })
+                        }
+                        className="w-full min-w-[160px] bg-white px-2 py-2"
+                        style={{ border: "1px solid var(--line)" }}
+                      >
+                        <option value="">Escolher cliente</option>
+                        {clients.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="py-3 align-top">
+                      <input
+                        type="month"
+                        value={entry.periodIso}
+                        onChange={(e) =>
+                          updateEntry(entry.fileIndex, {
+                            periodIso: e.target.value,
+                            periodSource: "manual",
+                          })
+                        }
+                        className="w-full min-w-[140px] bg-white px-2 py-2"
+                        style={{ border: "1px solid var(--line)" }}
+                      />
+                      <div className="text-[10px] mt-1" style={{ color: "var(--muted-foreground)" }}>
+                        {planEntryPeriodLabel(entry)}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
-              {multi ? `${files.length} arquivos` : "Arquivo"}
-            </span>
-            <div className="flex flex-col gap-1 overflow-y-auto" style={{ maxHeight: 200 }}>
-              {files.map((f, i) => (
-                <div
-                  key={i}
-                  className="text-[12px] truncate px-3 py-2"
-                  title={f.name}
-                  style={{
-                    background: "#FAFBFA",
-                    border: "1px solid var(--line)",
-                    borderRadius: 12,
-                  }}
-                >
-                  {f.name}
-                </div>
-              ))}
+          {!ready && (
+            <div className="text-[12px]" style={{ color: "var(--tan)" }}>
+              Selecione o cliente em todas as linhas para continuar.
             </div>
-          </div>
+          )}
 
-          {/* Banco detectado automaticamente pela IA */}
           <div
             className="flex items-start gap-3 px-4 py-3"
             style={{
@@ -1559,21 +1807,9 @@ function ConfirmUploadModal({
           >
             <span style={{ fontSize: 16, lineHeight: 1.2 }}>🏦</span>
             <div className="text-[12px]" style={{ color: "var(--foreground)", lineHeight: 1.6 }}>
-              O banco {multi ? "de cada extrato" : "do extrato"} será{" "}
-              <strong>identificado automaticamente</strong> pela IA a partir do conteúdo do arquivo.
-              Se necessário, você pode corrigir depois em <strong>Histórico de Extratos</strong>.
+              O banco {multi ? "de cada extrato" : "do extrato"} será identificado automaticamente
+              pela IA ao processar o arquivo.
             </div>
-          </div>
-
-          <div
-            className="text-[12px] px-4 py-3"
-            style={{
-              background: "rgba(27,57,77,0.06)",
-              color: "var(--foreground)",
-              lineHeight: 1.6,
-            }}
-          >
-            Os lançamentos serão vinculados a <strong>{clientName}</strong>.
           </div>
 
           <div className="flex justify-end gap-3 pt-1">
@@ -1593,7 +1829,8 @@ function ConfirmUploadModal({
             <button
               type="button"
               onClick={onConfirm}
-              className="text-[10px] uppercase px-6 py-3 transition-opacity"
+              disabled={!ready}
+              className="text-[10px] uppercase px-6 py-3 transition-opacity disabled:opacity-50"
               style={{
                 background: "var(--green)",
                 color: "#fff",
@@ -1602,7 +1839,7 @@ function ConfirmUploadModal({
                 borderRadius: 999,
               }}
             >
-              Confirmar importação
+              {multi ? `Importar ${filePlan.length} extratos` : "Confirmar importação"}
             </button>
           </div>
         </div>

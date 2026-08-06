@@ -6,8 +6,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Carrega .env.test sem depender do pacote dotenv
-function loadEnvFile(filepath: string) {
+// Carrega .env e .env.test (teste sobrescreve base)
+function loadEnvFile(filepath: string, override = false) {
   if (!fs.existsSync(filepath)) return;
   const content = fs.readFileSync(filepath, 'utf-8');
   for (const line of content.split('\n')) {
@@ -17,13 +17,14 @@ function loadEnvFile(filepath: string) {
     if (eqIdx === -1) continue;
     const key = trimmed.slice(0, eqIdx).trim();
     const raw = trimmed.slice(eqIdx + 1).trim();
-    // remove aspas opcionais e colchetes angulares de placeholder (<valor>)
     const val = raw.replace(/^(['"])(.*)\1$/, '$2').replace(/^<(.*)>$/, '$1');
-    if (key && !process.env[key]) process.env[key] = val;
+    if (key && (override || !process.env[key])) process.env[key] = val;
   }
 }
 
-loadEnvFile(path.resolve(__dirname, '.env.test'));
+loadEnvFile(path.resolve(__dirname, '.env'));
+// .env.test tem precedência sobre .env (credenciais e APP_URL de teste)
+loadEnvFile(path.resolve(__dirname, '.env.test'), true);
 
 const BASE_URL = process.env.APP_URL || 'http://localhost:3000';
 
@@ -46,30 +47,32 @@ export default defineConfig({
     timezoneId: 'America/Sao_Paulo',
   },
   projects: [
-    // Roda primeiro: salva estados de autenticação
     {
-      name: 'setup',
-      testMatch: /auth\.setup\.ts/,
+      name: 'setup-admin',
+      testMatch: /auth-admin\.setup\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
-    // Testes admin (usa estado salvo pelo setup)
+    {
+      name: 'setup-portal',
+      testMatch: /auth-portal\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
     {
       name: 'admin',
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'tests/e2e/.auth/admin.json',
       },
-      dependencies: ['setup'],
+      dependencies: ['setup-admin'],
       testIgnore: ['**/01-auth.spec.ts', '**/06-portal.spec.ts', '**/10-landing.spec.ts'],
     },
-    // Testes do portal do cliente
     {
       name: 'portal',
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'tests/e2e/.auth/portal.json',
       },
-      dependencies: ['setup'],
+      dependencies: ['setup-portal'],
       testMatch: ['**/06-portal.spec.ts'],
     },
     // Testes públicos (sem autenticação prévia)

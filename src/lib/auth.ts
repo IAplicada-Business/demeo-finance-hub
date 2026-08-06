@@ -57,6 +57,21 @@ export function usePortalRole() {
   });
 }
 
+/** Cliente do portal — fonte da verdade via RPC current_client_id() (user_client_mapping). */
+export function usePortalClientId() {
+  const { data: session } = useSession();
+  return useQuery({
+    queryKey: ["auth", "portalClientId", session?.user?.id],
+    enabled: !!session?.user?.id,
+    queryFn: async (): Promise<string | null> => {
+      const { data, error } = await supabase().rpc("current_client_id");
+      if (error) throw error;
+      return (data as string | null) ?? null;
+    },
+    staleTime: 60_000,
+  });
+}
+
 export function useIsOwner() {
   const { data: session } = useSession();
   return useQuery({

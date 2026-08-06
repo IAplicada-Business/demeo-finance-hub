@@ -487,9 +487,9 @@ npm run format     # Prettier
 
 | Variável | Descrição |
 | -------- | --------- |
-| `APP_URL` | URL do deploy para Playwright (ex.: preview Lovable). |
-| `TEST_ADMIN_EMAIL` / `TEST_ADMIN_PASSWORD` | Credenciais gestora para E2E. |
-| `TEST_PORTAL_EMAIL` / `TEST_PORTAL_PASSWORD` | Credenciais portal para E2E. |
+| `APP_URL` | URL pública do deploy para Playwright (**use o domínio final**, ex.: `https://auroragfe.com`; `*.lovable.app` pode redirecionar). |
+| `TEST_ADMIN_EMAIL` / `TEST_ADMIN_PASSWORD` | Credenciais gestora (aba Gestão). Validar: `node scripts/check-test-credentials.mjs` |
+| `TEST_PORTAL_EMAIL` / `TEST_PORTAL_PASSWORD` | Credenciais portal (aba Cliente) — usuário deve existir em `user_client_mapping`. |
 
 **Edge Functions (secrets no Supabase/Lovable)**
 
@@ -518,8 +518,8 @@ Suíte em três camadas — specs versionadas no repo; segredos e artefatos fica
 | **Unitários** | `npm run test` | `tests/unit/` (Jest) |
 | **Integração** | `npm run test:integration` | reservado (`tests/integration/`) |
 | **E2E** | `npm run test:e2e` | `tests/e2e/` (Playwright) |
-| **Fluxos manuais** | `node scripts/test-*.mjs` | scripts contra Supabase real |
-| **Tudo** | `npm run test:all` | Jest + Playwright |
+| **Fluxos manuais** | `npm run test:flows` | scripts contra Supabase real |
+| **Tudo** | `npm run test:all` | Jest + fluxos + Playwright |
 
 **Setup E2E:** copie `.env.test.example` → `.env.test` com credenciais de teste e
 `APP_URL` do deploy (preview ou produção). Coloque fixtures de extrato em
